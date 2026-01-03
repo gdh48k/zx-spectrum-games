@@ -1,6 +1,8 @@
 ; Atic Atac for Sinclair ZX Spectrum
 ; (c) 1983 Ashby Computers and Graphics Ltd.
 ;
+; Modified by gdh48k - Based on the disassebly by obo
+;
 ; Disassembled by obo
 ;
 ; Differences from original release:

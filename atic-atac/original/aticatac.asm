@@ -1607,10 +1607,10 @@ loc_7CC1:
                 inc     de
                 djnz    loc_7CC1
                 ld      hl, &b800           ; copyright at 0,184
-                ld      de, copyright_msg
+                ld      de, menu_copyright
                 call    colour_text          ; show a line of text, first byte is attr
                 ld      hl, &20              ; header at 32,0
-                ld      de, header_msg
+                ld      de, menu_header
                 jp      colour_text          ; show a line of text, first byte is attr
 
 menu_attrs:     db  &45, &45, &45, &45, &45, &45, &47
@@ -1631,12 +1631,35 @@ menu_options:   db  '1  KEYBOAR'
                 db  '0  START GAM'
                 db  &c5
 
-copyright_msg:  db  &47
+mod_options:   db  '1  BEN'
+                db  &c4
+                db  '2  BREA'
+                db  &cb
+                db  '3  HAC'
+                db  &cb
+                db  '4  RIGH'
+                db  &d4
+                db  '5  WIER'
+                db  &c4
+                db  '6  FAF'
+                db  &c6
+                db  '0  QUI'
+                db  &d4
+
+menu_copyright:  db  &47
                 db  '%1983 A.C.G. ALL RIGHTS RESERVE'
                 db  &c4
 
-header_msg:     db  &47
+mod_copyright:  db  &47
+                db  '%2026 GDH48K NO RIGHTS RESERVE'
+                db  &c4
+
+menu_header:     db  &47
                 db  'ATICATAC GAME SELECTIO'
+                db  &ce
+
+mod_header:     db  &47
+                db  'ATICATAC MOD SELECTIO'
                 db  &ce
 
 print_text:

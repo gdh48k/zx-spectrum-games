@@ -19,6 +19,7 @@ sysvar_FRAMES:  equ &5c78
                 org &5e00
 
 menu_selection: db  0
+mod_selection:  db  0
 charset_addr:   dw  0
 last_FRAMES:    db  0
 in_handlers:    db  0                         ; flag set but never read

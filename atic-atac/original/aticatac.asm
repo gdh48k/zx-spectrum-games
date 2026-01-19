@@ -1613,6 +1613,13 @@ loc_7CC1:
                 ld      de, menu_header
                 jp      colour_text          ; show a line of text, first byte is attr
 
+
+; Menu Table Offsets
+; 0: attrs, 2:ycoords, 4:options, 6:copyright, 8:header, 10:selection
+
+main_menu_data: db menu_attrs, menu_ycoords, menu_options, menu_copyright, menu_header, menu_selection, init_main_menu
+mod_menu_data:  db menu_attrs, menu_ycoords, mod_options, mod_copyright, mod_header, mod_selection, init_mod_menu 
+
 menu_attrs:     db  &45, &45, &45, &45, &45, &45, &47
 menu_ycoords:   db  &10, &28, &40, &58, &70, &88, &a0
 

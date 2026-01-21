@@ -1594,7 +1594,7 @@ draw_menu_text:
                 ld      e, (ix+4)            ; TEST3 - load DE' with OPTIONS via IX, not hardcoded
                 ld      d, (ix+5)
                 ;ld      de, menu_options     ; 
-                ld      b, 7                 ; 7 lines
+                ld      b, (ix+12)           ; 7 lines
 loc_7CC1:
                 exx
                 ld      a, (de)              ; text attribute colour
@@ -1626,9 +1626,10 @@ loc_7CC1:
 
 
 ; Menu Table Offsets
-; 0: attrs, 2:ycoords, 4:options, 6:copyright, 8:header, 10:selection
+; 0: attrs, 2:ycoords, 4:options, 6:copyright, 8:header, 10:selection, 12:count
 
-main_menu_data: dw main_attrs, main_ycoords, main_options, main_copyright, main_header, main_selection
+main_menu_data: dw main_attrs, main_ycoords, main_options, main_copyright, main_header, main_selection 
+main_count      db &07
 ;mod_menu_data:  dw main_attrs, menu_ycoords, mod_options, mod_copyright, mod_header, mod_selection
 
 main_attrs:     db  &45, &45, &45, &45, &45, &45, &47

@@ -18,7 +18,7 @@ sysvar_FRAMES:  equ &5c78
 
                 org &5e00
 
-menu_selection: db  0
+main_selection: db  0
 mod_selection:  db  0
 charset_addr:   dw  0
 last_FRAMES:    db  0
@@ -69,7 +69,7 @@ food_ptr:       dw  0
                 org &6000
 start:
                 di
-                ld      sp, menu_selection
+                ld      sp, main_selection
                 ld      a, (sysvar_FRAMES+1)
                 cp      &25                  ; is frames MSB as expected?
                 nop ; was RET NZ for copy-protection check
@@ -1482,8 +1482,8 @@ room_94:        dw  door_93_94
 room_none:      dw  0
 
 reset_menu:
-                ld      hl, menu_selection
-                ld      b, width_bytes - menu_selection
+                ld      hl, main_selection
+                ld      b, width_bytes - main_selection
 loc_7C1E:
                 ld      (hl), 0              ; clear menu data
                 inc     hl
@@ -1500,7 +1500,7 @@ menu_loop:
                 in      a, (&fe)
                 cpl                          ; set bits now mean pressed keys
                 ld      e, a
-                ld      a, (menu_selection)
+                ld      a, (main_selection)
                 bit     0, e                 ; 1 pressed?
                 jr      z, loc_7C43          ; jump if not
                 and     &f9                 ; select Keyboard
@@ -1536,11 +1536,11 @@ loc_7C61:
                 and     &e7
                 or      &10                  ; select Serf
 loc_7C73:
-                ld      (menu_selection), a
+                ld      (main_selection), a
                 ld      c, a
                 bit     0, e                 ; 0 pressed?
                 jp      nz, start_game       ; jump if so
-                ld      hl, menu_attrs
+                ld      hl, main_attrs
                 ld      b, 3
                 ld      a, c
                 call    set_menu_attrs       ; highlight keyboard/kempston/cursor
@@ -1586,7 +1586,7 @@ draw_menu_text:
                 ld      ix, main_menu_data
                 ld      e, (ix+0)            ; TEST1 - load DE with ATTRS via IX, not hardcoded
                 ld      d, (ix+1) 
-                ;ld      de, menu_attrs
+                ;ld      de, main_attrs
                 exx
                 ld      l, (ix+2)            ; TEST2 - load HL' with YCOORDS via IX, not hardcoded
                 ld      h, (ix+3)
@@ -1616,25 +1616,25 @@ loc_7CC1:
                 ld      hl, &b800           ; copyright at 0,184
                 ld      e, (ix+6)            ; TEST4 - load DE with COPYRIGHT via IX, not hardcoded
                 ld      d, (ix+7)
-                ;ld      de, menu_copyright
+                ;ld      de, main_copyright
                 call    colour_text          ; show a line of text, first byte is attr
                 ld      hl, &20              ; header at 32,0
                 ld      e, (ix+8)            ; TEST5 - load DE with HEADER via IX, not hardcoded
                 ld      d, (ix+9)
-                ;ld      de, menu_header
+                ;ld      de, main_header
                 jp      colour_text          ; show a line of text, first byte is attr
 
 
 ; Menu Table Offsets
 ; 0: attrs, 2:ycoords, 4:options, 6:copyright, 8:header, 10:selection
 
-main_menu_data: dw menu_attrs, menu_ycoords, menu_options, menu_copyright, menu_header, menu_selection
-;mod_menu_data:  dw menu_attrs, menu_ycoords, mod_options, mod_copyright, mod_header, mod_selection
+main_menu_data: dw main_attrs, main_ycoords, main_options, main_copyright, main_header, main_selection
+;mod_menu_data:  dw main_attrs, menu_ycoords, mod_options, mod_copyright, mod_header, mod_selection
 
-menu_attrs:     db  &45, &45, &45, &45, &45, &45, &47
-menu_ycoords:   db  &10, &28, &40, &58, &70, &88, &a0
+main_attrs:     db  &45, &45, &45, &45, &45, &45, &47
+main_ycoords:   db  &10, &28, &40, &58, &70, &88, &a0
 
-menu_options:   db  '1  KEYBOAR'
+main_options:   db  '1  KEYBOAR'
                 db  &c4
                 db  '2  KEMPSTON JOYSTIC'
                 db  &cb
@@ -1649,11 +1649,11 @@ menu_options:   db  '1  KEYBOAR'
                 db  '0  START GAM'
                 db  &c5
 
-menu_copyright:  db  &47
+main_copyright:  db  &47
                 db  '%1983 A.C.G. ALL RIGHTS RESERVE'
                 db  &c4
 
-menu_header:     db  &47
+main_header:     db  &47
                 db  'ATICATAC GAME SELECTIO'
                 db  &ce
 
@@ -1684,7 +1684,7 @@ start_game:
                 jp      enter_room
 
 main_loop:
-                ld      sp, menu_selection
+                ld      sp, main_selection
                 ei
                 xor     a
 loc_7DC8:
@@ -4659,7 +4659,7 @@ read_cursor:
 
 ; return controls in A (FUDLR order, negative logic)
 read_controls:
-                ld      a, (menu_selection)
+                ld      a, (main_selection)
                 and     6
                 jr      z, read_keyboard
                 cp      4
@@ -4737,7 +4737,7 @@ loc_943D:
 
 ; prepare player to spawn
 prepare_player:
-                ld      a, (menu_selection)
+                ld      a, (main_selection)
                 rlca
                 and     &30                  ; base character graphic
                 add     a, 8                 ; offset to desired facing direction
@@ -7304,7 +7304,7 @@ loc_A259:
 draw_lives:
                 push    ix
                 ld      ix, entity_to_draw
-                ld      a, (menu_selection)
+                ld      a, (main_selection)
                 rlca
                 and     &30                  ; extract character type from menu
                 or      1                    ; offset to first graphic

@@ -1583,10 +1583,17 @@ set_flash_on:
 draw_menu_text:
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
-                ld      de, menu_attrs
+                ld      ix, main_menu_data
+                ld      e, (ix+0)            ; TEST1 - load DE with ATTRS via IX, not hardcoded
+                ld      d, (ix+1) 
+                ;ld      de, menu_attrs
                 exx
-                ld      hl, menu_ycoords
-                ld      de, menu_options     ; "1  KEYBOAR"
+                ld      l, (ix+2)            ; TEST2 - load HL' with YCOORDS via IX, not hardcoded
+                ld      h, (ix+3)
+                ;ld      hl, menu_ycoords
+                ld      e, (ix+4)            ; TEST3 - load DE' with OPTIONS via IX, not hardcoded
+                ld      d, (ix+5)
+                ;ld      de, menu_options     ; 
                 ld      b, 7                 ; 7 lines
 loc_7CC1:
                 exx
@@ -1607,18 +1614,22 @@ loc_7CC1:
                 inc     de
                 djnz    loc_7CC1
                 ld      hl, &b800           ; copyright at 0,184
-                ld      de, copyright_msg
+                ld      e, (ix+6)            ; TEST4 - load DE with COPYRIGHT via IX, not hardcoded
+                ld      d, (ix+7)
+                ;ld      de, menu_copyright
                 call    colour_text          ; show a line of text, first byte is attr
                 ld      hl, &20              ; header at 32,0
-                ld      de, header_msg
+                ld      e, (ix+8)            ; TEST5 - load DE with HEADER via IX, not hardcoded
+                ld      d, (ix+9)
+                ;ld      de, menu_header
                 jp      colour_text          ; show a line of text, first byte is attr
 
 
 ; Menu Table Offsets
 ; 0: attrs, 2:ycoords, 4:options, 6:copyright, 8:header, 10:selection
 
-main_menu_data: db menu_attrs, menu_ycoords, menu_options, menu_copyright, menu_header, menu_selection, init_main_menu
-mod_menu_data:  db menu_attrs, menu_ycoords, mod_options, mod_copyright, mod_header, mod_selection, init_mod_menu 
+main_menu_data: dw menu_attrs, menu_ycoords, menu_options, menu_copyright, menu_header, menu_selection
+;mod_menu_data:  dw menu_attrs, menu_ycoords, mod_options, mod_copyright, mod_header, mod_selection
 
 menu_attrs:     db  &45, &45, &45, &45, &45, &45, &47
 menu_ycoords:   db  &10, &28, &40, &58, &70, &88, &a0
@@ -1638,11 +1649,11 @@ menu_options:   db  '1  KEYBOAR'
                 db  '0  START GAM'
                 db  &c5
 
-copyright_msg:  db  &47
+menu_copyright:  db  &47
                 db  '%1983 A.C.G. ALL RIGHTS RESERVE'
                 db  &c4
 
-header_msg:     db  &47
+menu_header:     db  &47
                 db  'ATICATAC GAME SELECTIO'
                 db  &ce
 

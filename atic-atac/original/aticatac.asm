@@ -1629,11 +1629,12 @@ loc_7CC1:
 ; 0: attrs, 2:ycoords, 4:options, 6:copyright, 8:header, 10:selection, 12:count
 
 main_menu_data: dw main_attrs, main_ycoords, main_options, main_copyright, main_header, main_selection 
-main_count      db &07
-;mod_menu_data:  dw main_attrs, menu_ycoords, mod_options, mod_copyright, mod_header, mod_selection
+main_count      db &08
+;mod_menu_data:  dw mod_attrs, mod_ycoords, mod_options, mod_copyright, mod_header, mod_selection
+;mod_count       db &07
 
-main_attrs:     db  &45, &45, &45, &45, &45, &45, &47
-main_ycoords:   db  &10, &28, &40, &58, &70, &88, &a0
+main_attrs:     db  &45, &45, &45, &45, &45, &45, &47, &47
+main_ycoords:   db  &10, &28, &40, &58, &70, &88, &98, &a8
 
 main_options:   db  '1  KEYBOAR'
                 db  &c4
@@ -1647,6 +1648,8 @@ main_options:   db  '1  KEYBOAR'
                 db  &c4
                 db  '6  SER'
                 db  &c6
+                db  '7  SEE'
+                db  &d2
                 db  '0  START GAM'
                 db  &c5
 
@@ -1654,7 +1657,7 @@ main_copyright:  db  &47
                 db  '%1983 A.C.G. ALL RIGHTS RESERVE'
                 db  &c4
 
-main_header:     db  &47
+main_header:    db  &47
                 db  'ATICATAC GAME SELECTIO'
                 db  &ce
 

@@ -20,6 +20,7 @@ sysvar_FRAMES:  equ &5c78
 
 main_selection: db  0
 mod_selection:  db  0
+current_menu:   dw  0
 charset_addr:   dw  0
 last_FRAMES:    db  0
 in_handlers:    db  0                         ; flag set but never read
@@ -1484,6 +1485,7 @@ room_none:      dw  0
 reset_menu:
                 ld      hl, main_selection
                 ld      b, width_bytes - main_selection
+
 loc_7C1E:
                 ld      (hl), 0              ; clear menu data
                 inc     hl
@@ -1492,7 +1494,10 @@ loc_7C1E:
                 ld      (charset_addr), hl
 main_menu:
                 call    clear_screen         ; clear display, attributes, and set black border
+                ld      hl, main_menu_data
+                ld      (current_menu), hl
                 call    draw_menu_icons      ; draw menu icons for controls and player acharacters
+
 menu_loop:
                 call    draw_menu_text
                 ld      a, &f7              ; xxx54321
@@ -1539,7 +1544,7 @@ loc_7C73:
                 ld      (main_selection), a
                 ld      c, a
                 bit     0, e                 ; 0 pressed?
-                jp      nz, start_game       ; jump if so
+                jp      nz, zero_pressed       ; jump if so
                 ld      hl, main_attrs
                 ld      b, 3
                 ld      a, c
@@ -1549,7 +1554,17 @@ loc_7C73:
                 rrca
                 rrca
                 call    set_menu_attrs       ; highlight knight/wizard/serf
-                jp      menu_loop
+                jp      menu_loop         
+
+zero_pressed:   ld      hl, (current_menu)           
+                ld      de, main_menu_data
+                sbc     hl, de
+                jp      z, start_game
+                ; add switch menu logic
+; switch_menu:   ld      hl, mod_menu_data
+;                ld      (current_menu), hl
+;                jp      menu_loop
+                
 
 ; set menu attrs to reflect current selection
 set_menu_attrs:
@@ -1583,7 +1598,7 @@ set_flash_on:
 draw_menu_text:
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
-                ld      ix, main_menu_data
+                ld      ix,(current_menu)
                 ld      e, (ix+0)            ; TEST1 - load DE with ATTRS via IX, not hardcoded
                 ld      d, (ix+1) 
                 ;ld      de, main_attrs
@@ -1630,8 +1645,6 @@ loc_7CC1:
 
 main_menu_data: dw main_attrs, main_ycoords, main_options, main_copyright, main_header, main_selection 
 main_count      db &08
-;mod_menu_data:  dw mod_attrs, mod_ycoords, mod_options, mod_copyright, mod_header, mod_selection
-;mod_count       db &07
 
 main_attrs:     db  &45, &45, &45, &45, &45, &45, &47, &47
 main_ycoords:   db  &10, &28, &40, &58, &70, &88, &98, &a8
@@ -1660,6 +1673,29 @@ main_copyright:  db  &47
 main_header:    db  &47
                 db  'ATICATAC GAME SELECTIO'
                 db  &ce
+
+mod_menu_data:  dw mod_attrs, mod_ycoords, mod_options, mod_copyright, mod_header, mod_selection
+mod_count       db &04
+
+mod_attrs:     db  &45, &45, &45, &45
+mod_ycoords:   db  &10, &28, &40, &a8
+
+mod_options:    db  '1'
+                db  &c4
+                db  '2'
+                db  &cb
+                db  '3'
+                db  &cb
+                db  '0  EXI'
+                db  &d4
+
+mod_copyright:  db  &47
+                db  '%2026 GDH48K NO RIGHTS RESERVE'
+                db  &c4
+
+mod_header:    db  &47
+               db  'THE LANTER'
+               db  &ce
 
 print_text:
                 push    hl

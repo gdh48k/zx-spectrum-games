@@ -1492,10 +1492,15 @@ loc_7C1E:
                 djnz    loc_7C1E
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
-main_menu:
-                call    clear_screen         ; clear display, attributes, and set black border
                 ld      hl, main_menu_data
                 ld      (current_menu), hl
+init_menu:
+                call    clear_screen         ; clear display, attributes, and set black border
+                ld      hl, (current_menu)           
+                ld      de, mod_menu_data
+                or      a
+                sbc     hl, de               ;  current menu is mod menu?   
+                jp      z, menu_loop         ;  jp if so
                 call    draw_menu_icons      ; draw menu icons for controls and player acharacters
 
 menu_loop:
@@ -1505,7 +1510,8 @@ menu_loop:
                 in      a, (&fe)
                 cpl                          ; set bits now mean pressed keys
                 ld      e, a
-                ld      a, (main_selection)
+
+                ld      a, (IX+12)
                 bit     0, e                 ; 1 pressed?
                 jr      z, loc_7C43          ; jump if not
                 and     &f9                 ; select Keyboard
@@ -1541,10 +1547,13 @@ loc_7C61:
                 and     &e7
                 or      &10                  ; select Serf
 loc_7C73:
-                ld      (main_selection), a
+                ld      (IX+12), a
                 ld      c, a
+                bit     3, e                 ; 7 pressed?
+                jr      nz, seven_pressed    ; jump if so
                 bit     0, e                 ; 0 pressed?
-                jp      nz, zero_pressed       ; jump if so
+                jp      nz, zero_pressed     ; jump if so
+
                 ld      hl, main_attrs
                 ld      b, 3
                 ld      a, c
@@ -1558,13 +1567,25 @@ loc_7C73:
 
 zero_pressed:   ld      hl, (current_menu)           
                 ld      de, main_menu_data
+                or      a
                 sbc     hl, de
                 jp      z, start_game
                 ; add switch menu logic
-; switch_menu:   ld      hl, mod_menu_data
-;                ld      (current_menu), hl
-;                jp      menu_loop
-                
+switch_main:    ld      hl, main_menu_data
+                ld      (current_menu), hl
+                jp      init_menu
+seven_pressed:  ld      hl, (current_menu)           
+                ld      de, main_menu_data
+                or      a
+                sbc     hl, de
+                jp      z, switch_mod
+                and     &f9
+                or      4 
+                ld      (IX+12), a 
+switch_mod:     ld      hl, mod_menu_data
+                ld      (current_menu), hl
+                jp      init_menu
+
 
 ; set menu attrs to reflect current selection
 set_menu_attrs:
@@ -1644,10 +1665,10 @@ loc_7CC1:
 ; 0: attrs, 2:ycoords, 4:options, 6:copyright, 8:header, 10:selection, 12:count
 
 main_menu_data: dw main_attrs, main_ycoords, main_options, main_copyright, main_header, main_selection 
-main_count      db &08
+main_count      db &07
 
-main_attrs:     db  &45, &45, &45, &45, &45, &45, &47, &47
-main_ycoords:   db  &10, &28, &40, &58, &70, &88, &98, &a8
+main_attrs:     db  &45, &45, &45, &45, &45, &45, &47
+main_ycoords:   db  &10, &28, &40, &58, &70, &88, &a0
 
 main_options:   db  '1  KEYBOAR'
                 db  &c4
@@ -1661,10 +1682,8 @@ main_options:   db  '1  KEYBOAR'
                 db  &c4
                 db  '6  SER'
                 db  &c6
-                db  '7  SEE'
-                db  &d2
-                db  '0  START GAM'
-                db  &c5
+                db  '0/7 START/PATC'
+                db  &c8
 
 main_copyright:  db  &47
                 db  '%1983 A.C.G. ALL RIGHTS RESERVE'
@@ -1675,27 +1694,21 @@ main_header:    db  &47
                 db  &ce
 
 mod_menu_data:  dw mod_attrs, mod_ycoords, mod_options, mod_copyright, mod_header, mod_selection
-mod_count       db &04
+mod_count       db &01
 
-mod_attrs:     db  &45, &45, &45, &45
-mod_ycoords:   db  &10, &28, &40, &a8
+mod_attrs:      db  &47 
+mod_ycoords:    db  &a0 
 
-mod_options:    db  '1'
-                db  &c4
-                db  '2'
-                db  &cb
-                db  '3'
-                db  &cb
-                db  '0  EXI'
+mod_options:    db  '0  EXI'
                 db  &d4
 
-mod_copyright:  db  &47
+mod_copyright:  db  &44
                 db  '%2026 GDH48K NO RIGHTS RESERVE'
                 db  &c4
 
-mod_header:    db  &47
-               db  'THE LANTER'
-               db  &ce
+mod_header:    db  &44
+               db  '--- THE SECRET PASSAGE ---'
+               db  &a0
 
 print_text:
                 push    hl
@@ -3543,7 +3556,7 @@ gameover_delay:
                 or      l
                 jr      nz, gameover_delay
                 djnz    gameover_delay
-                jp      main_menu
+                jp      init_menu
 
 gameover_msg:   db  &47                       ; bright white
                 db  'GAME OVE'

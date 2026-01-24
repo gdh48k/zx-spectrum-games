@@ -1511,7 +1511,8 @@ menu_loop:
                 cpl                          ; set bits now mean pressed keys
                 ld      e, a
 
-                ld      a, (IX+12)
+;                ld      a, (IX+12)
+                ld      a, (main_selection)
                 bit     0, e                 ; 1 pressed?
                 jr      z, loc_7C43          ; jump if not
                 and     &f9                 ; select Keyboard
@@ -1547,14 +1548,17 @@ loc_7C61:
                 and     &e7
                 or      &10                  ; select Serf
 loc_7C73:
-                ld      (IX+12), a
-                ld      c, a
-                bit     3, e                 ; 7 pressed?
-                jr      nz, seven_pressed    ; jump if so
+;                ld      (IX+12), a          
+                ld      (main_selection), a          
+                ld      c, a                 ; c = menu_selection (main or mod)
+;                bit     3, e                 ; 7 pressed?
+;                jr      nz, seven_pressed    ; jump if so
                 bit     0, e                 ; 0 pressed?
                 jp      nz, zero_pressed     ; jump if so
 
-                ld      hl, main_attrs
+;                ld      hl, main_attrs
+                ld      l, (ix+0)            ; remove hardcoding so ix point to main or mod
+                ld      h, (ix+1) 
                 ld      b, 3
                 ld      a, c
                 call    set_menu_attrs       ; highlight keyboard/kempston/cursor
@@ -1566,28 +1570,28 @@ loc_7C73:
                 jp      menu_loop         
 
 zero_pressed:   ld      hl, (current_menu)           
-                ld      de, main_menu_data
+                ld      de, mod_menu_data
                 or      a
                 sbc     hl, de
                 jp      z, start_game
-                ; add switch menu logic
-switch_main:    ld      hl, main_menu_data
+                
+switch_main:    ld      hl, mod_menu_data
                 ld      (current_menu), hl
                 jp      init_menu
-seven_pressed:  ld      hl, (current_menu)           
-                ld      de, main_menu_data
-                or      a
-                sbc     hl, de
-                jp      z, switch_mod
-                and     &f9
-                or      4 
-                ld      (IX+12), a 
+;seven_pressed:  ld      hl, (current_menu)           
+;                ld      de, main_menu_data
+;                or      a
+;                sbc     hl, de
+;                jp      z, switch_mod
+;                and     &f9
+;                or      4 
+;                ld      (IX+12), a 
 switch_mod:     ld      hl, mod_menu_data
                 ld      (current_menu), hl
                 jp      init_menu
 
 
-; set menu attrs to reflect current selection
+; set menu attrs to reflect current selection (a=menu_selection; hl=main attrs)
 set_menu_attrs:
                 rrca
 loc_7C91:
@@ -1622,6 +1626,7 @@ draw_menu_text:
                 ld      ix,(current_menu)
                 ld      e, (ix+0)            ; TEST1 - load DE with ATTRS via IX, not hardcoded
                 ld      d, (ix+1) 
+                ;ld      de, (ix+0) 
                 ;ld      de, main_attrs
                 exx
                 ld      l, (ix+2)            ; TEST2 - load HL' with YCOORDS via IX, not hardcoded
@@ -1682,8 +1687,8 @@ main_options:   db  '1  KEYBOAR'
                 db  &c4
                 db  '6  SER'
                 db  &c6
-                db  '0/7 START/PATC'
-                db  &c8
+                db  '0  STAR'
+                db  &d4
 
 main_copyright:  db  &47
                 db  '%1983 A.C.G. ALL RIGHTS RESERVE'
@@ -1694,21 +1699,23 @@ main_header:    db  &47
                 db  &ce
 
 mod_menu_data:  dw mod_attrs, mod_ycoords, mod_options, mod_copyright, mod_header, mod_selection
-mod_count       db &01
+mod_count       db &02
 
-mod_attrs:      db  &47 
-mod_ycoords:    db  &a0 
+mod_attrs:      db  &47, &47 
+mod_ycoords:    db  &10, &a0 
 
-mod_options:    db  '0  EXI'
+mod_options:    db  '1  TES'
                 db  &d4
+                db  '0  ENTE'
+                db  &d2
 
 mod_copyright:  db  &44
                 db  '%2026 GDH48K NO RIGHTS RESERVE'
                 db  &c4
 
 mod_header:    db  &44
-               db  '--- THE SECRET PASSAGE ---'
-               db  &a0
+               db  ' THE SECRET PASSAG'
+               db  &c5
 
 print_text:
                 push    hl

@@ -18,8 +18,64 @@ sysvar_FRAMES:  equ &5c78
 
                 org &5e00
 
-main_selection: db  0
-mod_selection:  db  0
+; Menu Table Offsets
+; 0: selection, 1 attrs, 3:ycoords, 5:options, 7:copyright, 9:header, 11:count
+
+main_menu_data: 
+main_selection  db 0
+                dw main_attrs, main_ycoords, main_options, main_copyright, main_header 
+main_count      db &07
+
+
+main_attrs:     db  &45, &45, &45, &45, &45, &45, &47
+main_ycoords:   db  &10, &28, &40, &58, &70, &88, &a0
+
+main_options:   db  '1  KEYBOAR'
+                db  &c4
+                db  '2  KEMPSTON JOYSTIC'
+                db  &cb
+                db  '3  CURSOR   JOYSTIC'
+                db  &cb
+                db  '4  KNIGH'
+                db  &d4
+                db  '5  WIZAR'
+                db  &c4
+                db  '6  SER'
+                db  &c6
+                db  '0  STAR'
+                db  &d4
+
+main_copyright: db  &47
+                db  '%1983 A.C.G. ALL RIGHTS RESERVE'
+                db  &c4
+
+main_header:    db  &47
+                db  'ATICATAC GAME SELECTIO'
+                db  &ce
+
+mod_menu_data:  
+mod_selection   db 0
+                dw mod_attrs, mod_ycoords, mod_options, mod_copyright, mod_header
+mod_count       db &02
+
+mod_attrs:      db  &47, &47 
+mod_ycoords:    db  &10, &a0 
+
+mod_options:    db  '1  GHOST MODE '
+                db  &d4
+                db  '0  ENTE'
+                db  &d2
+
+mod_copyright:  db  &44
+                db  '%2026 GDH48K NO RIGHTS RESERVE'
+                db  &c4
+
+mod_header:    db  &44
+               db  ' THE SECRET PASSAG'
+               db  &c5
+
+;main_selection: db  0
+;mod_selection:  db  0
 current_menu:   dw  0
 charset_addr:   dw  0
 last_FRAMES:    db  0
@@ -1483,17 +1539,19 @@ room_94:        dw  door_93_94
 room_none:      dw  0
 
 reset_menu:
-                ld      hl, main_selection
-                ld      b, width_bytes - main_selection
+;                ld      hl, main_selection
+;                ld      b, width_bytes - main_selection
 
 loc_7C1E:
-                ld      (hl), 0              ; clear menu data
-                inc     hl
-                djnz    loc_7C1E
+;               ld      (hl), 0              ; clear menu data
+;                inc     hl
+;                djnz    loc_7C1E
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
                 ld      hl, main_menu_data
                 ld      (current_menu), hl
+                ld      (hl), 0              ; clear main_menu_selection
+
 init_menu:
                 call    clear_screen         ; clear display, attributes, and set black border
                 ld      hl, (current_menu)           
@@ -1511,7 +1569,8 @@ menu_loop:
                 cpl                          ; set bits now mean pressed keys
                 ld      e, a
 
-;                ld      a, (IX+12)
+;                ld      ix,(current_menu)    
+;                ld      a, (ix+11)           ; a =  menu_selection of current menu
                 ld      a, (main_selection)
                 bit     0, e                 ; 1 pressed?
                 jr      z, loc_7C43          ; jump if not
@@ -1548,7 +1607,8 @@ loc_7C61:
                 and     &e7
                 or      &10                  ; select Serf
 loc_7C73:
-;                ld      (IX+12), a          
+ ;               ld      ix,(current_menu)    
+ ;               ld      (ix+11), a           ; store menu_selection in current menu's table          
                 ld      (main_selection), a          
                 ld      c, a                 ; c = menu_selection (main or mod)
 ;                bit     3, e                 ; 7 pressed?
@@ -1557,8 +1617,8 @@ loc_7C73:
                 jp      nz, zero_pressed     ; jump if so
 
 ;                ld      hl, main_attrs
-                ld      l, (ix+0)            ; remove hardcoding so ix point to main or mod
-                ld      h, (ix+1) 
+                ld      l, (ix+1)            ; remove hardcoding so ix point to main or mod's attrs
+                ld      h, (ix+2) 
                 ld      b, 3
                 ld      a, c
                 call    set_menu_attrs       ; highlight keyboard/kempston/cursor
@@ -1624,18 +1684,17 @@ draw_menu_text:
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
                 ld      ix,(current_menu)
-                ld      e, (ix+0)            ; TEST1 - load DE with ATTRS via IX, not hardcoded
-                ld      d, (ix+1) 
-                ;ld      de, (ix+0) 
+                ld      e, (ix+1)            ; TEST1 - load DE with ATTRS via IX, not hardcoded
+                ld      d, (ix+2) 
                 ;ld      de, main_attrs
                 exx
-                ld      l, (ix+2)            ; TEST2 - load HL' with YCOORDS via IX, not hardcoded
-                ld      h, (ix+3)
+                ld      l, (ix+3)            ; TEST2 - load HL' with YCOORDS via IX, not hardcoded
+                ld      h, (ix+4)
                 ;ld      hl, menu_ycoords
-                ld      e, (ix+4)            ; TEST3 - load DE' with OPTIONS via IX, not hardcoded
-                ld      d, (ix+5)
+                ld      e, (ix+5)            ; TEST3 - load DE' with OPTIONS via IX, not hardcoded
+                ld      d, (ix+6)
                 ;ld      de, menu_options     ; 
-                ld      b, (ix+12)           ; 7 lines
+                ld      b, (ix+11)           ; 7 lines
 loc_7CC1:
                 exx
                 ld      a, (de)              ; text attribute colour
@@ -1655,67 +1714,17 @@ loc_7CC1:
                 inc     de
                 djnz    loc_7CC1
                 ld      hl, &b800           ; copyright at 0,184
-                ld      e, (ix+6)            ; TEST4 - load DE with COPYRIGHT via IX, not hardcoded
-                ld      d, (ix+7)
+                ld      ix,(current_menu)
+                ld      e, (ix+7)            ; TEST4 - load DE with COPYRIGHT via IX, not hardcoded
+                ld      d, (ix+8)
                 ;ld      de, main_copyright
                 call    colour_text          ; show a line of text, first byte is attr
                 ld      hl, &20              ; header at 32,0
-                ld      e, (ix+8)            ; TEST5 - load DE with HEADER via IX, not hardcoded
-                ld      d, (ix+9)
+                ld      e, (ix+9)            ; TEST5 - load DE with HEADER via IX, not hardcoded
+                ld      d, (ix+10)
                 ;ld      de, main_header
                 jp      colour_text          ; show a line of text, first byte is attr
 
-
-; Menu Table Offsets
-; 0: attrs, 2:ycoords, 4:options, 6:copyright, 8:header, 10:selection, 12:count
-
-main_menu_data: dw main_attrs, main_ycoords, main_options, main_copyright, main_header, main_selection 
-main_count      db &07
-
-main_attrs:     db  &45, &45, &45, &45, &45, &45, &47
-main_ycoords:   db  &10, &28, &40, &58, &70, &88, &a0
-
-main_options:   db  '1  KEYBOAR'
-                db  &c4
-                db  '2  KEMPSTON JOYSTIC'
-                db  &cb
-                db  '3  CURSOR   JOYSTIC'
-                db  &cb
-                db  '4  KNIGH'
-                db  &d4
-                db  '5  WIZAR'
-                db  &c4
-                db  '6  SER'
-                db  &c6
-                db  '0  STAR'
-                db  &d4
-
-main_copyright:  db  &47
-                db  '%1983 A.C.G. ALL RIGHTS RESERVE'
-                db  &c4
-
-main_header:    db  &47
-                db  'ATICATAC GAME SELECTIO'
-                db  &ce
-
-mod_menu_data:  dw mod_attrs, mod_ycoords, mod_options, mod_copyright, mod_header, mod_selection
-mod_count       db &02
-
-mod_attrs:      db  &47, &47 
-mod_ycoords:    db  &10, &a0 
-
-mod_options:    db  '1  TES'
-                db  &d4
-                db  '0  ENTE'
-                db  &d2
-
-mod_copyright:  db  &44
-                db  '%2026 GDH48K NO RIGHTS RESERVE'
-                db  &c4
-
-mod_header:    db  &44
-               db  ' THE SECRET PASSAG'
-               db  &c5
 
 print_text:
                 push    hl

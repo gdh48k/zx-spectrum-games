@@ -61,8 +61,8 @@ mod_count       db &02
 mod_attrs:      db  &47, &47 
 mod_ycoords:    db  &10, &a0 
 
-mod_options:    db  '1  GHOST MODE '
-                db  &d4
+mod_options:    db  '1  GHOST MOD'
+                db  &c5
                 db  '0  ENTE'
                 db  &d2
 
@@ -1569,9 +1569,10 @@ menu_loop:
                 cpl                          ; set bits now mean pressed keys
                 ld      e, a
 
-;                ld      ix,(current_menu)    
-;                ld      a, (ix+11)           ; a =  menu_selection of current menu
-                ld      a, (main_selection)
+
+                ld      ix,(current_menu)    
+                ld      a, (ix+0)           ; a =  menu_selection of current menu
+;               ld      a, (main_selection)
                 bit     0, e                 ; 1 pressed?
                 jr      z, loc_7C43          ; jump if not
                 and     &f9                 ; select Keyboard
@@ -1607,9 +1608,9 @@ loc_7C61:
                 and     &e7
                 or      &10                  ; select Serf
 loc_7C73:
- ;               ld      ix,(current_menu)    
- ;               ld      (ix+11), a           ; store menu_selection in current menu's table          
-                ld      (main_selection), a          
+                ld      ix,(current_menu)    
+                ld      (ix+0), a           ; store menu_selection in current menu's table          
+;               ld      (main_selection), a          
                 ld      c, a                 ; c = menu_selection (main or mod)
 ;                bit     3, e                 ; 7 pressed?
 ;                jr      nz, seven_pressed    ; jump if so
@@ -1635,7 +1636,7 @@ zero_pressed:   ld      hl, (current_menu)
                 sbc     hl, de
                 jp      z, start_game
                 
-switch_main:    ld      hl, mod_menu_data
+switch_mod:    ld      hl, mod_menu_data
                 ld      (current_menu), hl
                 jp      init_menu
 ;seven_pressed:  ld      hl, (current_menu)           
@@ -1646,9 +1647,7 @@ switch_main:    ld      hl, mod_menu_data
 ;                and     &f9
 ;                or      4 
 ;                ld      (IX+12), a 
-switch_mod:     ld      hl, mod_menu_data
-                ld      (current_menu), hl
-                jp      init_menu
+
 
 
 ; set menu attrs to reflect current selection (a=menu_selection; hl=main attrs)
@@ -1684,17 +1683,17 @@ draw_menu_text:
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
                 ld      ix,(current_menu)
-                ld      e, (ix+1)            ; TEST1 - load DE with ATTRS via IX, not hardcoded
+                ld      e, (ix+1)            
                 ld      d, (ix+2) 
                 ;ld      de, main_attrs
                 exx
-                ld      l, (ix+3)            ; TEST2 - load HL' with YCOORDS via IX, not hardcoded
+                ld      l, (ix+3)            
                 ld      h, (ix+4)
                 ;ld      hl, menu_ycoords
-                ld      e, (ix+5)            ; TEST3 - load DE' with OPTIONS via IX, not hardcoded
+                ld      e, (ix+5)            
                 ld      d, (ix+6)
-                ;ld      de, menu_options     ; 
-                ld      b, (ix+11)           ; 7 lines
+                ;ld      de, menu_options      
+                ld      b, (ix+11)           ; b = number of menu options
 loc_7CC1:
                 exx
                 ld      a, (de)              ; text attribute colour
@@ -1715,14 +1714,12 @@ loc_7CC1:
                 djnz    loc_7CC1
                 ld      hl, &b800           ; copyright at 0,184
                 ld      ix,(current_menu)
-                ld      e, (ix+7)            ; TEST4 - load DE with COPYRIGHT via IX, not hardcoded
+                ld      e, (ix+7)            ; load DE = COPYRIGHT MSG via IX, not hardcoded
                 ld      d, (ix+8)
-                ;ld      de, main_copyright
                 call    colour_text          ; show a line of text, first byte is attr
                 ld      hl, &20              ; header at 32,0
-                ld      e, (ix+9)            ; TEST5 - load DE with HEADER via IX, not hardcoded
+                ld      e, (ix+9)            ; DE = HEADER MSG via IX, not hardcoded
                 ld      d, (ix+10)
-                ;ld      de, main_header
                 jp      colour_text          ; show a line of text, first byte is attr
 
 

@@ -7339,7 +7339,7 @@ loc_A259:
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 pop     de
                 ld      (hl), e              ; rosette centre
-                ld      hl, loc_7DC8
+                ld      hl, &7DC8            ; FIXED: HL = 7DC8H 
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0603             ; 6x3
                 ld      a, &47               ; bright white (lives)

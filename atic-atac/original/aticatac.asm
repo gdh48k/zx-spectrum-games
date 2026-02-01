@@ -1636,7 +1636,7 @@ zero_pressed:   ld      hl, (current_menu)
                 sbc     hl, de
                 jp      z, start_game
                 
-switch_mod:    ld      hl, mod_menu_data
+switch_mod:     ld      hl, mod_menu_data
                 ld      (current_menu), hl
                 jp      init_menu
 ;seven_pressed:  ld      hl, (current_menu)           
@@ -3569,7 +3569,7 @@ gameover_delay:
                 or      l
                 jr      nz, gameover_delay
                 djnz    gameover_delay
-                jp      init_menu
+                jp      loc_7C1E
 
 gameover_msg:   db  &47                       ; bright white
                 db  'GAME OVE'
@@ -7339,7 +7339,7 @@ loc_A259:
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 pop     de
                 ld      (hl), e              ; rosette centre
-                ld      hl, &7DC8            ; FIXED: HL = 7DC8H 
+                ld      hl, &7DC8            ; FIXED: HL = 78H 
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0603             ; 6x3
                 ld      a, &47               ; bright white (lives)

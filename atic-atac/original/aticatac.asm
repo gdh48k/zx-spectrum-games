@@ -18,7 +18,65 @@ sysvar_FRAMES:  equ &5c78
 
                 org &5e00
 
-menu_selection: db  0
+; Menu Table Offsets
+; 0: selection, 1 attrs, 3:ycoords, 5:options, 7:copyright, 9:header, 11:count
+
+main_menu_data: 
+main_selection  db 0
+                dw main_attrs, main_ycoords, main_options, main_copyright, main_header 
+main_count      db &07
+
+
+main_attrs:     db  &45, &45, &45, &45, &45, &45, &47
+main_ycoords:   db  &10, &28, &40, &58, &70, &88, &a0
+
+main_options:   db  '1  KEYBOAR'
+                db  &c4
+                db  '2  KEMPSTON JOYSTIC'
+                db  &cb
+                db  '3  CURSOR   JOYSTIC'
+                db  &cb
+                db  '4  KNIGH'
+                db  &d4
+                db  '5  WIZAR'
+                db  &c4
+                db  '6  SER'
+                db  &c6
+                db  '0  STAR'
+                db  &d4
+
+main_copyright: db  &47
+                db  '%1983 A.C.G. ALL RIGHTS RESERVE'
+                db  &c4
+
+main_header:    db  &47
+                db  'ATICATAC GAME SELECTIO'
+                db  &ce
+
+mod_menu_data:  
+mod_selection   db 0
+                dw mod_attrs, mod_ycoords, mod_options, mod_copyright, mod_header
+mod_count       db &02
+
+mod_attrs:      db  &47, &47 
+mod_ycoords:    db  &10, &a0 
+
+mod_options:    db  '1  GHOST MOD'
+                db  &c5
+                db  '0  ENTE'
+                db  &d2
+
+mod_copyright:  db  &44
+                db  '%2026 GDH48K NO RIGHTS RESERVE'
+                db  &c4
+
+mod_header:    db  &44
+               db  ' THE SECRET PASSAG'
+               db  &c5
+
+;main_selection: db  0
+;mod_selection:  db  0
+current_menu:   dw  0
 charset_addr:   dw  0
 last_FRAMES:    db  0
 in_handlers:    db  0                         ; flag set but never read
@@ -68,7 +126,7 @@ food_ptr:       dw  0
                 org &6000
 start:
                 di
-                ld      sp, menu_selection
+                ld      sp, main_selection
                 ld      a, (sysvar_FRAMES+1)
                 cp      &25                  ; is frames MSB as expected?
                 nop ; was RET NZ for copy-protection check
@@ -1481,17 +1539,28 @@ room_94:        dw  door_93_94
 room_none:      dw  0
 
 reset_menu:
-                ld      hl, menu_selection
-                ld      b, width_bytes - menu_selection
+;                ld      hl, main_selection
+;                ld      b, width_bytes - main_selection
+
 loc_7C1E:
-                ld      (hl), 0              ; clear menu data
-                inc     hl
-                djnz    loc_7C1E
+;               ld      (hl), 0              ; clear menu data
+;                inc     hl
+;                djnz    loc_7C1E
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
-main_menu:
+                ld      hl, main_menu_data
+                ld      (current_menu), hl
+                ld      (hl), 0              ; clear main_menu_selection
+
+init_menu:
                 call    clear_screen         ; clear display, attributes, and set black border
+                ld      hl, (current_menu)           
+                ld      de, mod_menu_data
+                or      a
+                sbc     hl, de               ;  current menu is mod menu?   
+                jp      z, menu_loop         ;  jp if so
                 call    draw_menu_icons      ; draw menu icons for controls and player acharacters
+
 menu_loop:
                 call    draw_menu_text
                 ld      a, &f7              ; xxx54321
@@ -1499,7 +1568,11 @@ menu_loop:
                 in      a, (&fe)
                 cpl                          ; set bits now mean pressed keys
                 ld      e, a
-                ld      a, (menu_selection)
+
+
+                ld      ix,(current_menu)    
+                ld      a, (ix+0)           ; a =  menu_selection of current menu
+;               ld      a, (main_selection)
                 bit     0, e                 ; 1 pressed?
                 jr      z, loc_7C43          ; jump if not
                 and     &f9                 ; select Keyboard
@@ -1535,11 +1608,18 @@ loc_7C61:
                 and     &e7
                 or      &10                  ; select Serf
 loc_7C73:
-                ld      (menu_selection), a
-                ld      c, a
+                ld      ix,(current_menu)    
+                ld      (ix+0), a           ; store menu_selection in current menu's table          
+;               ld      (main_selection), a          
+                ld      c, a                 ; c = menu_selection (main or mod)
+;                bit     3, e                 ; 7 pressed?
+;                jr      nz, seven_pressed    ; jump if so
                 bit     0, e                 ; 0 pressed?
-                jp      nz, start_game       ; jump if so
-                ld      hl, menu_attrs
+                jp      nz, zero_pressed     ; jump if so
+
+;                ld      hl, main_attrs
+                ld      l, (ix+1)            ; remove hardcoding so ix point to main or mod's attrs
+                ld      h, (ix+2) 
                 ld      b, 3
                 ld      a, c
                 call    set_menu_attrs       ; highlight keyboard/kempston/cursor
@@ -1548,9 +1628,29 @@ loc_7C73:
                 rrca
                 rrca
                 call    set_menu_attrs       ; highlight knight/wizard/serf
-                jp      menu_loop
+                jp      menu_loop         
 
-; set menu attrs to reflect current selection
+zero_pressed:   ld      hl, (current_menu)           
+                ld      de, mod_menu_data
+                or      a
+                sbc     hl, de
+                jp      z, start_game
+                
+switch_mod:     ld      hl, mod_menu_data
+                ld      (current_menu), hl
+                jp      init_menu
+;seven_pressed:  ld      hl, (current_menu)           
+;                ld      de, main_menu_data
+;                or      a
+;                sbc     hl, de
+;                jp      z, switch_mod
+;                and     &f9
+;                or      4 
+;                ld      (IX+12), a 
+
+
+
+; set menu attrs to reflect current selection (a=menu_selection; hl=main attrs)
 set_menu_attrs:
                 rrca
 loc_7C91:
@@ -1582,11 +1682,18 @@ set_flash_on:
 draw_menu_text:
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
-                ld      de, menu_attrs
+                ld      ix,(current_menu)
+                ld      e, (ix+1)            
+                ld      d, (ix+2) 
+                ;ld      de, main_attrs
                 exx
-                ld      hl, menu_ycoords
-                ld      de, menu_options     ; "1  KEYBOAR"
-                ld      b, 7                 ; 7 lines
+                ld      l, (ix+3)            
+                ld      h, (ix+4)
+                ;ld      hl, menu_ycoords
+                ld      e, (ix+5)            
+                ld      d, (ix+6)
+                ;ld      de, menu_options      
+                ld      b, (ix+11)           ; b = number of menu options
 loc_7CC1:
                 exx
                 ld      a, (de)              ; text attribute colour
@@ -1606,37 +1713,15 @@ loc_7CC1:
                 inc     de
                 djnz    loc_7CC1
                 ld      hl, &b800           ; copyright at 0,184
-                ld      de, copyright_msg
+                ld      ix,(current_menu)
+                ld      e, (ix+7)            ; load DE = COPYRIGHT MSG via IX, not hardcoded
+                ld      d, (ix+8)
                 call    colour_text          ; show a line of text, first byte is attr
                 ld      hl, &20              ; header at 32,0
-                ld      de, header_msg
+                ld      e, (ix+9)            ; DE = HEADER MSG via IX, not hardcoded
+                ld      d, (ix+10)
                 jp      colour_text          ; show a line of text, first byte is attr
 
-menu_attrs:     db  &45, &45, &45, &45, &45, &45, &47
-menu_ycoords:   db  &10, &28, &40, &58, &70, &88, &a0
-
-menu_options:   db  '1  KEYBOAR'
-                db  &c4
-                db  '2  KEMPSTON JOYSTIC'
-                db  &cb
-                db  '3  CURSOR   JOYSTIC'
-                db  &cb
-                db  '4  KNIGH'
-                db  &d4
-                db  '5  WIZAR'
-                db  &c4
-                db  '6  SER'
-                db  &c6
-                db  '0  START GAM'
-                db  &c5
-
-copyright_msg:  db  &47
-                db  '%1983 A.C.G. ALL RIGHTS RESERVE'
-                db  &c4
-
-header_msg:     db  &47
-                db  'ATICATAC GAME SELECTIO'
-                db  &ce
 
 print_text:
                 push    hl
@@ -1665,7 +1750,7 @@ start_game:
                 jp      enter_room
 
 main_loop:
-                ld      sp, menu_selection
+                ld      sp, main_selection
                 ei
                 xor     a
 loc_7DC8:
@@ -3484,7 +3569,7 @@ gameover_delay:
                 or      l
                 jr      nz, gameover_delay
                 djnz    gameover_delay
-                jp      main_menu
+                jp      loc_7C1E
 
 gameover_msg:   db  &47                       ; bright white
                 db  'GAME OVE'
@@ -4640,7 +4725,7 @@ read_cursor:
 
 ; return controls in A (FUDLR order, negative logic)
 read_controls:
-                ld      a, (menu_selection)
+                ld      a, (main_selection)
                 and     6
                 jr      z, read_keyboard
                 cp      4
@@ -4718,7 +4803,7 @@ loc_943D:
 
 ; prepare player to spawn
 prepare_player:
-                ld      a, (menu_selection)
+                ld      a, (main_selection)
                 rlca
                 and     &30                  ; base character graphic
                 add     a, 8                 ; offset to desired facing direction
@@ -7254,7 +7339,7 @@ loc_A259:
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 pop     de
                 ld      (hl), e              ; rosette centre
-                ld      hl, loc_7DC8
+                ld      hl, &7DC8            ; FIXED: HL = 78H 
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0603             ; 6x3
                 ld      a, &47               ; bright white (lives)
@@ -7285,7 +7370,7 @@ loc_A259:
 draw_lives:
                 push    ix
                 ld      ix, entity_to_draw
-                ld      a, (menu_selection)
+                ld      a, (main_selection)
                 rlca
                 and     &30                  ; extract character type from menu
                 or      1                    ; offset to first graphic

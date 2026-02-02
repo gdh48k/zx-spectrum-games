@@ -3569,7 +3569,7 @@ gameover_delay:
                 or      l
                 jr      nz, gameover_delay
                 djnz    gameover_delay
-                jp      loc_7C1E
+                jp      init_menu
 
 gameover_msg:   db  &47                       ; bright white
                 db  'GAME OVE'
@@ -4447,6 +4447,10 @@ draw_rot_obj:
 
 ; return if player has required key (C if opened, NC if locked)
 check_key_colour:
+                                             
+                ld a,   (mod_selection)      ; LOGIC: IF MOD SELECTED BYPASS_KEY_CHK
+                and     3
+                jp z,   bypass_key_chk
                 ld      a, (ix+0)
                 and     3                    ; locked door colour index
                 ld      hl, key_attrs
@@ -4455,7 +4459,7 @@ check_key_colour:
                 ld      e, &81               ; key graphic
                 call    check_carrying       ; is player carrying the required key colour?
                 jp      nz, loc_923F         ; jump if not
-                call    enter_door           ; enter linked object (door etc.)
+bypass_key_chk  call    enter_door           ; enter linked object (door etc.)
                 ld      bc, &1111            ; 17x17 size
                 jp      check_exit           ; check if player has left through a door
 loc_923F:

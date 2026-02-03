@@ -56,13 +56,23 @@ main_header:    db  &47
 mod_menu_data:  
 mod_selection   db 0
                 dw mod_attrs, mod_ycoords, mod_options, mod_copyright, mod_header
-mod_count       db &02
+mod_count       db &07
 
-mod_attrs:      db  &47, &47 
-mod_ycoords:    db  &10, &a0 
+mod_attrs:      db  &47, &47, &47, &47, &47, &47, &47 
+mod_ycoords:    db  &10, &28, &40, &58, &70, &88, &a0 
 
-mod_options:    db  '1  GHOST MOD'
+mod_options:    db  '1  CLASSIC MOD'
                 db  &c5
+                db  '2  GHOST MOD'
+                db  &c5
+                db  '3  NOT YE'
+                db  &d4
+                db  '4  NOT YE'
+                db  &d4
+                db  '5  NOT YE'
+                db  &d4
+                db  '6  NOT YE'
+                db  &d4
                 db  '0  ENTE'
                 db  &d2
 
@@ -71,7 +81,7 @@ mod_copyright:  db  &44
                 db  &c4
 
 mod_header:    db  &44
-               db  ' THE SECRET PASSAG'
+               db  '    THE SECRET PASSAG'
                db  &c5
 
 ;main_selection: db  0
@@ -4448,8 +4458,9 @@ draw_rot_obj:
 ; return if player has required key (C if opened, NC if locked)
 check_key_colour:
                                              
-                ld a,   (mod_selection)      ; LOGIC: IF MOD SELECTED BYPASS_KEY_CHK
+                ld      a, (mod_selection)      ; LOGIC: IF MOD SELECTED BYPASS_KEY_CHK
                 and     3
+                cp      2
                 jp z,   bypass_key_chk
                 ld      a, (ix+0)
                 and     3                    ; locked door colour index

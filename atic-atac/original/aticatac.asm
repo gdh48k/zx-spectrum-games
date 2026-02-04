@@ -1648,6 +1648,11 @@ zero_pressed:   ld      hl, (current_menu)
                 
 switch_mod:     ld      hl, mod_menu_data
                 ld      (current_menu), hl
+zero_released:  ld      a, &ef              ; Scan Row 67890 again
+                in      a, (&fe)
+                cpl
+                bit     0, a                ; Is 0 still held?
+                jr      nz, zero_released   ; jump if so           
                 jp      init_menu
 ;seven_pressed:  ld      hl, (current_menu)           
 ;                ld      de, main_menu_data

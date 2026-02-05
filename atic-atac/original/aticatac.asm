@@ -1551,11 +1551,9 @@ room_none:      dw  0
 reset_menu:
 ;                ld      hl, main_selection
 ;                ld      b, width_bytes - main_selection
-
-loc_7C1E:
-;               ld      (hl), 0              ; clear menu data
+;                ld      (hl), 0              ; clear menu data
 ;                inc     hl
-;                djnz    loc_7C1E
+;                djnz    reset_menu
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
                 ld      hl, main_menu_data
@@ -1643,8 +1641,8 @@ loc_7C73:
 zero_pressed:   ld      hl, (current_menu)           
                 ld      de, mod_menu_data
                 or      a
-                sbc     hl, de
-                jp      z, start_game
+                sbc     hl, de               ; current menu = mod menu?
+                jp      z, start_game        ; jump if so
                 
 switch_mod:     ld      hl, mod_menu_data
                 ld      (current_menu), hl
@@ -3584,7 +3582,7 @@ gameover_delay:
                 or      l
                 jr      nz, gameover_delay
                 djnz    gameover_delay
-                jp      init_menu
+                jp      reset_menu             ; jp so to clear menu settings back to main menu
 
 gameover_msg:   db  &47                       ; bright white
                 db  'GAME OVE'

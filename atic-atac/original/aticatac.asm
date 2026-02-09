@@ -19,7 +19,7 @@ sysvar_FRAMES:  equ &5c78
                 org &5e00
 
 ; Menu Table Offsets
-; 0: selection, 1 attrs, 3:ycoords, 5:options, 7:copyright, 9:header, 11:count
+; 0: selection, 1 attrs, 3:ycoords, 5:options, 7:copyright, 9:header, 11:count. 12:xcoord
 
 main_menu_data: 
 main_selection  db 0
@@ -1718,7 +1718,7 @@ loc_7CC1:
                 inc     hl
                 push    hl
                 ld      h, a
-                ld      l, &58               ; x coord for text
+                ld      l, &58               ; x coord for text  (***REPLACE WITH TABLE ENTRY FOR X COORD eg ld, l, (ix+12)***)
                 call    print_text
                 exx
                 pop     hl
@@ -4800,20 +4800,32 @@ loc_9417:
                 jr      loc_940E
 
 h_barrel:
+                ld      a, (mod_selection)      ; LOGIC: IF MOD SELECTED BYPASS_CHAR_CHK
+                and     3
+                cp      2
+                jp z,   bypass_char_chk
                 ld      a, (player)
                 sub     &21                  ; subtract serf base graphic
                 jr      loc_9433
 h_bookcase:
+                ld      a, (mod_selection)      ; LOGIC: IF MOD SELECTED BYPASS_CHAR_CHK
+                and     3
+                cp      2
+                jp z,   bypass_char_chk
                 ld      a, (player)
                 sub     &11                  ; subtract wizard base graphic
                 jr      loc_9433
 h_clock:
+                ld      a, (mod_selection)      ; LOGIC: IF MOD SELECTED BYPASS_CHAR_CHK
+                and     3
+                cp      2
+                jp z,   bypass_char_chk
                 ld      a, (player)
                 dec     a                    ; subtract knight base graphic
 loc_9433:
                 cp      &10                  ; required player type to pass through?
                 jr      nc, loc_943D         ; jump if not
-                call    enter_door           ; enter linked object (door etc.)
+bypass_char_chk call    enter_door           ; enter linked object (door etc.)
                 jp      h_door_exit          ; door exit handler
 loc_943D:
                 call    loc_9565

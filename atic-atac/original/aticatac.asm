@@ -7355,10 +7355,10 @@ loc_A259:
                 pop     bc
                 dec     c
                 jr      nz, loc_A257
-                ld      hl, &90c8
+                ld      hl, &08c8            ; MOD: Change &90c8 to %08c8 for Scroll 'title' coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      a, (room_attr)
-                ld      bc, &0303             ; 3x3 (rosette body)
+                ld      bc, &0502            ; MOD: Change &0303 to &0502 for 2 x 5 attribute squares
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 inc     l
                 ld      (hl), a

@@ -7305,12 +7305,22 @@ loc_A210:
 
 ; draw side panel background scroll
 draw_side_panel:
-                ld      hl, panel_chars
+                                              ; Refactored code to draw side panel in two parts (so to have different headers for knight/wizard/serf)
+panel_header:   ld      hl, panel_chars       ; HL = panel graphics  
                 ld      (charset_addr), hl
-                ld      hl, &c0
-                ld      de, panel_data
-                ld      bc, &0818             ; 8x24
-loc_A228:
+                ld      hl, &c0               ; H = 0 L = &c0 (192)  H,L = x, y
+                ld      de, panel_data        ; DE = panel map  
+                ld      bc, &0803             ; 8x3
+                call loc_A228                  
+panel_body:     ld      hl, panel_chars
+                ld      (charset_addr), hl
+                ld      hl, &18c0             ; H = 24 L = &c0 (192)  H,L = x, y
+                ld      de, panel_data+24
+                ld      bc, &0815             ; 8x21
+                call loc_A228                 
+                jp      loc_A1AE
+
+loc_A228:                                    ; Draw panel block (either header or body)
                 push    bc
                 push    hl
                 call    xy_to_display        ; convert coords in HL to display address in HL
@@ -7326,7 +7336,7 @@ loc_A22D:
                 pop     bc
                 dec     c
                 jr      nz, loc_A228
-                jp      loc_A1AE
+                ret
 
 ; draw side-panel colours, which follow room colour
 draw_panel_attrs:

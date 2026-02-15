@@ -7305,19 +7305,32 @@ loc_A210:
 
 ; draw side panel background scroll
 draw_side_panel:
-                                              ; Refactored code to draw side panel in two parts (so to have different headers for knight/wizard/serf)
-panel_header:   ld      hl, panel_chars       ; HL = panel graphics  
+                                              ; Refactored code to draw side panel in two parts, header and body
+                                              ; Header is customised based on character selected
+                ld      a, (main_selection)
+                and     %00011000             ; Mask bits 3 and 4 - 000DD000, '00'=Knight, '01'=Wizard, '10'=Serf
+loc_chk_kni     cp      %00000000             ; Knight selected?
+                jp      nz, loc_chk_wiz       ; Jump if not
+                ld      de, panel_hdr_kni     ; DE = panel map for Knight
+                jr      draw_hdr
+loc_chk_wiz     cp      %00001000             ; Wizard selected?
+                jp      nz, loc_chk_ser       ; Jump if not
+                ld      de, panel_hdr_wiz     ; DE = panel map for Wizard
+                jr      draw_hdr
+loc_chk_ser     ld      de, panel_hdr_ser     ; DE = panel map for Serf
+
+draw_hdr        ld      hl, panel_chars       ; HL = panel graphics 
                 ld      (charset_addr), hl
                 ld      hl, &c0               ; H = 0 L = &c0 (192)  H,L = x, y
-                ld      de, panel_data        ; DE = panel map  
-                ld      bc, &0803             ; 8x3
-                call loc_A228                  
-panel_body:     ld      hl, panel_chars
+;                ld      de, panel_data        
+                ld      bc, &0803             ; 8x3 colsxrows
+                call    loc_A228                  
+draw_bod:       ld      hl, panel_chars
                 ld      (charset_addr), hl
                 ld      hl, &18c0             ; H = 24 L = &c0 (192)  H,L = x, y
-                ld      de, panel_data+24
-                ld      bc, &0815             ; 8x21
-                call loc_A228                 
+                ld      de, panel_body
+                ld      bc, &0815             ; 8x21 colsxrows
+                call    loc_A228                 
                 jp      loc_A1AE
 
 loc_A228:                                    ; Draw panel block (either header or body)
@@ -8886,7 +8899,7 @@ panel_chars:    db  0, 0, 0, 0, 0, 0, 0, 0    ; 0
                 db  &8f, &cf, &ee, &ef, &ef, &ce, &8e, 0; &0260
                 db  &cf, &ef, &6e, &ef, &ce, &cf, &ef, 0; &0268
                 db  &80, &80, 0, &c0, 0, &e0, &e0, 0; &0270
-                db  0,  0,  &60,  &E2,  &A7,  &3B,  &71,  &F2; &0278 START OF LETTERING
+knight_letters: db  0,  0,  &60,  &E2,  &A7,  &3B,  &71,  &F2; &0278 START OF LETTERING
                 db  &0,  &0,  &0,  &0,  &0,  &80,  &0,  &0; &0280
                 db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0288
                 db  &0,  &0,  &0,  &0,  &4,  &5,  &7,  &3; &0290
@@ -8901,11 +8914,17 @@ panel_chars:    db  0, 0, 0, 0, 0, 0, 0, 0    ; 0
                 db  &82, &ee, &fe, &fe, &d6, &d6, &d6, 0; &02d8
                 db  &f8, &f8, &e0, &fc, &e0, &fe, &fe, 0; &02e0
                 db  0, &18, &18, 0, 0, &18, &18, 0; &02e8
-
-panel_data:     db  1, 2, 3, 4, 5, 6, 7, 8    ; 0
+panel_data:
+panel_hdr_kni:  db  1, 2, 3, 4, 5, 6, 7, 8    ; 0  
                 db  9, &4f, &50, &51, &52, &53, &0a, &0b; 8
                 db  &0e, &54, &55, &56, &57, &58, &0c, &0d; 16
-                db  &0f, 0, 0, 0, 0, 0, 0, &3a; 24
+panel_hdr_wiz:  db  1, 2, 3, 4, 5, 6, 7, 8    ; 0  
+                db  9, 0, 0, 0, 0, 0, &0a, &0b; 8
+                db  &0e, &54, &55, &56, &57, &58, &0c, &0d; 16
+panel_hdr_ser:  db  1, 2, 3, 4, 5, 6, 7, 8    ; 0  
+                db  9, 0, 0, 0, 0, 0, &0a, &0b; 8
+                db  &0e, 0, 0, 0, 0, 0, &0c, &0d; 16
+panel_body:     db  &0f, 0, 0, 0, 0, 0, 0, &3a; 24
                 db  &10, 0, 0, 0, 0, 0, 0, &3b; 32
                 db  &11, 0, 0, 0, 0, 0, 0, &3c; 40
                 db  &12, 0, 0, 0, 0, 0, 0, &3d; 48

@@ -19,7 +19,7 @@ sysvar_FRAMES:  equ &5c78
                 org &5e00
 
 ; Menu Table Offsets
-; 0: selection, 1 attrs, 3:ycoords, 5:options, 7:copyright, 9:header, 11:count
+; 0: selection, 1 attrs, 3:ycoords, 5:options, 7:copyright, 9:header, 11:count. 12:xcoord
 
 main_menu_data: 
 main_selection  db 0
@@ -56,13 +56,23 @@ main_header:    db  &47
 mod_menu_data:  
 mod_selection   db 0
                 dw mod_attrs, mod_ycoords, mod_options, mod_copyright, mod_header
-mod_count       db &02
+mod_count       db &07
 
-mod_attrs:      db  &47, &47 
-mod_ycoords:    db  &10, &a0 
+mod_attrs:      db  &47, &47, &47, &47, &47, &47, &47 
+mod_ycoords:    db  &10, &28, &40, &58, &70, &88, &a0 
 
-mod_options:    db  '1  GHOST MOD'
+mod_options:    db  '1  CLASSIC MOD'
                 db  &c5
+                db  '2  GHOST MOD'
+                db  &c5
+                db  '3  NOT YE'
+                db  &d4
+                db  '4  NOT YE'
+                db  &d4
+                db  '5  NOT YE'
+                db  &d4
+                db  '6  NOT YE'
+                db  &d4
                 db  '0  ENTE'
                 db  &d2
 
@@ -71,7 +81,7 @@ mod_copyright:  db  &44
                 db  &c4
 
 mod_header:    db  &44
-               db  ' THE SECRET PASSAG'
+               db  '    THE SECRET PASSAG'
                db  &c5
 
 ;main_selection: db  0
@@ -1541,11 +1551,9 @@ room_none:      dw  0
 reset_menu:
 ;                ld      hl, main_selection
 ;                ld      b, width_bytes - main_selection
-
-loc_7C1E:
-;               ld      (hl), 0              ; clear menu data
+;                ld      (hl), 0              ; clear menu data
 ;                inc     hl
-;                djnz    loc_7C1E
+;                djnz    reset_menu
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
                 ld      hl, main_menu_data
@@ -1633,11 +1641,16 @@ loc_7C73:
 zero_pressed:   ld      hl, (current_menu)           
                 ld      de, mod_menu_data
                 or      a
-                sbc     hl, de
-                jp      z, start_game
+                sbc     hl, de               ; current menu = mod menu?
+                jp      z, start_game        ; jump if so
                 
 switch_mod:     ld      hl, mod_menu_data
                 ld      (current_menu), hl
+zero_released:  ld      a, &ef              ; Scan Row 67890 again
+                in      a, (&fe)
+                cpl
+                bit     0, a                ; Is 0 still held?
+                jr      nz, zero_released   ; jump if so           
                 jp      init_menu
 ;seven_pressed:  ld      hl, (current_menu)           
 ;                ld      de, main_menu_data
@@ -1705,7 +1718,7 @@ loc_7CC1:
                 inc     hl
                 push    hl
                 ld      h, a
-                ld      l, &58               ; x coord for text
+                ld      l, &58               ; x coord for text  (***REPLACE WITH TABLE ENTRY FOR X COORD eg ld, l, (ix+12)***)
                 call    print_text
                 exx
                 pop     hl
@@ -3569,7 +3582,7 @@ gameover_delay:
                 or      l
                 jr      nz, gameover_delay
                 djnz    gameover_delay
-                jp      loc_7C1E
+                jp      reset_menu             ; jp so to clear menu settings back to main menu
 
 gameover_msg:   db  &47                       ; bright white
                 db  'GAME OVE'
@@ -4447,6 +4460,11 @@ draw_rot_obj:
 
 ; return if player has required key (C if opened, NC if locked)
 check_key_colour:
+                                             
+                ld      a, (mod_selection)      ; LOGIC: IF MOD SELECTED BYPASS_KEY_CHK
+                and     3
+                cp      2
+                jp z,   bypass_key_chk
                 ld      a, (ix+0)
                 and     3                    ; locked door colour index
                 ld      hl, key_attrs
@@ -4455,7 +4473,7 @@ check_key_colour:
                 ld      e, &81               ; key graphic
                 call    check_carrying       ; is player carrying the required key colour?
                 jp      nz, loc_923F         ; jump if not
-                call    enter_door           ; enter linked object (door etc.)
+bypass_key_chk  call    enter_door           ; enter linked object (door etc.)
                 ld      bc, &1111            ; 17x17 size
                 jp      check_exit           ; check if player has left through a door
 loc_923F:
@@ -4782,20 +4800,32 @@ loc_9417:
                 jr      loc_940E
 
 h_barrel:
+                ld      a, (mod_selection)      ; LOGIC: IF MOD SELECTED BYPASS_CHAR_CHK
+                and     3
+                cp      2
+                jp z,   bypass_char_chk
                 ld      a, (player)
                 sub     &21                  ; subtract serf base graphic
                 jr      loc_9433
 h_bookcase:
+                ld      a, (mod_selection)      ; LOGIC: IF MOD SELECTED BYPASS_CHAR_CHK
+                and     3
+                cp      2
+                jp z,   bypass_char_chk
                 ld      a, (player)
                 sub     &11                  ; subtract wizard base graphic
                 jr      loc_9433
 h_clock:
+                ld      a, (mod_selection)      ; LOGIC: IF MOD SELECTED BYPASS_CHAR_CHK
+                and     3
+                cp      2
+                jp z,   bypass_char_chk
                 ld      a, (player)
                 dec     a                    ; subtract knight base graphic
 loc_9433:
                 cp      &10                  ; required player type to pass through?
                 jr      nc, loc_943D         ; jump if not
-                call    enter_door           ; enter linked object (door etc.)
+bypass_char_chk call    enter_door           ; enter linked object (door etc.)
                 jp      h_door_exit          ; door exit handler
 loc_943D:
                 call    loc_9565
@@ -7275,12 +7305,35 @@ loc_A210:
 
 ; draw side panel background scroll
 draw_side_panel:
-                ld      hl, panel_chars
+                                              ; Refactored code to draw side panel in two parts, header and body
+                                              ; Header is customised based on character selected
+                ld      a, (main_selection)
+                and     %00011000             ; Mask bits 3 and 4 - 000DD000, '00'=Knight, '01'=Wizard, '10'=Serf
+loc_chk_kni     cp      %00000000             ; Knight selected?
+                jp      nz, loc_chk_wiz       ; Jump if not
+                ld      de, panel_hdr_kni     ; DE = panel map for Knight
+                jr      draw_hdr
+loc_chk_wiz     cp      %00001000             ; Wizard selected?
+                jp      nz, loc_chk_ser       ; Jump if not
+                ld      de, panel_hdr_wiz     ; DE = panel map for Wizard
+                jr      draw_hdr
+loc_chk_ser     ld      de, panel_hdr_ser     ; DE = panel map for Serf
+
+draw_hdr        ld      hl, panel_chars       ; HL = panel graphics 
                 ld      (charset_addr), hl
-                ld      hl, &c0
-                ld      de, panel_data
-                ld      bc, &0818             ; 8x24
-loc_A228:
+                ld      hl, &c0               ; H = 0 L = &c0 (192)  H,L = x, y
+;                ld      de, panel_data        
+                ld      bc, &0803             ; 8x3 colsxrows
+                call    loc_A228                  
+draw_bod:       ld      hl, panel_chars
+                ld      (charset_addr), hl
+                ld      hl, &18c0             ; H = 24 L = &c0 (192)  H,L = x, y
+                ld      de, panel_body
+                ld      bc, &0815             ; 8x21 colsxrows
+                call    loc_A228                 
+                jp      loc_A1AE
+
+loc_A228:                                    ; Draw panel block (either header or body)
                 push    bc
                 push    hl
                 call    xy_to_display        ; convert coords in HL to display address in HL
@@ -7296,7 +7349,7 @@ loc_A22D:
                 pop     bc
                 dec     c
                 jr      nz, loc_A228
-                jp      loc_A1AE
+                ret
 
 ; draw side-panel colours, which follow room colour
 draw_panel_attrs:
@@ -7325,10 +7378,10 @@ loc_A259:
                 pop     bc
                 dec     c
                 jr      nz, loc_A257
-                ld      hl, &90c8
+                ld      hl, &08c8            ; MOD: Change &90c8 to %08c8 for Scroll 'title' coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      a, (room_attr)
-                ld      bc, &0303             ; 3x3 (rosette body)
+                ld      bc, &0502            ; MOD: Change &0303 to &0502 for 2 x 5 attribute squares
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 inc     l
                 ld      (hl), a
@@ -8846,26 +8899,55 @@ panel_chars:    db  0, 0, 0, 0, 0, 0, 0, 0    ; 0
                 db  &8f, &cf, &ee, &ef, &ef, &ce, &8e, 0; &0260
                 db  &cf, &ef, &6e, &ef, &ce, &cf, &ef, 0; &0268
                 db  &80, &80, 0, &c0, 0, &e0, &e0, 0; &0270
-                db  0, 0, 8, &1e, &27, &23, &71, &5f; &0278
-                db  0, 0, &40, &40, &80, &80, 0, &c3; &0280
-                db  0, 0, 0, 0, 0, 0, 0, &16  ; &0288
-                db  0, 0, 0, 5, 3, 3, 3, &33  ; &0290
-                db  0, 0, 0, &ac, &18, &18, &18, &18; &0298
-                db  &4f, &22, &1f, 5, &7f, &47, &3b, 0; &02a0
-                db  &ef, &6c, &2c, &ac, &4c, &ce, &87, 0; &02a8
-                db  &be, &18, &18, &18, &18, &9c, &0c, 0; &02b0
-                db  &fb, &db, &db, &db, &db, &fb, &61, 0; &02b8
-                db  &18, &18, &18, &18, &18, &de, &8c, 0; &02c0
+knight_chars:   db  0,  0,  &60,  &E2,  &A7,  &3B,  &71,  &F2; &0278 START OF LETTERING
+                db  &0,  &0,  &0,  &0,  &0,  &80,  &0,  &0; &0280
+                db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0288
+                db  &0,  &0,  &0,  &0,  &4,  &5,  &7,  &3; &0290
+                db  &0,  &0,  &0,  &0,  &2,  &6,  &1F,  &6; &0298
+                db  &B4,  &3C,  &3E,  &37,  &63,  &F1,  &B8,  &0; &02a0
+                db  &0,  &C,  &1D,  &E,  &AC,  &CC,  &C8,  &1; &02a8
+                db  &18,  &80,  &D9,  &DB,  &DB,  &D8,  &99,  &23; &02b0
+                db  &6B,  &FB,  &B3,  &33,  &73,  &B3,  &1B,  &F0; &02b8
+                db  &6,  &66,  &B6,  &36,  &36,  &35,  &26,  &44; &02c0 END OF LETTERING
                 db  &fe, &fe, &fe, &38, &38, &38, &38, 0; &02c8
                 db  &7c, &7c, &38, &38, &38, &7c, &7c, 0; &02d0
                 db  &82, &ee, &fe, &fe, &d6, &d6, &d6, 0; &02d8
                 db  &f8, &f8, &e0, &fc, &e0, &fe, &fe, 0; &02e0
                 db  0, &18, &18, 0, 0, &18, &18, 0; &02e8
+wizard_chars:   db  &0,  &0,  &6D,  &ED,  &36,  &36,  &36,  &36; &0278 START OF LETTERING
+                db  &0,  &0,  &80,  &80,  &C0,  &C0,  &C0,  &C0; &0280
+                db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0288
+                db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0290
+                db  &0,  &0,  &0,  &0,  &0,  &3,  &6,  &6; &0298
+                db  &3F,  &36,  &36,  &36,  &6D,  &7F,  &4D,  &0; &02a0
+                db  &D8,  &C1,  &DA,  &D8,  &98,  &99,  &9B,  &20; &02a8
+                db  &0,  &F3,  &34,  &61,  &C2,  &96,  &E3,  &0; &02b0
+                db  &0,  &8D,  &DE,  &6C,  &6C,  &EE,  &6C,  &0; &02b8
+                db  &6,  &8E,  &9E,  &26,  &66,  &6F,  &36,  &0; &02c0 END OF LETTERING
+serf_chars:     db  &0,  &0,  &0,  &1,  &2,  &2,  &7,  &5; &0278 START OF LETTERING
+                db  &0,  &0,  &84,  &E4,  &78,  &38,  &10,  &F8; &0280
+                db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0288
+                db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0290
+                db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &C0; &0298
+                db  &4,  &2,  &1,  &0,  &7,  &4,  &3,  &0; &02a0
+                db  &FC,  &26,  &F2,  &5A,  &F4,  &7C,  &B8,  &0; &02a8
+                db  &0,  &31,  &5B,  &D1,  &E1,  &69,  &31,  &0; &02b0
+                db  &1,  &B3,  &D7,  &83,  &83,  &C3,  &83,  &6; &02b8
+                db  &60,  &0,  &C0,  &0,  &0,  &0,  &80,  &0; &02c0 END OF LETTERING
 
-panel_data:     db  1, 2, 3, 4, 5, 6, 7, 8    ; 0
+
+
+panel_data:
+panel_hdr_kni:  db  1, 2, 3, 4, 5, 6, 7, 8    ; 0  
                 db  9, &4f, &50, &51, &52, &53, &0a, &0b; 8
                 db  &0e, &54, &55, &56, &57, &58, &0c, &0d; 16
-                db  &0f, 0, 0, 0, 0, 0, 0, &3a; 24
+panel_hdr_wiz:  db  1, 2, 3, 4, 5, 6, 7, 8    ; 0  
+                db  9, &5e, &5f, &60, &61, &62, &0a, &0b; 8
+                db  &0e, &63, &64, &65, &66, &67, &0c, &0d; 16
+panel_hdr_ser:  db  1, 2, 3, 4, 5, 6, 7, 8    ; 0  
+                db  9, &68, &69, &6A, &6B, &6C, &0a, &0b; 8
+                db  &0e, &6D, &6E, &6F, &70, &71, &0c, &0d; 16
+panel_body:     db  &0f, 0, 0, 0, 0, 0, 0, &3a; 24
                 db  &10, 0, 0, 0, 0, 0, 0, &3b; 32
                 db  &11, 0, 0, 0, 0, 0, 0, &3c; 40
                 db  &12, 0, 0, 0, 0, 0, 0, &3d; 48

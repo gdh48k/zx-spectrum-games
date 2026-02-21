@@ -25,6 +25,7 @@ main_menu_data:
 main_selection  db 0
                 dw main_attrs, main_ycoords, main_options, main_copyright, main_header 
 main_count      db &07
+main_xcoords    db &58
 
 
 main_attrs:     db  &45, &45, &45, &45, &45, &45, &47
@@ -57,22 +58,23 @@ mod_menu_data:
 mod_selection   db 0
                 dw mod_attrs, mod_ycoords, mod_options, mod_copyright, mod_header
 mod_count       db &07
+mod_xcoords     db &08
 
 mod_attrs:      db  &47, &47, &47, &47, &47, &47, &47 
 mod_ycoords:    db  &10, &28, &40, &58, &70, &88, &a0 
 
 mod_options:    db  '1  CLASSIC MOD'
                 db  &c5
-                db  '2  GHOST MOD'
+                db  '2  ACG KEY ONLY - EXPLORER MOD'
                 db  &c5
-                db  '3  NOT YE'
-                db  &d4
-                db  '4  NOT YE'
-                db  &d4
-                db  '5  NOT YE'
-                db  &d4
-                db  '6  NOT YE'
-                db  &d4
+                db  '3  TB'
+                db  &c3
+                db  '4  TB'
+                db  &c3
+                db  '5  TB'
+                db  &c3
+                db  '6  TB'
+                db  &c3
                 db  '0  ENTE'
                 db  &d2
 
@@ -1718,7 +1720,8 @@ loc_7CC1:
                 inc     hl
                 push    hl
                 ld      h, a
-                ld      l, &58               ; x coord for text  (***REPLACE WITH TABLE ENTRY FOR X COORD eg ld, l, (ix+12)***)
+                ld      l, (ix+12)
+;                ld      l, &58               ; x coord for text  (***REPLACE WITH TABLE ENTRY FOR X COORD eg ld, l, (ix+12)***)
                 call    print_text
                 exx
                 pop     hl
@@ -8914,7 +8917,7 @@ knight_chars:   db  0,  0,  &60,  &E2,  &A7,  &3B,  &71,  &F2; &0278 START OF LE
                 db  &82, &ee, &fe, &fe, &d6, &d6, &d6, 0; &02d8
                 db  &f8, &f8, &e0, &fc, &e0, &fe, &fe, 0; &02e0
                 db  0, &18, &18, 0, 0, &18, &18, 0; &02e8
-wizard_chars:   db  &0,  &0,  &6D,  &ED,  &36,  &36,  &36,  &36; &0278 START OF LETTERING
+wizard_chars:   db  &0,  &0,  &6D,  &ED,  &36,  &36,  &36,  &36; &0278 
                 db  &0,  &0,  &80,  &80,  &C0,  &C0,  &C0,  &C0; &0280
                 db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0288
                 db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0290
@@ -8923,8 +8926,8 @@ wizard_chars:   db  &0,  &0,  &6D,  &ED,  &36,  &36,  &36,  &36; &0278 START OF 
                 db  &D8,  &C1,  &DA,  &D8,  &98,  &99,  &9B,  &20; &02a8
                 db  &0,  &F3,  &34,  &61,  &C2,  &96,  &E3,  &0; &02b0
                 db  &0,  &8D,  &DE,  &6C,  &6C,  &EE,  &6C,  &0; &02b8
-                db  &6,  &8E,  &9E,  &26,  &66,  &6F,  &36,  &0; &02c0 END OF LETTERING
-serf_chars:     db  &0,  &0,  &0,  &1,  &2,  &2,  &7,  &5; &0278 START OF LETTERING
+                db  &6,  &8E,  &9E,  &26,  &66,  &6F,  &36,  &0; &02c0 
+serf_chars:     db  &0,  &0,  &0,  &1,  &2,  &2,  &7,  &5; &0278 
                 db  &0,  &0,  &84,  &E4,  &78,  &38,  &10,  &F8; &0280
                 db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0288
                 db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0290
@@ -8933,7 +8936,7 @@ serf_chars:     db  &0,  &0,  &0,  &1,  &2,  &2,  &7,  &5; &0278 START OF LETTER
                 db  &FC,  &26,  &F2,  &5A,  &F4,  &7C,  &B8,  &0; &02a8
                 db  &0,  &31,  &5B,  &D1,  &E1,  &69,  &31,  &0; &02b0
                 db  &1,  &B3,  &D7,  &83,  &83,  &C3,  &83,  &6; &02b8
-                db  &60,  &0,  &C0,  &0,  &0,  &0,  &80,  &0; &02c0 END OF LETTERING
+                db  &60,  &0,  &C0,  &0,  &0,  &0,  &80,  &0; &02c0 
 
 
 

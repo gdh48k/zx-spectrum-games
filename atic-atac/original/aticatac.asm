@@ -303,7 +303,7 @@ door_05_04:     db  2, 5, &34, &50, &1f, 0, 4, &56
 door_06_05:     db  2, 6, &34, 8, &6f, &e0, 6, 3
                 db  2, 5, &34, &a0, &6f, &60, &b7, 3
 door_1A_06_s:   db  3, &1a, &38, &48, &b6, &80, &16, 8
-                db  2, 6, &34, &50, &3f, 0, 4, &56
+                db  0, 6, &34, &50, &3f, 0, 4, &56
 door_08_06_g:   db  9, 8, &34, &50, &1f, 0, 4, &56
                 db  9, 6, &34, &50, &97, &80, 4, 6
 door_07_06:     db  2, 7, &34, 8, &6f, &e0, 6, 3
@@ -1979,6 +1979,7 @@ handler_table2: dw  h_creat_delay, h_door_exit, h_door_exit, h_big_door_exit; 0
                 dw  h_acg_exit, h_room_item, h_room_item, h_room_item; &24
 
 ; extra delay applied to inactive creatures
+
 h_creat_delay:
                 push    ix
                 pop     hl

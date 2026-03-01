@@ -303,8 +303,8 @@ door_05_04:     db  2, 5, &34, &50, &1f, 0, 4, &56
 door_06_05:     db  2, 6, &34, 8, &6f, &e0, 6, 3
                 db  2, 5, &34, &a0, &6f, &60, &b7, 3
 door_1A_06_s:   db  3, &1a, &38, &48, &b6, &80, &16, 8
-               ;db  2, 6, &34, &50, &3f, 0, 4, &56 ; displayed
-                db  &25, 6, 0, &50, &38, 0, 0, &56 ; hidden  (1b = rug, 1d = acg shild; 1e = knight!)
+door_1A_06:     db  2, 6, &34, &50, &3f, 0, 4, &56 ; displayed
+                ;db  &25, 6, 0, &50, &38, 0, 0, &56 ; hidden  (1b = rug, 1d = acg shild; 1e = knight!)
 door_08_06_g:   db  9, 8, &34, &50, &1f, 0, 4, &56
                 db  9, 6, &34, &50, &97, &80, 4, 6
 door_07_06:     db  2, 7, &34, 8, &6f, &e0, 6, 3
@@ -1766,8 +1766,10 @@ start_game:
                 call    draw_lives           ; draw lives sprites in side panel
                 call    place_key_pieces     ; set locations of ACG key pieces
                 call    set_key_positions    ; set positions of red/green/cyan keys, and mummy
+                call    gf_mod
                 call    reset_game_state     ; copy initial game state to working state area
-                call    randomise_doors      ; randomise which doors can open/close
+                ;call    randomise_doors      ; randomise which doors can open/close
+                ;call    gf_mod
                 call    prepare_player       ; prepare player to spawn
                 jp      enter_room
 
@@ -5062,6 +5064,63 @@ loc_95A3:
                 ld      (in_doorway), a      ; non-zero if in a doorway
                 pop     de
                 ret
+; -----------------------------------------------------------
+; mod: maintain hidden/restory status of doors relevant to single floor game
+
+
+gf_mod:
+                ;ld      a, (mod_selection)
+                ;add     a, a                ; Multiplied by 4 (4 bytes per mode)
+                ;add     a, a                
+                ld      c, 4                ; Store offset in C (Free register)
+                
+                ld      hl, gf_doors
+                ld      b, 1                ; 1 objects
+gf_loop:
+                ld      e, (hl)             ; Object Addr LSB
+                inc     hl
+                ld      d, (hl)             ; Object Addr MSB
+                inc     hl
+                
+                push    de
+                pop     ix                  ; IX = Target Object
+
+                ; --- Calculate Pointer to correct Mode Data ---
+                push    hl                  ; HL points to Classic Block
+                ld      a, l                ; Get offset from C
+                add     a, c
+                ld      l, a
+                jr      nc, gf_transfer     ; NC = No Carry (Same Page)
+                inc     h                   ; Carry = Page Boundary Cross
+gf_transfer:
+                ; --- Unified Data Transfer (3 Bytes) ---
+                ld      a, (hl)
+                ld (ix+0), a  ; Type
+                inc     hl
+                ld      a, (hl)
+                ld (ix+2), a  ; Gfx
+                inc     hl
+                ld      a, (hl)
+                ld (ix+4), a  ; Y-Coord
+                inc     hl
+                ld      a, (hl)
+                ld (ix+6), a  ; Attribute
+                
+                pop     hl                  ; Restore HL to start of data blocks
+                ld      de, 8               ; Skip the 8 bytes of data
+                add     hl, de
+                
+                djnz    gf_loop            ; B is loop counter, C is untouched
+                ret
+
+gf_doors:
+                dw door_1A_06
+                db &02, &34, &3f, &04, &25, &00, &38, 0  ; displayed/hidden 
+
+
+
+
+
 
 ; place a tombstone at the player position
 place_tombstone:

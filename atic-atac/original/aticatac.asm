@@ -367,8 +367,8 @@ door_25_1E_c:   db  &0a, &25, &34, &50, &1f, 0, 4, &56
                 db  &0a, &1e, &34, &50, &b7, &80, 4, 6
 door_24_26_s:   db  2, &24, &34, &50, &3f, 0, 4, &56
                 db  3, &26, &38, &48, &b6, &80, &16, 8
-door_03_26:     db  &25, 2, 0, &50, &97, &80, 0, 6 ; hide
-                ;db  2, 2, &34, &50, &97, &80, 4, 6 ; display
+door_03_26:     ;db  &25, 2, 0, &50, &97, &80, 0, 6 ; hide
+                db  2, 2, &34, &50, &97, &80, 4, 6 ; display
                 db  2, &26, &34, &50, &28, 0, 4, &56
 door_27_28:     db  2, &27, &34, &50, &b7, &80, 4, 6
                 db  2, &28, &34, &50, &1f, 0, 4, &56
@@ -552,8 +552,8 @@ door_0D_6F_c:   db  &0a, &0d, &34, &50, &b7, &80, 4, 6
                 db  &0a, &6f, &34, &50, &1f, 0, 4, &56
 door_6F_70:     db  2, &6f, &34, &50, &b7, &80, 4, 6
                 db  2, &70, &34, &70, &1f, 0, 4, &56
-door_70_71_s:  ;db  2, &70, &34, &30, &1f, 0, 4, &56 ; displayed
-                db  &25, &70, 0, &30, &17, 0, 4, &56 ; hidden #(byte4 = x, byte5 = y)
+door_70_71_s:   db  2, &70, &34, &30, &1f, 0, 4, &56 ; displayed
+                ;db  &25, &70, 0, &30, &17, 0, 4, &56 ; hidden #(byte4 = x, byte5 = y)
                 db  3, &71, &38, &48, &b6, &80, &16, 8
 door_71_72_s:   db  2, &71, &34, &50, &28, 0, 4, &56
                 db  3, &72, &38, &48, &b6, &80, &16, 8
@@ -641,11 +641,11 @@ door_93_94:     db  1, &93, &34, &90, &6f, &60, &b7, 3
                 db  1, &94, &34, &18, &6f, &e0, 6, 3
 door_3A_94:     db  1, &3a, &34, &50, &2f, 0, 4, &56
                 db  1, &94, &34, &50, &a7, &80, 4, 6
-trap_73_74:     ;db  &19, &73, &34, &50, &70, 3, &24, &e4 ; display
-                db  &1b, &73, &34, &50, &70, 3, &24, &e4 ; hide
+trap_73_74:     db  &19, &73, &34, &50, &70, 3, &24, &e4 ; display
+                ;db  &1b, &73, &34, &50, &70, 3, &24, &e4 ; hide
                 db  &1b, &74, &34, &48, &74, 3, 0, 0
-trap_03_65:     ; db  &19, 3, &34, &30, &70, 3, &24, &e4 ; display
-                  db  &1b, 3, &34, &30, &74, 3, &24, &e4 ; hide
+trap_03_65:     db  &19, 3, &34, &30, &70, 3, &24, &e4 ; display
+                ;db  &1b, 3, &34, &30, &74, 3, &24, &e4 ; hide
                 db  &1b, &65, &34, &38, &74, 3, 0, 0
 trap_61_4B:     db  &19, &61, &34, &50, &70, 3, &24, &e4
                 db  &1b, &4b, &34, &48, &74, 3, 0, 0
@@ -659,8 +659,8 @@ trap_8D_6E:     db  &19, &8d, &34, &50, &50, 3, &24, &e4
                 db  &1b, &6e, &34, &48, &54, 3, 0, 0
 trap_21_03:     db  &19, &21, &34, &70, &70, 3, &24, &e4
                 db  &1b, 3, &34, &68, &74, 3, 0, 0
-trap_15_66:     ;db  &19, &15, &34, &50, &80, 3, &24, &e4 ;display
-                db  &1b, &15, &34, &50, &74, 3, &24, &e4 ;hide (changes to bytes 1&6, offsets +0 & +4)
+trap_15_66:     db  &19, &15, &34, &50, &80, 3, &24, &e4 ;display
+                ;db  &1b, &15, &34, &50, &74, 3, &24, &e4 ;hide (changes to bytes 1&6, offsets +0 & +4)
                 db  &1b, &66, &34, &48, &74, 3, 0, 0
 trap_78_8A:     db  &19, &78, &34, &70, &70, 3, &24, &e4
                 db  &1b, &8a, &34, &68, &74, 3, 0, 0
@@ -1768,7 +1768,7 @@ start_game:
                 call    set_key_positions    ; set positions of red/green/cyan keys, and mummy
                 call    gf_mod
                 call    reset_game_state     ; copy initial game state to working state area
-                ;call    randomise_doors      ; randomise which doors can open/close
+                call    randomise_doors      ; randomise which doors can open/close
                 ;call    gf_mod
                 call    prepare_player       ; prepare player to spawn
                 jp      enter_room
@@ -5064,9 +5064,9 @@ loc_95A3:
                 ld      (in_doorway), a      ; non-zero if in a doorway
                 pop     de
                 ret
-; -----------------------------------------------------------
+; ---------------------------------------------------------------------------
 ; mod: maintain hidden/restory status of doors relevant to single floor game
-
+; ---------------------------------------------------------------------------
 
 gf_mod:
                 ;ld      a, (mod_selection)
@@ -5075,7 +5075,7 @@ gf_mod:
                 ld      c, 4                ; Store offset in C (Free register)
                 
                 ld      hl, gf_doors
-                ld      b, 1                ; 1 objects
+                ld      b, 6                ; 1 objects
 gf_loop:
                 ld      e, (hl)             ; Object Addr LSB
                 inc     hl
@@ -5116,9 +5116,16 @@ gf_transfer:
 gf_doors:
                 dw door_1A_06
                 db &02, &34, &3f, &04, &25, &00, &38, 0  ; displayed/hidden 
-
-
-
+                dw door_03_26
+                db &02, &34, &97, &04, &25, &00, &97, 0
+                dw door_70_71_s
+                db &02, &34, &1f, &04, &25, &00, &17, 0
+                dw trap_03_65
+                db &19, &34, &70, &24, &1b, &34, &74, &24
+                dw trap_15_66
+                db &19, &34, &80, &24, &1b, &34, &74, &24
+                dw trap_73_74
+                db &19, &34, &70, &24, &1b, &34, &70, &24
 
 
 

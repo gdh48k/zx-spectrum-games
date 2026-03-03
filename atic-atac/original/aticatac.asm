@@ -5061,21 +5061,21 @@ loc_95A3:
 
 gf_mod:
 
-;               ld      a, (mod_selection)
-;               and     %00000100
-;               ld      c, a
-                ld      a, (mod_selection)
-                bit     2, a 
-                jp      nz, set_floor_level
-reset_floor_level:
-                ld      a, 0
-                jp      gf_start
-set_floor_level:
-                ld      a, 1  
-
-gf_start        add     a, a                ; Multiplied by 4 (4 bytes per mode)
-                add     a, a                
-                ld      c, a                ; Store offset in C (Free register)
+               ld      a, (mod_selection)
+               and     %00000100
+               ld      c, a
+;                ld      a, (mod_selection)
+;                bit     2, a 
+;                jp      nz, set_floor_level
+;reset_floor_level:
+;                ld      a, 0
+;                jp      gf_start
+;set_floor_level:
+;                ld      a, 1  
+;
+;gf_start        add     a, a                ; Multiplied by 4 (4 bytes per mode)
+;                add     a, a                
+;                ld      c, a                ; Store offset in C (Free register)
                 
                 ld      hl, gf_doors
                 ld      b, 6                ; 1 objects

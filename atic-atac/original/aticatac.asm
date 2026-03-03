@@ -65,10 +65,10 @@ mod_ycoords:    db  &10, &28, &40, &58, &70, &88, &a0
 
 mod_options:    db  '1  CLASSIC MOD'
                 db  &c5
-                db  '2  ACG KEY ONLY - EXPLORER MOD'
+                db  '2  EXPLORER MODE - OPEN CASTL'
                 db  &c5
-                db  '3  TB'
-                db  &c3
+                db  '3  MINNIE MODE - GRD FLOOR GAM'
+                db  &c5
                 db  '4  TB'
                 db  &c3
                 db  '5  TB'
@@ -5561,24 +5561,46 @@ mushroom_death:
                 jp      player_dead
 
 ; set positions of red/green/cyan keys, and mummy
+                db      '999'
 set_key_positions:
-                ld      a, (sysvar_FRAMES)
+                ld      a, (mod_selection)
+                and     %00000100
+                add     a, a
+                ld      e, a                
+                ld      d, 0
+                ; --- Green Key ---
                 ld      hl, green_key_rooms
+                add     hl, de
+                ld      a, (sysvar_FRAMES)
+                ld      b, a
+                ld      a, r                ; Mix with R register
+                xor     b                   ; A is now "randomized"
                 call    get_key_room
                 ld      (green_key_init+1), a ; set green key room
                 ld      a, (sysvar_FRAMES)
                 ld      c, a
                 ld      a, (counter_low)
                 add     a, c
+                ; --- Red Key ---
                 ld      hl, red_key_rooms
+                add     hl, de
+                ld      a, (counter_low)
+                ld      b, a
+                ld      a, r                ; Mix R again
+                add     a, b                ; Use ADD for a different spread
                 call    get_key_room
                 ld      (red_key_init+1), a  ; set red key room
                 ld      (byte_640D+1), a     ; set Mummy room to match
-                ld      a, (sysvar_FRAMES+1)
-                ld      c, a
-                ld      a, (counter_high)
-                add     a, c
+                ; --- Cyan Key ---
                 ld      hl, cyan_key_rooms
+                add     hl, de
+                ld      a, (sysvar_FRAMES+1)
+                ld      b, a
+                ld      a, (counter_high)
+                xor     b
+                ld      b, a
+                ld      a, r
+                xor     b
                 call    get_key_room
                 ld      (cyan_key_init+1), a ; set cyan key room
                 ret
@@ -5592,8 +5614,11 @@ get_key_room:
                 ret
 
 green_key_rooms:db  5, 6, 7, &6d, &25, &24, &23, &22
+                db  1, 2, 3, 4, 5, 6, 7, &19, &6d
 red_key_rooms:  db  &17, &13, 9, &0d, &89, &87, &80, &85
+                db  &17,&17,&17,&17,&17,&17,&17,&17 ; &0f, &0b, &0D, &0e, &6f, &10, &70
 cyan_key_rooms: db  &53, &8f, &41, &94, &33, &91, &39, &4c
+                db  &00, &00, &00, &00, &00, &00, &00, &00
 
 ; periodically replenish consumed food
 replenish_food:

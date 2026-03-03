@@ -1579,7 +1579,7 @@ init_menu:
 
 menu_loop:
                 call    draw_menu_text
-                ld      a, &f7              ; xxx54321
+                ld      a, &f7               ; xxx54321
                 out     (&fd), a
                 in      a, (&fe)
                 cpl                          ; set bits now mean pressed keys
@@ -1588,10 +1588,10 @@ menu_loop:
 
                 ld      ix,(current_menu)    
                 ld      a, (ix+0)           ; a =  menu_selection of current menu
-;               ld      a, (main_selection)
+
                 bit     0, e                 ; 1 pressed?
                 jr      z, loc_7C43          ; jump if not
-                and     &f9                 ; select Keyboard
+                and     &f9                 ; select Keyboard (11111001)
 loc_7C43:
                 bit     1, e                 ; 2 pressed?
                 jr      z, loc_7C4B          ; jump if not
@@ -1626,14 +1626,12 @@ loc_7C61:
 loc_7C73:
                 ld      ix,(current_menu)    
                 ld      (ix+0), a           ; store menu_selection in current menu's table          
-;               ld      (main_selection), a          
                 ld      c, a                 ; c = menu_selection (main or mod)
-;                bit     3, e                 ; 7 pressed?
-;                jr      nz, seven_pressed    ; jump if so
+
                 bit     0, e                 ; 0 pressed?
                 jp      nz, zero_pressed     ; jump if so
 
-;                ld      hl, main_attrs
+
                 ld      l, (ix+1)            ; remove hardcoding so ix point to main or mod's attrs
                 ld      h, (ix+2) 
                 ld      b, 3
@@ -1660,14 +1658,7 @@ zero_released:  ld      a, &ef              ; Scan Row 67890 again
                 bit     0, a                ; Is 0 still held?
                 jr      nz, zero_released   ; jump if so           
                 jp      init_menu
-;seven_pressed:  ld      hl, (current_menu)           
-;                ld      de, main_menu_data
-;                or      a
-;                sbc     hl, de
-;                jp      z, switch_mod
-;                and     &f9
-;                or      4 
-;                ld      (IX+12), a 
+
 
 
 
@@ -4473,10 +4464,10 @@ draw_rot_obj:
 ; return if player has required key (C if opened, NC if locked)
 check_key_colour:
                                              
-                ld      a, (mod_selection)      ; LOGIC: IF MOD SELECTED BYPASS_KEY_CHK
+                ld      a, (mod_selection)   ; LOGIC: IF MOD SELECTED BYPASS_KEY_CHK
                 and     3
-                cp      2
-                jp z,   bypass_key_chk
+                cp      2                    ; mod option 2 selected?
+                jp z,   bypass_key_chk       ; jump if so
                 ld      a, (ix+0)
                 and     3                    ; locked door colour index
                 ld      hl, key_attrs
@@ -5069,10 +5060,22 @@ loc_95A3:
 ; ---------------------------------------------------------------------------
 
 gf_mod:
-                ;ld      a, (mod_selection)
-                ;add     a, a                ; Multiplied by 4 (4 bytes per mode)
-                ;add     a, a                
-                ld      c, 4                ; Store offset in C (Free register)
+
+;               ld      a, (mod_selection)
+;               and     %00000100
+;               ld      c, a
+                ld      a, (mod_selection)
+                bit     2, a 
+                jp      nz, set_floor_level
+reset_floor_level:
+                ld      a, 0
+                jp      gf_start
+set_floor_level:
+                ld      a, 1  
+
+gf_start        add     a, a                ; Multiplied by 4 (4 bytes per mode)
+                add     a, a                
+                ld      c, a                ; Store offset in C (Free register)
                 
                 ld      hl, gf_doors
                 ld      b, 6                ; 1 objects

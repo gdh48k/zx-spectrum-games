@@ -4905,6 +4905,18 @@ place_key_pieces:
                 ld      c, a
                 add     a, a                 ; * 2
                 add     a, c                 ; * 3 (3 key pieces per entry)
+                
+                ; --- APPLY OFFSET MOD HERE ---
+                ld      c, a                 ; Temporarily save our index (0-21)
+                ld      a, (mod_selection)
+                and     %00000100            ; Check Bit 2
+                jr      z, no_offset
+                ld      a, 24                ; If Bit 2 set, add 24 to skip to next table block
+                add     a, c
+                jr      final_index
+no_offset:      ld      a, c
+final_index:    ; --- END MOD ---
+
                 ld      l, a
                 ld      h, 0
                 ld      bc, acg_key_rooms
@@ -4932,6 +4944,14 @@ acg_key_rooms:  db  &81, &45, &7c
                 db  &68, &7f, &2b
                 db  &4d, &73, &7c
                 db  &17, &10, &2b
+ gf_acg_keys:   db  &73, &17, &70
+                db  &04, &08, &6c
+                db  &01, &6F, &10
+                db  &07, &6c, &70
+                db  &19, &14, &09
+                db  &6b, &02, &16
+                db  &0d, &15, &08
+                db  &14, &0c, &6e
 
 ; randomise which doors can open/close
 randomise_doors:

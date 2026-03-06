@@ -5636,9 +5636,9 @@ get_key_room:
 green_key_rooms:db  5, 6, 7, &6d, &25, &24, &23, &22
                 db  1, 2, 3, 4, 5, 6, 7, &19, &6d
 red_key_rooms:  db  &17, &13, 9, &0d, &89, &87, &80, &85
-                db  &17,&17,&17,&17,&17,&17,&17,&17 ; &0f, &0b, &0D, &0e, &6f, &10, &70
+                db  &0f, &0b, &0D, &0e, &6f, &10, &70
 cyan_key_rooms: db  &53, &8f, &41, &94, &33, &91, &39, &4c
-                db  &00, &00, &00, &00, &00, &00, &00, &00
+                db  &00, &00, &00, &00, &06, &07, &0A, &6B
 
 ; periodically replenish consumed food
 replenish_food:

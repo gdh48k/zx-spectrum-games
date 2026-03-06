@@ -25,6 +25,7 @@ main_menu_data:
 main_selection  db 0
                 dw main_attrs, main_ycoords, main_options, main_copyright, main_header 
 main_count      db &07
+main_xcoords    db &58
 
 
 main_attrs:     db  &45, &45, &45, &45, &45, &45, &47
@@ -57,22 +58,23 @@ mod_menu_data:
 mod_selection   db 0
                 dw mod_attrs, mod_ycoords, mod_options, mod_copyright, mod_header
 mod_count       db &07
+mod_xcoords     db &08
 
 mod_attrs:      db  &47, &47, &47, &47, &47, &47, &47 
 mod_ycoords:    db  &10, &28, &40, &58, &70, &88, &a0 
 
 mod_options:    db  '1  CLASSIC MOD'
                 db  &c5
-                db  '2  GHOST MOD'
+                db  '2  EXPLORER MODE - OPEN CASTL'
                 db  &c5
-                db  '3  NOT YE'
-                db  &d4
-                db  '4  NOT YE'
-                db  &d4
-                db  '5  NOT YE'
-                db  &d4
-                db  '6  NOT YE'
-                db  &d4
+                db  '3  MINNIE MODE - GRD FLOOR GAM'
+                db  &c5
+                db  '4  TB'
+                db  &c3
+                db  '5  TB'
+                db  &c3
+                db  '6  TB'
+                db  &c3
                 db  '0  ENTE'
                 db  &d2
 
@@ -301,7 +303,8 @@ door_05_04:     db  2, 5, &34, &50, &1f, 0, 4, &56
 door_06_05:     db  2, 6, &34, 8, &6f, &e0, 6, 3
                 db  2, 5, &34, &a0, &6f, &60, &b7, 3
 door_1A_06_s:   db  3, &1a, &38, &48, &b6, &80, &16, 8
-                db  2, 6, &34, &50, &3f, 0, 4, &56
+door_1A_06:     db  2, 6, &34, &50, &3f, 0, 4, &56 ; displayed
+                ;db  &25, 6, 0, &50, &38, 0, 0, &56 ; hidden  (1b = rug, 1d = acg shild; 1e = knight!)
 door_08_06_g:   db  9, 8, &34, &50, &1f, 0, 4, &56
                 db  9, 6, &34, &50, &97, &80, 4, 6
 door_07_06:     db  2, 7, &34, 8, &6f, &e0, 6, 3
@@ -339,11 +342,11 @@ door_17_16_r:   db  8, &17, &34, 8, &6f, &e0, 6, 3
 door_18_17_g:   db  9, &18, &34, &50, &1f, 0, 4, &56
                 db  9, &17, &34, &50, &b7, &80, 4, 6
 door_18_02:     db  2, &18, &34, &50, &b7, &80, 4, 6
-                db  2, 2, &34, &50, &3f, 0, 4, &56
+                db  2, 2, &34, &50, &3f, 0, 4, &56 
 door_1A_1B:     db  2, &1a, &34, &50, &28, 0, 4, &56
                 db  2, &1b, &34, &50, &b7, &80, 4, 6
 door_1B_1C_s:   db  2, &1b, &34, &a0, &6f, &60, &b7, 3
-                db  3, &1c, &74, 8, &77, &e0, 8, &f5
+                db  3, &1c, &74, 8, &77, &e0, 8, &f5 
 door_1C_1D:     db  2, &1c, &34, &98, &6f, &60, &af, 3
                 db  1, &1d, &34, &18, &6f, &e0, 6, 3
 door_1E_1F:     db  2, &1e, &34, &50, &1f, 0, 4, &56
@@ -364,7 +367,8 @@ door_25_1E_c:   db  &0a, &25, &34, &50, &1f, 0, 4, &56
                 db  &0a, &1e, &34, &50, &b7, &80, 4, 6
 door_24_26_s:   db  2, &24, &34, &50, &3f, 0, 4, &56
                 db  3, &26, &38, &48, &b6, &80, &16, 8
-door_03_26:     db  2, 2, &34, &50, &97, &80, 4, 6
+door_03_26:     ;db  &25, 2, 0, &50, &97, &80, 0, 6 ; hide
+                db  2, 2, &34, &50, &97, &80, 4, 6 ; display
                 db  2, &26, &34, &50, &28, 0, 4, &56
 door_27_28:     db  2, &27, &34, &50, &b7, &80, 4, 6
                 db  2, &28, &34, &50, &1f, 0, 4, &56
@@ -548,7 +552,8 @@ door_0D_6F_c:   db  &0a, &0d, &34, &50, &b7, &80, 4, 6
                 db  &0a, &6f, &34, &50, &1f, 0, 4, &56
 door_6F_70:     db  2, &6f, &34, &50, &b7, &80, 4, 6
                 db  2, &70, &34, &70, &1f, 0, 4, &56
-door_70_71_s:   db  2, &70, &34, &30, &1f, 0, 4, &56
+door_70_71_s:   db  2, &70, &34, &30, &1f, 0, 4, &56 ; displayed
+                ;db  &25, &70, 0, &30, &17, 0, 4, &56 ; hidden #(byte4 = x, byte5 = y)
                 db  3, &71, &38, &48, &b6, &80, &16, 8
 door_71_72_s:   db  2, &71, &34, &50, &28, 0, 4, &56
                 db  3, &72, &38, &48, &b6, &80, &16, 8
@@ -636,9 +641,11 @@ door_93_94:     db  1, &93, &34, &90, &6f, &60, &b7, 3
                 db  1, &94, &34, &18, &6f, &e0, 6, 3
 door_3A_94:     db  1, &3a, &34, &50, &2f, 0, 4, &56
                 db  1, &94, &34, &50, &a7, &80, 4, 6
-trap_73_74:     db  &19, &73, &34, &50, &70, 3, &24, &e4
+trap_73_74:     db  &19, &73, &34, &50, &70, 3, &24, &e4 ; display
+                ;db  &1b, &73, &34, &50, &70, 3, &24, &e4 ; hide
                 db  &1b, &74, &34, &48, &74, 3, 0, 0
-trap_03_65:     db  &19, 3, &34, &30, &70, 3, &24, &e4
+trap_03_65:     db  &19, 3, &34, &30, &70, 3, &24, &e4 ; display
+                ;db  &1b, 3, &34, &30, &74, 3, &24, &e4 ; hide
                 db  &1b, &65, &34, &38, &74, 3, 0, 0
 trap_61_4B:     db  &19, &61, &34, &50, &70, 3, &24, &e4
                 db  &1b, &4b, &34, &48, &74, 3, 0, 0
@@ -652,7 +659,8 @@ trap_8D_6E:     db  &19, &8d, &34, &50, &50, 3, &24, &e4
                 db  &1b, &6e, &34, &48, &54, 3, 0, 0
 trap_21_03:     db  &19, &21, &34, &70, &70, 3, &24, &e4
                 db  &1b, 3, &34, &68, &74, 3, 0, 0
-trap_15_66:     db  &19, &15, &34, &50, &80, 3, &24, &e4
+trap_15_66:     db  &19, &15, &34, &50, &80, 3, &24, &e4 ;display
+                ;db  &1b, &15, &34, &50, &74, 3, &24, &e4 ;hide (changes to bytes 1&6, offsets +0 & +4)
                 db  &1b, &66, &34, &48, &74, 3, 0, 0
 trap_78_8A:     db  &19, &78, &34, &70, &70, 3, &24, &e4
                 db  &1b, &8a, &34, &68, &74, 3, 0, 0
@@ -1571,7 +1579,7 @@ init_menu:
 
 menu_loop:
                 call    draw_menu_text
-                ld      a, &f7              ; xxx54321
+                ld      a, &f7               ; xxx54321
                 out     (&fd), a
                 in      a, (&fe)
                 cpl                          ; set bits now mean pressed keys
@@ -1580,10 +1588,10 @@ menu_loop:
 
                 ld      ix,(current_menu)    
                 ld      a, (ix+0)           ; a =  menu_selection of current menu
-;               ld      a, (main_selection)
+
                 bit     0, e                 ; 1 pressed?
                 jr      z, loc_7C43          ; jump if not
-                and     &f9                 ; select Keyboard
+                and     &f9                 ; select Keyboard (11111001)
 loc_7C43:
                 bit     1, e                 ; 2 pressed?
                 jr      z, loc_7C4B          ; jump if not
@@ -1618,14 +1626,12 @@ loc_7C61:
 loc_7C73:
                 ld      ix,(current_menu)    
                 ld      (ix+0), a           ; store menu_selection in current menu's table          
-;               ld      (main_selection), a          
                 ld      c, a                 ; c = menu_selection (main or mod)
-;                bit     3, e                 ; 7 pressed?
-;                jr      nz, seven_pressed    ; jump if so
+
                 bit     0, e                 ; 0 pressed?
                 jp      nz, zero_pressed     ; jump if so
 
-;                ld      hl, main_attrs
+
                 ld      l, (ix+1)            ; remove hardcoding so ix point to main or mod's attrs
                 ld      h, (ix+2) 
                 ld      b, 3
@@ -1652,14 +1658,7 @@ zero_released:  ld      a, &ef              ; Scan Row 67890 again
                 bit     0, a                ; Is 0 still held?
                 jr      nz, zero_released   ; jump if so           
                 jp      init_menu
-;seven_pressed:  ld      hl, (current_menu)           
-;                ld      de, main_menu_data
-;                or      a
-;                sbc     hl, de
-;                jp      z, switch_mod
-;                and     &f9
-;                or      4 
-;                ld      (IX+12), a 
+
 
 
 
@@ -1718,7 +1717,8 @@ loc_7CC1:
                 inc     hl
                 push    hl
                 ld      h, a
-                ld      l, &58               ; x coord for text  (***REPLACE WITH TABLE ENTRY FOR X COORD eg ld, l, (ix+12)***)
+                ld      l, (ix+12)
+;                ld      l, &58               ; x coord for text  (***REPLACE WITH TABLE ENTRY FOR X COORD eg ld, l, (ix+12)***)
                 call    print_text
                 exx
                 pop     hl
@@ -1757,8 +1757,10 @@ start_game:
                 call    draw_lives           ; draw lives sprites in side panel
                 call    place_key_pieces     ; set locations of ACG key pieces
                 call    set_key_positions    ; set positions of red/green/cyan keys, and mummy
+                call    gf_mod
                 call    reset_game_state     ; copy initial game state to working state area
                 call    randomise_doors      ; randomise which doors can open/close
+                ;call    gf_mod
                 call    prepare_player       ; prepare player to spawn
                 jp      enter_room
 
@@ -1976,6 +1978,7 @@ handler_table2: dw  h_creat_delay, h_door_exit, h_door_exit, h_big_door_exit; 0
                 dw  h_acg_exit, h_room_item, h_room_item, h_room_item; &24
 
 ; extra delay applied to inactive creatures
+
 h_creat_delay:
                 push    ix
                 pop     hl
@@ -4461,10 +4464,10 @@ draw_rot_obj:
 ; return if player has required key (C if opened, NC if locked)
 check_key_colour:
                                              
-                ld      a, (mod_selection)      ; LOGIC: IF MOD SELECTED BYPASS_KEY_CHK
+                ld      a, (mod_selection)   ; LOGIC: IF MOD SELECTED BYPASS_KEY_CHK
                 and     3
-                cp      2
-                jp z,   bypass_key_chk
+                cp      2                    ; mod option 2 selected?
+                jp z,   bypass_key_chk       ; jump if so
                 ld      a, (ix+0)
                 and     3                    ; locked door colour index
                 ld      hl, key_attrs
@@ -4902,6 +4905,18 @@ place_key_pieces:
                 ld      c, a
                 add     a, a                 ; * 2
                 add     a, c                 ; * 3 (3 key pieces per entry)
+                
+                ; --- APPLY OFFSET MOD HERE ---
+                ld      c, a                 ; Temporarily save our index (0-21)
+                ld      a, (mod_selection)
+                and     %00000100            ; Check Bit 2
+                jr      z, no_offset
+                ld      a, 24                ; If Bit 2 set, add 24 to skip to next table block
+                add     a, c
+                jr      final_index
+no_offset:      ld      a, c
+final_index:    ; --- END MOD ---
+
                 ld      l, a
                 ld      h, 0
                 ld      bc, acg_key_rooms
@@ -4929,6 +4944,14 @@ acg_key_rooms:  db  &81, &45, &7c
                 db  &68, &7f, &2b
                 db  &4d, &73, &7c
                 db  &17, &10, &2b
+ gf_acg_keys:   db  &73, &17, &70
+                db  &04, &08, &6c
+                db  &01, &6F, &10
+                db  &07, &6c, &70
+                db  &19, &14, &09
+                db  &6b, &02, &16
+                db  &0d, &15, &08
+                db  &14, &0c, &6e
 
 ; randomise which doors can open/close
 randomise_doors:
@@ -5052,6 +5075,82 @@ loc_95A3:
                 ld      (in_doorway), a      ; non-zero if in a doorway
                 pop     de
                 ret
+; ---------------------------------------------------------------------------
+; mod: maintain hidden/restory status of doors relevant to single floor game
+; ---------------------------------------------------------------------------
+
+gf_mod:
+
+               ld      a, (mod_selection)
+               and     %00000100
+               ld      c, a
+;                ld      a, (mod_selection)
+;                bit     2, a 
+;                jp      nz, set_floor_level
+;reset_floor_level:
+;                ld      a, 0
+;                jp      gf_start
+;set_floor_level:
+;                ld      a, 1  
+;
+;gf_start        add     a, a                ; Multiplied by 4 (4 bytes per mode)
+;                add     a, a                
+;                ld      c, a                ; Store offset in C (Free register)
+                
+                ld      hl, gf_doors
+                ld      b, 6                ; 1 objects
+gf_loop:
+                ld      e, (hl)             ; Object Addr LSB
+                inc     hl
+                ld      d, (hl)             ; Object Addr MSB
+                inc     hl
+                
+                push    de
+                pop     ix                  ; IX = Target Object
+
+                ; --- Calculate Pointer to correct Mode Data ---
+                push    hl                  ; HL points to Classic Block
+                ld      a, l                ; Get offset from C
+                add     a, c
+                ld      l, a
+                jr      nc, gf_transfer     ; NC = No Carry (Same Page)
+                inc     h                   ; Carry = Page Boundary Cross
+gf_transfer:
+                ; --- Unified Data Transfer (3 Bytes) ---
+                ld      a, (hl)
+                ld (ix+0), a  ; Type
+                inc     hl
+                ld      a, (hl)
+                ld (ix+2), a  ; Gfx
+                inc     hl
+                ld      a, (hl)
+                ld (ix+4), a  ; Y-Coord
+                inc     hl
+                ld      a, (hl)
+                ld (ix+6), a  ; Attribute
+                
+                pop     hl                  ; Restore HL to start of data blocks
+                ld      de, 8               ; Skip the 8 bytes of data
+                add     hl, de
+                
+                djnz    gf_loop            ; B is loop counter, C is untouched
+                ret
+
+gf_doors:
+                dw door_1A_06
+                db &02, &34, &3f, &04, &25, &00, &38, 0  ; displayed/hidden 
+                dw door_03_26
+                db &02, &34, &97, &04, &25, &00, &97, 0
+                dw door_70_71_s
+                db &02, &34, &1f, &04, &25, &00, &17, 0
+                dw trap_03_65
+                db &19, &34, &70, &24, &1b, &34, &74, &24
+                dw trap_15_66
+                db &19, &34, &80, &24, &1b, &34, &74, &24
+                dw trap_73_74
+                db &19, &34, &70, &24, &1b, &34, &70, &24
+
+
 
 ; place a tombstone at the player position
 place_tombstone:
@@ -5482,24 +5581,46 @@ mushroom_death:
                 jp      player_dead
 
 ; set positions of red/green/cyan keys, and mummy
+                db      '999'
 set_key_positions:
-                ld      a, (sysvar_FRAMES)
+                ld      a, (mod_selection)
+                and     %00000100
+                add     a, a
+                ld      e, a                
+                ld      d, 0
+                ; --- Green Key ---
                 ld      hl, green_key_rooms
+                add     hl, de
+                ld      a, (sysvar_FRAMES)
+                ld      b, a
+                ld      a, r                ; Mix with R register
+                xor     b                   ; A is now "randomized"
                 call    get_key_room
                 ld      (green_key_init+1), a ; set green key room
                 ld      a, (sysvar_FRAMES)
                 ld      c, a
                 ld      a, (counter_low)
                 add     a, c
+                ; --- Red Key ---
                 ld      hl, red_key_rooms
+                add     hl, de
+                ld      a, (counter_low)
+                ld      b, a
+                ld      a, r                ; Mix R again
+                add     a, b                ; Use ADD for a different spread
                 call    get_key_room
                 ld      (red_key_init+1), a  ; set red key room
                 ld      (byte_640D+1), a     ; set Mummy room to match
-                ld      a, (sysvar_FRAMES+1)
-                ld      c, a
-                ld      a, (counter_high)
-                add     a, c
+                ; --- Cyan Key ---
                 ld      hl, cyan_key_rooms
+                add     hl, de
+                ld      a, (sysvar_FRAMES+1)
+                ld      b, a
+                ld      a, (counter_high)
+                xor     b
+                ld      b, a
+                ld      a, r
+                xor     b
                 call    get_key_room
                 ld      (cyan_key_init+1), a ; set cyan key room
                 ret
@@ -5513,8 +5634,11 @@ get_key_room:
                 ret
 
 green_key_rooms:db  5, 6, 7, &6d, &25, &24, &23, &22
+                db  1, 2, 3, 4, 5, 6, 7, &19, &6d
 red_key_rooms:  db  &17, &13, 9, &0d, &89, &87, &80, &85
+                db  &0f, &0b, &0D, &0e, &6f, &10, &70
 cyan_key_rooms: db  &53, &8f, &41, &94, &33, &91, &39, &4c
+                db  &00, &00, &00, &00, &06, &07, &0A, &6B
 
 ; periodically replenish consumed food
 replenish_food:
@@ -8914,7 +9038,7 @@ knight_chars:   db  0,  0,  &60,  &E2,  &A7,  &3B,  &71,  &F2; &0278 START OF LE
                 db  &82, &ee, &fe, &fe, &d6, &d6, &d6, 0; &02d8
                 db  &f8, &f8, &e0, &fc, &e0, &fe, &fe, 0; &02e0
                 db  0, &18, &18, 0, 0, &18, &18, 0; &02e8
-wizard_chars:   db  &0,  &0,  &6D,  &ED,  &36,  &36,  &36,  &36; &0278 START OF LETTERING
+wizard_chars:   db  &0,  &0,  &6D,  &ED,  &36,  &36,  &36,  &36; &0278 
                 db  &0,  &0,  &80,  &80,  &C0,  &C0,  &C0,  &C0; &0280
                 db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0288
                 db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0290
@@ -8923,8 +9047,8 @@ wizard_chars:   db  &0,  &0,  &6D,  &ED,  &36,  &36,  &36,  &36; &0278 START OF 
                 db  &D8,  &C1,  &DA,  &D8,  &98,  &99,  &9B,  &20; &02a8
                 db  &0,  &F3,  &34,  &61,  &C2,  &96,  &E3,  &0; &02b0
                 db  &0,  &8D,  &DE,  &6C,  &6C,  &EE,  &6C,  &0; &02b8
-                db  &6,  &8E,  &9E,  &26,  &66,  &6F,  &36,  &0; &02c0 END OF LETTERING
-serf_chars:     db  &0,  &0,  &0,  &1,  &2,  &2,  &7,  &5; &0278 START OF LETTERING
+                db  &6,  &8E,  &9E,  &26,  &66,  &6F,  &36,  &0; &02c0 
+serf_chars:     db  &0,  &0,  &0,  &1,  &2,  &2,  &7,  &5; &0278 
                 db  &0,  &0,  &84,  &E4,  &78,  &38,  &10,  &F8; &0280
                 db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0288
                 db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0290
@@ -8933,7 +9057,7 @@ serf_chars:     db  &0,  &0,  &0,  &1,  &2,  &2,  &7,  &5; &0278 START OF LETTER
                 db  &FC,  &26,  &F2,  &5A,  &F4,  &7C,  &B8,  &0; &02a8
                 db  &0,  &31,  &5B,  &D1,  &E1,  &69,  &31,  &0; &02b0
                 db  &1,  &B3,  &D7,  &83,  &83,  &C3,  &83,  &6; &02b8
-                db  &60,  &0,  &C0,  &0,  &0,  &0,  &80,  &0; &02c0 END OF LETTERING
+                db  &60,  &0,  &C0,  &0,  &0,  &0,  &80,  &0; &02c0 
 
 
 

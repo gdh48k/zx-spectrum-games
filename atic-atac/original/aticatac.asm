@@ -5234,20 +5234,68 @@ print_clock:
 
 ; ACG exit door handler
 h_acg_exit:
+                ;ld      a, (mod_auto_sort_enabled)
+                ;or      a
+                ;jr      z, strict_order
+
+any_order:      ld      b,  3               ; B = no of parts to ACG key
+                ld      hl, inventory1+2
+                ld      c,  0               ; C = bit mask (cleared)
+
+a_o_loop:
+                ld      a, (hl)
+chk_p1:         cp      &8C                 ; Part 1 held?
+                jr      nz, chk_p2         ; Jump if not
+                set     0, c                ; Set b0 if so
+                jr      a_o_next_slot
+chk_p2:
+                cp      &8D                 ; Part 2 held?
+                jr      nz, chk_p3          ; Jump if not
+                set     1, c                ; Set b1 if so
+                jr      a_o_next_slot
+chk_p3:
+                cp      &8E                 ; Part 2 held?
+                jr      nz, a_o_next_slot   ; Jump if not
+                set     2, c                ; Set b2 if so
+
+a_o_next_slot:
+                ld      a, 4                ; Move to next slot
+                add     a, l
+                ld      l, a
+                jr      nc, a_o_no_c        ; Jump if Plus 4 does NOT exceed 255 (l register)
+                inc     h                   ; If so, increment h register
+a_o_no_c:
+                djnz    a_o_loop
+
+                ld      a, c
+                cp      %00000111           ; All 3 parts found? (b0-b2 = 111)
+                jr      z, .success         ; Jump if so
+                or      a                   ; Clear Carry (Failure)
+                jr      nc, loc_963B
+.success:
+                scf                         ; Set Carry (Success)
+                jr      unlock_acg                        
+
+
+strict_order:
                 ld      hl,  inventory1+2    ; graphic idx
                 ld      de, 4                ; 4 bytes per inventory slot
+                
                 ld      a, (hl)
                 cp      &8c                  ; ACG key part 1?
                 jr      nz, loc_963B         ; jump if not
+                
                 add     hl, de               ; next slot
                 ld      a, (hl)
                 cp      &8d                  ; ACG key part 2?
                 jr      nz, loc_963B         ; jump if not
+                
                 add     hl, de               ; next slot
                 ld      a, (hl)
                 cp      &8e                  ; ACG key part 3?
                 jr      nz, loc_963B         ; jump if not
-                call    enter_door           ; enter linked object (door etc.)
+                
+unlock_acg:     call    enter_door           ; enter linked object (door etc.)
                 ld      bc, &3020            ; 48x32
                 jp      loc_91F5
 loc_963B:

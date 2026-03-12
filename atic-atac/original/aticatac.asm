@@ -5295,12 +5295,29 @@ strict_order:
                 cp      &8e                  ; ACG key part 3?
                 jr      nz, loc_963B         ; jump if not
                 
-unlock_acg:     call    enter_door           ; enter linked object (door etc.)
+unlock_acg:     
+                call sort_visual_keys
+                call    enter_door           ; enter linked object (door etc.)
                 ld      bc, &3020            ; 48x32
                 jp      loc_91F5
 loc_963B:
                 call    loc_9565
                 jp      h_room_item          ; draw room item
+
+; auto_sort ACG key into correct order
+sort_visual_keys:
+                push    hl
+                ld      hl, inventory1+2       ; Point to Slot 1 ID
+                ld      (hl), &8C              ; Force Part 1
+                
+                ld      de, 4                  ; Offset to Slot 2
+                add     hl, de
+                ld      (hl), &8D              ; Force Part 2
+                
+                add     hl, de                 ; Offset to Slot 3
+                ld      (hl), &8E              ; Force Part 3
+                pop     hl
+                ret
 
 ; show game statistics
 game_stats:

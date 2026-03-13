@@ -832,7 +832,8 @@ barrel_6B_6D:   db  &1a, &6b, &34, &50, &b7, &a0, 4, 6
                 db  &1a, &6d, &34, &50, &27, 0, 4, &56
 barrel_8A_08:   db  &1a, &8a, &34, &98, &6f, &60, &b7, 3
                 db  &1a, 8, &34, &28, &6f, &e1, 6, 3
-acgexit_00_8E:  db  &24, 0, &c4, &98, &7f, &40, &ba, &d6
+acgexit_00_8E:  ;db  &24, 0, &c4, &98, &7f, &40, &ba, &d6
+                db  &24, 7, &c4, &98, &7f, &40, &ba, &d6    
                 db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
 skeleton_53_8F: db  &26, &53, 0, &80, &77, &61, 0, 0
                 db  &26, &8f, 0, &80, &77, &61, 0, 0
@@ -862,7 +863,7 @@ room_table:     dw  room_00, room_01, room_02, room_03, room_04, room_05, room_0
 room_00:        dw  door_07_00
                 dw  door_19_00
                 dw  door_01_00_c
-                dw  acgexit_00_8E
+                ;dw  acgexit_00_8E
                 dw  knight_00_06
                 dw  knight_00_06_2
                 dw  pic_shi_00_19
@@ -912,7 +913,8 @@ room_06:        dw  door_06_05
 room_07:        dw  door_07_00
                 dw  door_07_06
                 dw  knight_05_07
-                dw  pic_shi_07_06
+                dw  acgexit_00_8E
+                ;dw  pic_shi_07_06
                 dw  0
 room_08:        dw  door_08_06_g
                 dw  door_09_08
@@ -1760,7 +1762,6 @@ start_game:
                 call    gf_mod
                 call    reset_game_state     ; copy initial game state to working state area
                 call    randomise_doors      ; randomise which doors can open/close
-                ;call    gf_mod
                 call    prepare_player       ; prepare player to spawn
                 jp      enter_room
 
@@ -5076,43 +5077,31 @@ loc_95A3:
                 pop     de
                 ret
 ; ---------------------------------------------------------------------------
-; mod: maintain hidden/restory status of doors relevant to single floor game
+; mod: hides/restores status of doors relevant to single floor game
 ; ---------------------------------------------------------------------------
 
 gf_mod:
 
-               ld      a, (mod_selection)
-               and     %00000100
-               ld      c, a
-;                ld      a, (mod_selection)
-;                bit     2, a 
-;                jp      nz, set_floor_level
-;reset_floor_level:
-;                ld      a, 0
-;                jp      gf_start
-;set_floor_level:
-;                ld      a, 1  
-;
-;gf_start        add     a, a                ; Multiplied by 4 (4 bytes per mode)
-;                add     a, a                
-;                ld      c, a                ; Store offset in C (Free register)
+                ld      a, (mod_selection)
+                and     %00000100
+                ld      c, a                ; C = offset = 4 (mod selection) or 0 (not selected)
                 
                 ld      hl, gf_doors
-                ld      b, 6                ; 1 objects
+                ld      b, 6                ; B = no of doors to be hidden/restored
 gf_loop:
-                ld      e, (hl)             ; Object Addr LSB
+                ld      e, (hl)             ; LSB of door address
                 inc     hl
-                ld      d, (hl)             ; Object Addr MSB
+                ld      d, (hl)             ; MSB of door address
                 inc     hl
                 
                 push    de
-                pop     ix                  ; IX = Target Object
+                pop     ix                  ; IX = DE = Target Object
 
-                ; --- Calculate Pointer to correct Mode Data ---
-                push    hl                  ; HL points to Classic Block
-                ld      a, l                ; Get offset from C
-                add     a, c
-                ld      l, a
+                ; --- Calculate Pointer to correct data ---
+                push    hl                  ; Store HL (position in gf_doors)
+                ld      a, l                 
+                add     a, c                 
+                ld      l, a                ; HL = HL + Offset (HL+4 = B4-B7 in gf_doors)
                 jr      nc, gf_transfer     ; NC = No Carry (Same Page)
                 inc     h                   ; Carry = Page Boundary Cross
 gf_transfer:
@@ -5129,16 +5118,19 @@ gf_transfer:
                 ld      a, (hl)
                 ld (ix+6), a  ; Attribute
                 
-                pop     hl                  ; Restore HL to start of data blocks
-                ld      de, 8               ; Skip the 8 bytes of data
-                add     hl, de
+                pop     hl                  ; Restore HL (position in gf_doors plus offset)
+                ld      de, 8               ; 
+                add     hl, de              ; HL = next door (8 bytes ahead))
                 
-                djnz    gf_loop            ; B is loop counter, C is untouched
+                djnz    gf_loop             ; Loop while B <> 0
                 ret
 
 gf_doors:
+; ---------------------------------------------------------------------------
+; dw = door address; db B0-B3 'display' door values; db B4-B7 'hide' door values
+; ---------------------------------------------------------------------------
                 dw door_1A_06
-                db &02, &34, &3f, &04, &25, &00, &38, 0  ; displayed/hidden 
+                db &02, &34, &3f, &04, &25, &00, &38, 0   
                 dw door_03_26
                 db &02, &34, &97, &04, &25, &00, &97, 0
                 dw door_70_71_s

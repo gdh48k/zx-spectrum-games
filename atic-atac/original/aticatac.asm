@@ -1756,6 +1756,7 @@ start_game:
                 ld      (food_ptr), hl
                 call    clear_screen         ; clear display, attributes, and set black border
                 call    draw_side_panel      ; draw side panel background scroll
+                call    draw_acg_key
                 call    draw_lives           ; draw lives sprites in side panel
                 call    place_key_pieces     ; set locations of ACG key pieces
                 call    set_key_positions    ; set positions of red/green/cyan keys, and mummy
@@ -3520,7 +3521,7 @@ draw_chicken:
                 push    hl
                 ld      a, &14               ; empty chicken graphic
                 ld      (ix+0), a
-                ld      hl, &77c8            ; chicken draw coords
+                ld      hl, &7fc8            ; chicken coords (From 77c8 to 7fc8)
                 ld      a, h
                 sub     c
                 ld      h, a
@@ -3557,7 +3558,7 @@ loc_8C12:
                 ld      (g_chicken_full+1), a
                 ld      a, &13               ; full chicken graphic
                 ld      (ix+0), a
-                ld      hl, &77c8
+                ld      hl, &7fc8              ; chicken coords (From 77c8 to 7fc8) 
                 ld      (chicken_entity+3), hl ; coords
                 call    draw_rot_obj
                 ld      b, 6
@@ -4632,6 +4633,8 @@ h_pickup_item:
                 jr      nc, draw_16x16       ; jump if not
                 call    check_touching       ; is player touching item?
                 jr      nc, draw_16x16       ; jump if not
+
+
                 ld      a, (pickup_flags)
                 or      3                    ; disallow further pickups
                 ld      (pickup_flags), a
@@ -4950,8 +4953,8 @@ acg_key_rooms:  db  &81, &45, &7c
                 db  &01, &6F, &10
                 db  &07, &6c, &70
                 db  &19, &14, &09
-                db  &6b, &02, &16
-                db  &0d, &15, &08
+                db  &6b, &01, &16
+                db  &0d, &14, &08
                 db  &14, &0c, &6e
 
 ; randomise which doors can open/close
@@ -5692,9 +5695,9 @@ get_key_room:
 
 green_key_rooms:db  5, 6, 7, &6d, &25, &24, &23, &22
                 ;db  1, 2, 3, 4, 5, 6, 7, &19, &6d
-                db  18, 2, &6c, 4, &6e, 6, 8, &19, &6d
+                db  18, &13, &6c, 4, &6e, 6, 8, &6d
 red_key_rooms:  db  &17, &13, 9, &0d, &89, &87, &80, &85
-                db  1, 3, 5, 7, 9, &13, &17, &0D
+                db  &17, 3, 5, 7, 9, &13, &17, &0D
                 ;db  &0f, &0b, &0D, &0e, &6f, &10, &70
 cyan_key_rooms: db  &53, &8f, &41, &94, &33, &91, &39, &4c
                 db  &00, &00, &00, &00, &06, &07, &0A, &6B
@@ -7510,9 +7513,9 @@ draw_hdr        ld      hl, panel_chars       ; HL = panel graphics
                 call    loc_A228                  
 draw_bod:       ld      hl, panel_chars
                 ld      (charset_addr), hl
-                ld      hl, &18c0             ; H = 24 L = &c0 (192)  H,L = x, y
+                ld      hl, &18c0             ; Body coords H (x) = 24 L (y) = 192
                 ld      de, panel_body
-                ld      bc, &0815             ; 8x21 colsxrows
+                ld      bc, &0815             ; Cols/Rows -changed from 0815 to 0818
                 call    loc_A228                 
                 jp      loc_A1AE
 
@@ -7612,7 +7615,7 @@ draw_lives:
                 or      1                    ; offset to first graphic
                 ld      (ix+0), a            ; character type
                 ld      (ix+5), &47          ; bright white
-                ld      hl, &8dc8            ; coords of lives in side panel
+                ld      hl, &95c8            ; coords H=Y, L=X (CHANGED FROM 8dc8 to 95c8)
                 ld      (ix+3), l
                 ld      (ix+4), h
                 ld      a, (lives)
@@ -7637,6 +7640,80 @@ loc_A30C:
                 djnz    loc_A2F2             ; draw remaining slots
                 pop     ix
                 ret
+
+
+key_part_indices:
+                db &8C, &8D, &8E           ; Graphics for the 3 parts
+
+; --- Coordinate Table (X, Y in pixels) ---
+; These map to the side panel area (X=240, column 30)
+key_part_coords:
+                db 200, 70                ; Part 0: Char(30, 2)
+                db 216, 70                ; Part 1: Char(30, 6)
+                db 232, 70               ; Part 2: Char(30, 10)
+
+
+
+
+draw_acg_key:
+
+;ld      ix, entity_to_draw
+;ld      (ix+0), &7      ; Graphic ID
+;ld      (ix+3), 200       ; X=128
+;ld      (ix+4), 54        ; Y=64
+;ld      (ix+5), &47       ; Attribute (from draw_lives)
+;ld      (ix+1), 1         ; Force active flag
+;ld      (ix+2), 0         ; Animation frame
+;call    draw_entity       ; Does this draw anything?
+
+                ld      ix, entity_to_draw ; Standard entity buffer
+                ld      hl, key_part_indices ; Point to table of 3 graphic IDs
+
+                ld      de, key_part_coords ; Point to table of 3 (X,Y) pairs
+
+                ld      b, 3 ; 3 parts to draw
+
+
+draw_key_loop:
+
+                push bc ; Save loop counter
+                push hl
+                push de
+
+
+; 1. Load graphic index
+
+                ld      a, (hl) 
+                ld      (ix+0), a
+
+; 2. Load coordinates/colour
+
+                ld      a, (de) ; X coordinate
+               ld      (ix+3), a
+                inc     de
+                ld      a, (de) ; Y coordinate
+                ld      (ix+4), a
+                ld      (ix+5), &47 ; colour
+                inc     de ; Prepare for next X,Y pair
+
+
+
+; 3. Render
+                call clear_sprite
+                call draw_entity ; Use existing 
+             pop de 
+                pop hl
+
+
+; 4. Advance data pointers
+
+                inc     hl ; Next graphic ID
+                inc     de  
+                inc     de
+                pop bc ; Restore loop counter
+              djnz    draw_key_loop
+                ret
+
 
 ; draw menu icons for controls and player acharacters
 draw_menu_icons:
@@ -9132,7 +9209,10 @@ panel_hdr_ser:  db  1, 2, 3, 4, 5, 6, 7, 8    ; 0
                 db  &0e, &6D, &6E, &6F, &70, &71, &0c, &0d; 16
 panel_body:     db  &0f, 0, 0, 0, 0, 0, 0, &3a; 24
                 db  &10, 0, 0, 0, 0, 0, 0, &3b; 32
+                db  &10, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
                 db  &11, 0, 0, 0, 0, 0, 0, &3c; 40
+                db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
+                db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
                 db  &12, 0, 0, 0, 0, 0, 0, &3d; 48
                 db  &13, 0, &59, &5a, &5b, &5c, 0, &3e; 56
                 db  &14, 0, 0, 0, &5d, 0, 0, &3f; 64
@@ -9148,9 +9228,9 @@ panel_body:     db  &0f, 0, 0, 0, 0, 0, 0, &3a; 24
                 db  &1e, &1f, &20, &21, 0, 0, &22, &23; 144
                 db  &24, &25, &26, &27, &28, &29, &2a, &2b; 152
                 db  &2c, &2d, &2e, &2f, &30, &31, &32, &33; 160
-                db  0, &34, &35, 0, 0, 0, 0, 0; 168
-                db  0, 0, &36, &37, 0, 0, 0, 0; 176
-                db  0, 0, &38, &39, 0, 0, 0, 0; 184
+                ;db  0, &34, &35, 0, 0, 0, 0, 0; 168
+                ;db  0, 0, &36, &37, 0, 0, 0, 0; 176
+                ;db  0, 0, &38, &39, 0, 0, 0, 0; 184
 
 g_bigdoor_frame:db  6, &20
                 db  &ff, &fe, 0, 0, &3f, &ff

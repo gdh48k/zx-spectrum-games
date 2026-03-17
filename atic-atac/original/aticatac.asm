@@ -3521,7 +3521,7 @@ draw_chicken:
                 push    hl
                 ld      a, &14               ; empty chicken graphic
                 ld      (ix+0), a
-                ld      hl, &7fc8            ; chicken coords (From 77c8 to 7fc8)
+                ld      hl, &81c8            ; chicken y,x (From 77c8 to 81c8)
                 ld      a, h
                 sub     c
                 ld      h, a
@@ -5214,7 +5214,7 @@ clock_tick:
                 and     &0f                  ; clip hours to 0-15
                 ld      (hl), a
 loc_9604:
-                ld      hl, &40c8            ; time coords
+                ld      hl, &58c8            ; timer coords (y,x); changed from &40c8 to &58c8 
 
 ; print clock time at position HL
 print_clock:
@@ -7538,10 +7538,16 @@ loc_A22D:
                 ret
 
 ; draw side-panel colours, which follow room colour
+
+acg_attr_yx     equ     &30c8
+lives_attr_yx   equ     &86c8 
+
+chicken_attr_yx equ     &66c8          
+
 draw_panel_attrs:
                 ld      hl, &c0
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ld      bc, &0818             ; 8x24
+                ld      bc, &0818            ; 8x24
                 ld      a, (room_attr)
                 cpl                          ; invert for colour contrast
                 and     7
@@ -7567,7 +7573,7 @@ loc_A259:
                 ld      hl, &08c8            ; MOD: Change &90c8 to %08c8 for Scroll 'title' coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      a, (room_attr)
-                ld      bc, &0502            ; MOD: Change &0303 to &0502 for 2 x 5 attribute squares
+                ld      bc, &0502            ; MOD: Change &0303 to &0502 for 2 (x) x 5 (y)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 inc     l
                 ld      (hl), a
@@ -7578,29 +7584,41 @@ loc_A259:
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 pop     de
                 ld      (hl), e              ; rosette centre
-                ld      hl, &7DC8            ; FIXED: HL = 78H 
+                
+                ld      hl, acg_attr_yx      ; MOD: NEW ATTR FOR ACG KEG
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ld      bc, &0603             ; 6x3
-                ld      a, &47               ; bright white (lives)
+                ld      bc, &0603            ; 6x3
+                ld      a, &01               ; dark blue (ACG KEY)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
-                ld      hl, &5fc8
+                
+                ld      hl, lives_attr_yx    ; MOD: Change &7fc8 to &86c8 y,x coords
+                call    xy_to_attr           ; convert pixel coords in HL to attribute address
+                ld      bc, &0603            ; 6x3
+                ld      a, &47               ; bright white (LIVES)
+                call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
+                
+                ld      hl, chicken_attr_yx  ; MOD: Change &5fc8 to &66c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0604             ; 6x4
                 ld      a, &46               ; bright yellow (chicken)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
-                ld      hl, &48c8
+                
+                ld      hl, &50c8            ; 58c8 to 40c8
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0601             ; 6x1
                 ld      a, &45               ; bright cyan (score caption)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
+                
                 ld      bc, &0601             ; 6x1
                 ld      a, &47               ; bright white (score)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
-                ld      hl, &38c8
+                
+                ld      hl, &50c8            ; MOD: Change &38c8 to &48c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0601             ; 6x1
-                ld      a, &43               ; bright magenta (time caption)
+                ld      a, &47               ; bright magenta (time caption)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
+                
                 ld      bc, &0601
                 ld      a, &47               ; bright white (time)
                 jp      fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
@@ -9209,14 +9227,15 @@ panel_hdr_ser:  db  1, 2, 3, 4, 5, 6, 7, 8    ; 0
                 db  &0e, &6D, &6E, &6F, &70, &71, &0c, &0d; 16
 panel_body:     db  &0f, 0, 0, 0, 0, 0, 0, &3a; 24
                 db  &10, 0, 0, 0, 0, 0, 0, &3b; 32
-                db  &10, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
+                db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
                 db  &11, 0, 0, 0, 0, 0, 0, &3c; 40
                 db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
                 db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
                 db  &12, 0, 0, 0, 0, 0, 0, &3d; 48
                 db  &13, 0, &59, &5a, &5b, &5c, 0, &3e; 56
                 db  &14, 0, 0, 0, &5d, 0, 0, &3f; 64
-                db  &15, &49, &4a, &4b, &4c, &4d, &4e, &40; 72
+                db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
+                ;db  &15, &49, &4a, &4b, &4c, &4d, &4e, &40; 72
                 db  &16, 0, 0, 0, 0, 0, 0, &41; 80
                 db  &17, 0, 0, 0, 0, 0, 0, &42; 88
                 db  &18, 0, 0, 0, 0, 0, 0, &43; 96

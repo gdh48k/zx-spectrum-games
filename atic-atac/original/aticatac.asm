@@ -67,7 +67,7 @@ mod_options:    db  '1  CLASSIC MOD'
                 db  &c5
                 db  '2  EXPLORER MODE - OPEN CASTL'
                 db  &c5
-                db  '3  MINNIE MODE - GRD FLOOR GAM'
+                db  '3  MINI MODE - 4 ORLA & BERTI'
                 db  &c5
                 db  '4  TB'
                 db  &c3
@@ -4644,11 +4644,54 @@ h_pickup_item:
 
                 ; A is currently &8C, &8D, or &8E
                 sub     &8c                  ; Normalize to 0, 1, or 2
-                call    update_acg_color     ; Light up side panel (Uses xy_to_attr)
+                ld      hl, acg_key_flag
+                ld      b, a                ; Store normalized ID (0, 1, or 2) in B
+                ld      a, 1                ; Start with bit 0 (value 1)
+                jr      z, update_acg_flag  ; If it was 0, we are done shifting
+acg_flag_loop:
+                add     a, a                ; Shift left (effectively bit 1, then bit 2)
+                djnz    acg_flag_loop
+update_acg_flag:
+                or      (hl)                ; Combine new bit with existing flags
+                ld      (hl), a             ; Save it back!
+
+                ; --- THE FIX: MUZZLE THE ENGINE ---
+                ld      a, (pickup_flags)
+                or      2                    ; Set Bit 1 (Signifies "Handled")
+                ld      (pickup_flags), a
+
+                ; --- The "Fake" Inventory Pickup ---
+                ; We do the cleanup that add_inventory usually does, 
+                ; but we DON'T update the inventory1-3 buffers.
+                
+                call    undraw_entity        ; Erase the key's pixels from the screen
+                
+                ld      a, (room_attr)       ; Get current room's background color
+                ld      (ix+5), a            ; Set the entity's attribute to "background"
+                call    set_entity_attrs2    ; Update attribute memory (removes the "ink")
+
+                ; --- RESTORE PLAYER COLOR ---
+                ;push    ix                   ; Save the ACG key entity pointer
+                ;ld      ix, player           ; Point IX to your player data block (&EA90)
+                ;call    set_entity_attrs2    ; Force-apply the player's blue color (player_attr)
+                ;pop     ix                   ; Restore the ACG key entity pointer
+                
+                
+
+                call    draw_panel_attrs     ; Refresh side panel (Turns Blue to Yellow)
+                call    draw_inventory
+
+                ld      (ix+0), 0            ; *** IMPORTANT: Deactivate item in room buffer
+                                             ; This stops the player from "re-touching" it.
+                
+                ; If your game has a "pickup" sound, you could call it here
+                ; call inventory_sound 
+
+                ret                          ; Exit h_pickup_item safely
                 ; ---------------------------------- 
 
 
-  update_inv:   ld      a, (pickup_flags)
+update_inv:     ld      a, (pickup_flags)
                 or      3                    ; disallow further pickups
                 ld      (pickup_flags), a
                 call    drop_item            ; drop last item in inventory
@@ -4790,6 +4833,10 @@ read_keyboard:
                 ret
 
 h_blank:
+                ld      a, (pickup_flags)
+                bit     1, a                ; Was a pickup already handled?
+                ret     nz                  ; YES? Then STOP. No shuffle, no drop
+
                 ld      a, (player)
                 dec     a
                 cp      &30                  ; is player active?
@@ -4797,6 +4844,7 @@ h_blank:
                 ld      a, (pickup_pressed)
                 and     a                    ; pick-up key down?
                 jr      z, loc_9417          ; jump if not
+                               
                 ld      a, (pickup_flags)
                 and     3                    ; pick-up allowed?
                 jr      nz, loc_940E         ; jump if not
@@ -7374,8 +7422,20 @@ loc_A15E:
                 push    hl
                 call    clear_sprite
                 call    draw_entity          ; draw entity graphic (no attrs)
+
+                ; --- ACG Safety Check ---
+                ;ld      a, (ix+0)            ; Get the Item ID just drawn
+                ;cp      &8C                  ; Is it ACG Part 1?
+                ;jr      c, .do_attrs         ; If lower, it's a normal item
+                ;cp      &8F                  ; Is it above Part 3?
+                ;jr      nc, .do_attrs        ; If so, it's a normal item
+                
+                ;jr      .skip_to_pop         ; It IS an ACG key! Jump over the paint call
+
+.do_attrs:
+                
                 call    set_entity_attrs     ; paint entity with its current attr colour
-                pop     hl
+ .skip_to_pop:  pop     hl
                 pop     ix
                 pop     de
                 pop     bc
@@ -7555,9 +7615,14 @@ loc_A22D:
 acg_attr_yx     equ     &30c8
 lives_attr_yx   equ     &86c8 
 
-chicken_attr_yx equ     &66c8          
+chicken_attr_yx equ     &66c8  
+
+acg_key_flag    db      0
+
+dark_blue       db      01        
 
 draw_panel_attrs:
+                                             ; COLOUR BACKGROUND
                 ld      hl, &c0
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0818            ; 8x24
@@ -7569,7 +7634,7 @@ draw_panel_attrs:
                 ld      a, &44               ; change blue to bright green
 loc_A255:
                 ld      e, a                 ; save attr value
-                push    de
+                ;push    de
 loc_A257:
                 push    bc
                 push    hl
@@ -7585,24 +7650,70 @@ loc_A259:
                 jr      nz, loc_A257
                 ld      hl, &90C8
                 call    xy_to_attr
+                                             ; COLOUR CHAR NAME
                 ld      a, (room_attr)
                 ld      bc, &0502            ; MOD: Change &0303 to &0502 for 2 (x) x 5 (y)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
-                inc     l
-                ld      (hl), a
-                add     hl, de
-                ld      bc, &0202             ; 2x2 (rosette tail)
-                call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
-                ld      hl, &98d0
-                call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                pop     de
-                ld      (hl), e              ; rosette centre
+                ;inc     l
+                ;ld      (hl), a
+                ;add     hl, de
+                ;ld      bc, &0202             ; 2x2 (rosette tail)
+                ;call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
+                ;ld      hl, &98d0
+                ;call    xy_to_attr           ; convert pixel coords in HL to attribute address
+                ;pop     de
+                ;ld      (hl), e              ; rosette centre
                 
-                ld      hl, acg_attr_yx      ; MOD: NEW ATTR FOR ACG KEG
-                call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ld      bc, &0603            ; 6x3
-                ld      a, &01               ; dark blue (ACG KEY)
-                call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
+                ld      hl, acg_attr_yx
+                call    xy_to_attr
+                ld      a, (acg_key_flag)
+                bit     0, a                    ; acg_1 collected?
+                jr      nz, acg1_yellow       ; jump if so
+                ld      a, (dark_blue)           ; set to dark blue if not
+                jr      colour_acg_1
+acg1_yellow:    ld      a, &46                ; set to bright yellow
+colour_acg_1:
+                ;and     &7F
+                ld      bc, &0203
+                call    fill_bc_hl_a
+
+                ld      hl, acg_attr_yx+16
+                call    xy_to_attr
+                ld      a, (acg_key_flag)
+                bit     1, a                  ; acg_2 collected?
+                jr      nz, acg2_yellow       ; jump if so
+                ld      a, (dark_blue)               ; set to dark blue if not
+                jr      colour_acg_2
+acg2_yellow:    ld      a, &46                ; set to bright yellow
+colour_acg_2:
+                ;and     &7F
+                ld      bc, &0203
+                call    fill_bc_hl_a
+
+                
+                ld      hl, acg_attr_yx+32
+                call    xy_to_attr
+                ld      a, (acg_key_flag)
+                bit     2, a                  ; acg_3 collected?
+                jr      nz, acg3_yellow       ; jump if so
+                ld      a, (dark_blue)                 ; set to dark blue if not
+                jr      colour_acg_3
+acg3_yellow:    ld      a, &46                ; set to bright yellow
+colour_acg_3:
+                ;and     &7F
+                ld      bc, &0203
+                call    fill_bc_hl_a
+
+
+
+
+
+
+                ;ld      hl, acg_attr_yx      ; MOD: NEW ATTR FOR ACG KEG
+                ;call    xy_to_attr           ; convert pixel coords in HL to attribute address
+                ;ld      bc, &0603            ; 6x3
+                ;ld      a, &01               ; dark blue (ACG KEY)
+                ;call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ld      hl, lives_attr_yx    ; MOD: Change &7fc8 to &86c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
@@ -7686,7 +7797,9 @@ key_part_coords:
 
 
 
-draw_acg_key:
+
+
+draw_acg_key:                              ; No Attrs
 
                 ld      ix, entity_to_draw ; Standard entity buffer
                 ld      hl, key_part_indices ; Point to table of 3 graphic IDs

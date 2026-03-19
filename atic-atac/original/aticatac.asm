@@ -67,7 +67,7 @@ mod_options:    db  '1  CLASSIC MOD'
                 db  &c5
                 db  '2  EXPLORER MODE - OPEN CASTL'
                 db  &c5
-                db  '3  MINNIE MODE - GRD FLOOR GAM'
+                db  '3  MINI MODE - 4 ORLA & BERTI'
                 db  &c5
                 db  '4  TB'
                 db  &c3
@@ -832,7 +832,8 @@ barrel_6B_6D:   db  &1a, &6b, &34, &50, &b7, &a0, 4, 6
                 db  &1a, &6d, &34, &50, &27, 0, 4, &56
 barrel_8A_08:   db  &1a, &8a, &34, &98, &6f, &60, &b7, 3
                 db  &1a, 8, &34, &28, &6f, &e1, 6, 3
-acgexit_00_8E:  db  &24, 0, &c4, &98, &7f, &40, &ba, &d6
+acgexit_00_8E:  ;db  &24, 0, &c4, &98, &7f, &40, &ba, &d6
+                db  &24, 7, &c4, &98, &7f, &40, &ba, &d6    
                 db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
 skeleton_53_8F: db  &26, &53, 0, &80, &77, &61, 0, 0
                 db  &26, &8f, 0, &80, &77, &61, 0, 0
@@ -862,7 +863,7 @@ room_table:     dw  room_00, room_01, room_02, room_03, room_04, room_05, room_0
 room_00:        dw  door_07_00
                 dw  door_19_00
                 dw  door_01_00_c
-                dw  acgexit_00_8E
+                ;dw  acgexit_00_8E
                 dw  knight_00_06
                 dw  knight_00_06_2
                 dw  pic_shi_00_19
@@ -912,7 +913,8 @@ room_06:        dw  door_06_05
 room_07:        dw  door_07_00
                 dw  door_07_06
                 dw  knight_05_07
-                dw  pic_shi_07_06
+                dw  acgexit_00_8E
+                ;dw  pic_shi_07_06
                 dw  0
 room_08:        dw  door_08_06_g
                 dw  door_09_08
@@ -1754,13 +1756,13 @@ start_game:
                 ld      (food_ptr), hl
                 call    clear_screen         ; clear display, attributes, and set black border
                 call    draw_side_panel      ; draw side panel background scroll
+                call    draw_acg_key
                 call    draw_lives           ; draw lives sprites in side panel
                 call    place_key_pieces     ; set locations of ACG key pieces
                 call    set_key_positions    ; set positions of red/green/cyan keys, and mummy
                 call    gf_mod
                 call    reset_game_state     ; copy initial game state to working state area
                 call    randomise_doors      ; randomise which doors can open/close
-                ;call    gf_mod
                 call    prepare_player       ; prepare player to spawn
                 jp      enter_room
 
@@ -3519,7 +3521,7 @@ draw_chicken:
                 push    hl
                 ld      a, &14               ; empty chicken graphic
                 ld      (ix+0), a
-                ld      hl, &77c8            ; chicken draw coords
+                ld      hl, &81c8            ; chicken y,x (From 77c8 to 81c8)
                 ld      a, h
                 sub     c
                 ld      h, a
@@ -3556,7 +3558,7 @@ loc_8C12:
                 ld      (g_chicken_full+1), a
                 ld      a, &13               ; full chicken graphic
                 ld      (ix+0), a
-                ld      hl, &77c8
+                ld      hl, &7fc8              ; chicken coords (From 77c8 to 7fc8) 
                 ld      (chicken_entity+3), hl ; coords
                 call    draw_rot_obj
                 ld      b, 6
@@ -4631,7 +4633,65 @@ h_pickup_item:
                 jr      nc, draw_16x16       ; jump if not
                 call    check_touching       ; is player touching item?
                 jr      nc, draw_16x16       ; jump if not
+
+                                             ;ACG key part picked up?
+                ; ---------------------------------- 
+                ld      a, (ix+0)            ; Get item ID from entity buffer
+                cp      &8c                  ; Is it < &8C (part 1)?
+                jr      c, update_inv        ; If not, jump
+                cp      &8f                  ; Is it > 8F (part 3+1)?
+                jr      nc, update_inv       ; If so, jump
+
+                ; A is currently &8C, &8D, or &8E
+                sub     &8c                  ; Normalize to 0, 1, or 2
+                ld      hl, acg_key_flag
+                ld      b, a                ; Store normalized ID (0, 1, or 2) in B
+                ld      a, 1                ; Start with bit 0 (value 1)
+                jr      z, update_acg_flag  ; If it was 0, we are done shifting
+acg_flag_loop:
+                add     a, a                ; Shift left (effectively bit 1, then bit 2)
+                djnz    acg_flag_loop
+update_acg_flag:
+                or      (hl)                ; Combine new bit with existing flags
+                ld      (hl), a             ; Save it back!
+
+                ; --- THE FIX: MUZZLE THE ENGINE ---
                 ld      a, (pickup_flags)
+                or      2                    ; Set Bit 1 (Signifies "Handled")
+                ld      (pickup_flags), a
+
+                ; --- The "Fake" Inventory Pickup ---
+                ; We do the cleanup that add_inventory usually does, 
+                ; but we DON'T update the inventory1-3 buffers.
+                
+                call    undraw_entity        ; Erase the key's pixels from the screen
+                
+                ld      a, (room_attr)       ; Get current room's background color
+                ld      (ix+5), a            ; Set the entity's attribute to "background"
+                call    set_entity_attrs2    ; Update attribute memory (removes the "ink")
+
+                ; --- RESTORE PLAYER COLOR ---
+                ;push    ix                   ; Save the ACG key entity pointer
+                ;ld      ix, player           ; Point IX to your player data block (&EA90)
+                ;call    set_entity_attrs2    ; Force-apply the player's blue color (player_attr)
+                ;pop     ix                   ; Restore the ACG key entity pointer
+                
+                
+
+                call    draw_panel_attrs     ; Refresh side panel (Turns Blue to Yellow)
+                call    draw_inventory
+
+                ld      (ix+0), 0            ; *** IMPORTANT: Deactivate item in room buffer
+                                             ; This stops the player from "re-touching" it.
+                
+                ; If your game has a "pickup" sound, you could call it here
+                ; call inventory_sound 
+
+                ret                          ; Exit h_pickup_item safely
+                ; ---------------------------------- 
+
+
+update_inv:     ld      a, (pickup_flags)
                 or      3                    ; disallow further pickups
                 ld      (pickup_flags), a
                 call    drop_item            ; drop last item in inventory
@@ -4773,6 +4833,10 @@ read_keyboard:
                 ret
 
 h_blank:
+                ld      a, (pickup_flags)
+                bit     1, a                ; Was a pickup already handled?
+                ret     nz                  ; YES? Then STOP. No shuffle, no drop
+
                 ld      a, (player)
                 dec     a
                 cp      &30                  ; is player active?
@@ -4780,6 +4844,7 @@ h_blank:
                 ld      a, (pickup_pressed)
                 and     a                    ; pick-up key down?
                 jr      z, loc_9417          ; jump if not
+                               
                 ld      a, (pickup_flags)
                 and     3                    ; pick-up allowed?
                 jr      nz, loc_940E         ; jump if not
@@ -4949,8 +5014,8 @@ acg_key_rooms:  db  &81, &45, &7c
                 db  &01, &6F, &10
                 db  &07, &6c, &70
                 db  &19, &14, &09
-                db  &6b, &02, &16
-                db  &0d, &15, &08
+                db  &6b, &01, &16
+                db  &0d, &14, &08
                 db  &14, &0c, &6e
 
 ; randomise which doors can open/close
@@ -5076,43 +5141,31 @@ loc_95A3:
                 pop     de
                 ret
 ; ---------------------------------------------------------------------------
-; mod: maintain hidden/restory status of doors relevant to single floor game
+; mod: hides/restores status of doors relevant to single floor game
 ; ---------------------------------------------------------------------------
 
 gf_mod:
 
-               ld      a, (mod_selection)
-               and     %00000100
-               ld      c, a
-;                ld      a, (mod_selection)
-;                bit     2, a 
-;                jp      nz, set_floor_level
-;reset_floor_level:
-;                ld      a, 0
-;                jp      gf_start
-;set_floor_level:
-;                ld      a, 1  
-;
-;gf_start        add     a, a                ; Multiplied by 4 (4 bytes per mode)
-;                add     a, a                
-;                ld      c, a                ; Store offset in C (Free register)
+                ld      a, (mod_selection)
+                and     %00000100
+                ld      c, a                ; C = offset = 4 (mod selection) or 0 (not selected)
                 
                 ld      hl, gf_doors
-                ld      b, 6                ; 1 objects
+                ld      b, 6                ; B = no of doors to be hidden/restored
 gf_loop:
-                ld      e, (hl)             ; Object Addr LSB
+                ld      e, (hl)             ; LSB of door address
                 inc     hl
-                ld      d, (hl)             ; Object Addr MSB
+                ld      d, (hl)             ; MSB of door address
                 inc     hl
                 
                 push    de
-                pop     ix                  ; IX = Target Object
+                pop     ix                  ; IX = DE = Target Object
 
-                ; --- Calculate Pointer to correct Mode Data ---
-                push    hl                  ; HL points to Classic Block
-                ld      a, l                ; Get offset from C
-                add     a, c
-                ld      l, a
+                ; --- Calculate Pointer to correct data ---
+                push    hl                  ; Store HL (position in gf_doors)
+                ld      a, l                 
+                add     a, c                 
+                ld      l, a                ; HL = HL + Offset (HL+4 = B4-B7 in gf_doors)
                 jr      nc, gf_transfer     ; NC = No Carry (Same Page)
                 inc     h                   ; Carry = Page Boundary Cross
 gf_transfer:
@@ -5129,16 +5182,19 @@ gf_transfer:
                 ld      a, (hl)
                 ld (ix+6), a  ; Attribute
                 
-                pop     hl                  ; Restore HL to start of data blocks
-                ld      de, 8               ; Skip the 8 bytes of data
-                add     hl, de
+                pop     hl                  ; Restore HL (position in gf_doors plus offset)
+                ld      de, 8               ; 
+                add     hl, de              ; HL = next door (8 bytes ahead))
                 
-                djnz    gf_loop            ; B is loop counter, C is untouched
+                djnz    gf_loop             ; Loop while B <> 0
                 ret
 
 gf_doors:
+; ---------------------------------------------------------------------------
+; dw = door address; db B0-B3 'display' door values; db B4-B7 'hide' door values
+; ---------------------------------------------------------------------------
                 dw door_1A_06
-                db &02, &34, &3f, &04, &25, &00, &38, 0  ; displayed/hidden 
+                db &02, &34, &3f, &04, &25, &00, &38, 0   
                 dw door_03_26
                 db &02, &34, &97, &04, &25, &00, &97, 0
                 dw door_70_71_s
@@ -5219,7 +5275,7 @@ clock_tick:
                 and     &0f                  ; clip hours to 0-15
                 ld      (hl), a
 loc_9604:
-                ld      hl, &40c8            ; time coords
+                ld      hl, &58c8            ; timer coords (y,x); changed from &40c8 to &58c8 
 
 ; print clock time at position HL
 print_clock:
@@ -5234,25 +5290,90 @@ print_clock:
 
 ; ACG exit door handler
 h_acg_exit:
+                ;ld      a, (mod_auto_sort_enabled)
+                ;or      a
+                ;jr      z, strict_order
+
+any_order:      ld      b,  3               ; B = no of parts to ACG key
+                ld      hl, inventory1+2
+                ld      c,  0               ; C = bit mask (cleared)
+
+a_o_loop:
+                ld      a, (hl)
+chk_p1:         cp      &8C                 ; Part 1 held?
+                jr      nz, chk_p2         ; Jump if not
+                set     0, c                ; Set b0 if so
+                jr      a_o_next_slot
+chk_p2:
+                cp      &8D                 ; Part 2 held?
+                jr      nz, chk_p3          ; Jump if not
+                set     1, c                ; Set b1 if so
+                jr      a_o_next_slot
+chk_p3:
+                cp      &8E                 ; Part 2 held?
+                jr      nz, a_o_next_slot   ; Jump if not
+                set     2, c                ; Set b2 if so
+
+a_o_next_slot:
+                ld      a, 4                ; Move to next slot
+                add     a, l
+                ld      l, a
+                jr      nc, a_o_no_c        ; Jump if Plus 4 does NOT exceed 255 (l register)
+                inc     h                   ; If so, increment h register
+a_o_no_c:
+                djnz    a_o_loop
+
+                ld      a, c
+                cp      %00000111           ; All 3 parts found? (b0-b2 = 111)
+                jr      z, .success         ; Jump if so
+                or      a                   ; Clear Carry (Failure)
+                jr      nc, loc_963B
+.success:
+                scf                         ; Set Carry (Success)
+                jr      unlock_acg                        
+
+
+strict_order:
                 ld      hl,  inventory1+2    ; graphic idx
                 ld      de, 4                ; 4 bytes per inventory slot
+                
                 ld      a, (hl)
                 cp      &8c                  ; ACG key part 1?
                 jr      nz, loc_963B         ; jump if not
+                
                 add     hl, de               ; next slot
                 ld      a, (hl)
                 cp      &8d                  ; ACG key part 2?
                 jr      nz, loc_963B         ; jump if not
+                
                 add     hl, de               ; next slot
                 ld      a, (hl)
                 cp      &8e                  ; ACG key part 3?
                 jr      nz, loc_963B         ; jump if not
+                
+unlock_acg:     
+                call sort_visual_keys
                 call    enter_door           ; enter linked object (door etc.)
                 ld      bc, &3020            ; 48x32
                 jp      loc_91F5
 loc_963B:
                 call    loc_9565
                 jp      h_room_item          ; draw room item
+
+; auto_sort ACG key into correct order
+sort_visual_keys:
+                push    hl
+                ld      hl, inventory1+2       ; Point to Slot 1 ID
+                ld      (hl), &8C              ; Force Part 1
+                
+                ld      de, 4                  ; Offset to Slot 2
+                add     hl, de
+                ld      (hl), &8D              ; Force Part 2
+                
+                add     hl, de                 ; Offset to Slot 3
+                ld      (hl), &8E              ; Force Part 3
+                pop     hl
+                ret
 
 ; show game statistics
 game_stats:
@@ -5634,9 +5755,11 @@ get_key_room:
                 ret
 
 green_key_rooms:db  5, 6, 7, &6d, &25, &24, &23, &22
-                db  1, 2, 3, 4, 5, 6, 7, &19, &6d
+                ;db  1, 2, 3, 4, 5, 6, 7, &19, &6d
+                db  18, &13, &6c, 4, &6e, 6, 8, &6d
 red_key_rooms:  db  &17, &13, 9, &0d, &89, &87, &80, &85
-                db  &0f, &0b, &0D, &0e, &6f, &10, &70
+                db  &17, 3, 5, 7, 9, &13, &17, &0D
+                ;db  &0f, &0b, &0D, &0e, &6f, &10, &70
 cyan_key_rooms: db  &53, &8f, &41, &94, &33, &91, &39, &4c
                 db  &00, &00, &00, &00, &06, &07, &0A, &6B
 
@@ -7299,8 +7422,20 @@ loc_A15E:
                 push    hl
                 call    clear_sprite
                 call    draw_entity          ; draw entity graphic (no attrs)
+
+                ; --- ACG Safety Check ---
+                ;ld      a, (ix+0)            ; Get the Item ID just drawn
+                ;cp      &8C                  ; Is it ACG Part 1?
+                ;jr      c, .do_attrs         ; If lower, it's a normal item
+                ;cp      &8F                  ; Is it above Part 3?
+                ;jr      nc, .do_attrs        ; If so, it's a normal item
+                
+                ;jr      .skip_to_pop         ; It IS an ACG key! Jump over the paint call
+
+.do_attrs:
+                
                 call    set_entity_attrs     ; paint entity with its current attr colour
-                pop     hl
+ .skip_to_pop:  pop     hl
                 pop     ix
                 pop     de
                 pop     bc
@@ -7451,9 +7586,9 @@ draw_hdr        ld      hl, panel_chars       ; HL = panel graphics
                 call    loc_A228                  
 draw_bod:       ld      hl, panel_chars
                 ld      (charset_addr), hl
-                ld      hl, &18c0             ; H = 24 L = &c0 (192)  H,L = x, y
+                ld      hl, &18c0             ; Body coords H (x) = 24 L (y) = 192
                 ld      de, panel_body
-                ld      bc, &0815             ; 8x21 colsxrows
+                ld      bc, &0815             ; Cols/Rows -changed from 0815 to 0818
                 call    loc_A228                 
                 jp      loc_A1AE
 
@@ -7476,10 +7611,21 @@ loc_A22D:
                 ret
 
 ; draw side-panel colours, which follow room colour
+
+acg_attr_yx     equ     &30c8
+lives_attr_yx   equ     &86c8 
+
+chicken_attr_yx equ     &66c8  
+
+acg_key_flag    db      0
+
+dark_blue       db      01        
+
 draw_panel_attrs:
+                                             ; COLOUR BACKGROUND
                 ld      hl, &c0
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ld      bc, &0818             ; 8x24
+                ld      bc, &0818            ; 8x24
                 ld      a, (room_attr)
                 cpl                          ; invert for colour contrast
                 and     7
@@ -7488,7 +7634,7 @@ draw_panel_attrs:
                 ld      a, &44               ; change blue to bright green
 loc_A255:
                 ld      e, a                 ; save attr value
-                push    de
+                ;push    de
 loc_A257:
                 push    bc
                 push    hl
@@ -7499,46 +7645,104 @@ loc_A259:
                 pop     hl
                 ld      bc, &20              ; line pitch
                 add     hl, bc               ; down a row
-                pop     bc
-                dec     c
+                pop     bc                   ;convert pixel coords in HL to attribute address
+                dec     c  
                 jr      nz, loc_A257
-                ld      hl, &08c8            ; MOD: Change &90c8 to %08c8 for Scroll 'title' coords
-                call    xy_to_attr           ; convert pixel coords in HL to attribute address
+                ld      hl, &90C8
+                call    xy_to_attr
+                                             ; COLOUR CHAR NAME
                 ld      a, (room_attr)
-                ld      bc, &0502            ; MOD: Change &0303 to &0502 for 2 x 5 attribute squares
+                ld      bc, &0502            ; MOD: Change &0303 to &0502 for 2 (x) x 5 (y)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
-                inc     l
-                ld      (hl), a
-                add     hl, de
-                ld      bc, &0202             ; 2x2 (rosette tail)
-                call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
-                ld      hl, &98d0
+                ;inc     l
+                ;ld      (hl), a
+                ;add     hl, de
+                ;ld      bc, &0202             ; 2x2 (rosette tail)
+                ;call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
+                ;ld      hl, &98d0
+                ;call    xy_to_attr           ; convert pixel coords in HL to attribute address
+                ;pop     de
+                ;ld      (hl), e              ; rosette centre
+                
+                ld      hl, acg_attr_yx
+                call    xy_to_attr
+                ld      a, (acg_key_flag)
+                bit     0, a                    ; acg_1 collected?
+                jr      nz, acg1_yellow       ; jump if so
+                ld      a, (dark_blue)           ; set to dark blue if not
+                jr      colour_acg_1
+acg1_yellow:    ld      a, &46                ; set to bright yellow
+colour_acg_1:
+                ;and     &7F
+                ld      bc, &0203
+                call    fill_bc_hl_a
+
+                ld      hl, acg_attr_yx+16
+                call    xy_to_attr
+                ld      a, (acg_key_flag)
+                bit     1, a                  ; acg_2 collected?
+                jr      nz, acg2_yellow       ; jump if so
+                ld      a, (dark_blue)               ; set to dark blue if not
+                jr      colour_acg_2
+acg2_yellow:    ld      a, &46                ; set to bright yellow
+colour_acg_2:
+                ;and     &7F
+                ld      bc, &0203
+                call    fill_bc_hl_a
+
+                
+                ld      hl, acg_attr_yx+32
+                call    xy_to_attr
+                ld      a, (acg_key_flag)
+                bit     2, a                  ; acg_3 collected?
+                jr      nz, acg3_yellow       ; jump if so
+                ld      a, (dark_blue)                 ; set to dark blue if not
+                jr      colour_acg_3
+acg3_yellow:    ld      a, &46                ; set to bright yellow
+colour_acg_3:
+                ;and     &7F
+                ld      bc, &0203
+                call    fill_bc_hl_a
+
+
+
+
+
+
+                ;ld      hl, acg_attr_yx      ; MOD: NEW ATTR FOR ACG KEG
+                ;call    xy_to_attr           ; convert pixel coords in HL to attribute address
+                ;ld      bc, &0603            ; 6x3
+                ;ld      a, &01               ; dark blue (ACG KEY)
+                ;call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
+                
+                ld      hl, lives_attr_yx    ; MOD: Change &7fc8 to &86c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                pop     de
-                ld      (hl), e              ; rosette centre
-                ld      hl, &7DC8            ; FIXED: HL = 78H 
-                call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ld      bc, &0603             ; 6x3
-                ld      a, &47               ; bright white (lives)
+                ld      bc, &0603            ; 6x3
+                ld      a, &47               ; bright white (LIVES)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
-                ld      hl, &5fc8
+                
+                ld      hl, chicken_attr_yx  ; MOD: Change &5fc8 to &66c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0604             ; 6x4
                 ld      a, &46               ; bright yellow (chicken)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
-                ld      hl, &48c8
+                
+                ld      hl, &50c8            ; 58c8 to 40c8
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0601             ; 6x1
                 ld      a, &45               ; bright cyan (score caption)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
+                
                 ld      bc, &0601             ; 6x1
                 ld      a, &47               ; bright white (score)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
-                ld      hl, &38c8
+                
+                ld      hl, &50c8            ; MOD: Change &38c8 to &48c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0601             ; 6x1
-                ld      a, &43               ; bright magenta (time caption)
+                ld      a, &47               ; bright magenta (time caption)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
+                
                 ld      bc, &0601
                 ld      a, &47               ; bright white (time)
                 jp      fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
@@ -7553,7 +7757,7 @@ draw_lives:
                 or      1                    ; offset to first graphic
                 ld      (ix+0), a            ; character type
                 ld      (ix+5), &47          ; bright white
-                ld      hl, &8dc8            ; coords of lives in side panel
+                ld      hl, &95c8            ; coords H=Y, L=X (CHANGED FROM 8dc8 to 95c8)
                 ld      (ix+3), l
                 ld      (ix+4), h
                 ld      a, (lives)
@@ -7578,6 +7782,118 @@ loc_A30C:
                 djnz    loc_A2F2             ; draw remaining slots
                 pop     ix
                 ret
+
+
+key_part_indices:
+                db &8C, &8D, &8E           ; Graphics for the 3 ACG parts
+
+; --- Coordinate Table (X, Y in pixels) ---
+; These map to the side panel area (X=240, column 30)
+key_part_coords:
+                db 200, 70                ; Part 0: Char(30, 2)
+                db 216, 70                ; Part 1: Char(30, 6)
+                db 232, 70               ; Part 2: Char(30, 10)
+
+
+
+
+
+
+draw_acg_key:                              ; No Attrs
+
+                ld      ix, entity_to_draw ; Standard entity buffer
+                ld      hl, key_part_indices ; Point to table of 3 graphic IDs
+
+                ld      de, key_part_coords ; Point to table of 3 (X,Y) pairs
+
+                ld      b, 3 ; 3 parts to draw
+
+
+draw_key_loop:
+
+                push bc ; Save loop counter
+                push hl
+                push de
+
+
+; 1. Load graphic index
+
+                ld      a, (hl) 
+                ld      (ix+0), a
+
+; 2. Load coordinates/colour
+
+                ld      a, (de) ; X coordinate
+                ld      (ix+3), a
+                inc     de
+                ld      a, (de) ; Y coordinate
+                ld      (ix+4), a
+                ld      (ix+5), &47 ; colour
+                inc     de ; Prepare for next X,Y pair
+
+
+
+; 3. Render
+                call clear_sprite
+                call draw_entity ; Use existing 
+                pop de 
+                pop hl
+
+
+; 4. Advance data pointers
+
+                inc     hl ; Next graphic ID
+                inc     de  
+                inc     de
+                pop bc ; Restore loop counter
+                djnz    draw_key_loop
+
+; 5 Initialise ACG key to  'dark blue'                
+                ld      hl, acg_attr_yx      ; MOD: NEW ATTR FOR ACG KEG
+                call    xy_to_attr           ; convert pixel coords in HL to attribute address
+                ld      bc, &0603            ; 6x3
+                ld      a, &01               ; dark blue (ACG KEY)
+                call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
+                ret
+
+
+; Input: A = Piece Offset (0, 1, or 2)
+update_acg_color:
+                push    hl
+                push    de
+                push    bc
+
+                                            ; 1a. Load the base coordinates from the EQU
+                ld      hl, acg_attr_yx     ; H = &30, L = &C8
+
+                                            ; 1b. Calculate the offset for the X coordinate
+                                            ; A starts as index 0, 1, or 2
+                add     a, a
+                add     a, a
+                add     a, a
+                add     a, a                ; Offset * 16 pixels
+                
+                                            ; 1c. Add the offset to the base X already in L
+                add     a, l                ; Add the base X (&C8) to the offset
+                ld      l, a                ; Update L with the new X
+                
+                                            ; Result: H remains &30, L is now &C8, &D8, or &E8
+
+                                            ; 2. Convert pixel coords to attribute address
+                call    xy_to_attr          ; Returns attr address in HL
+
+                                            ; 3. Setup parameters for building block
+                ld      bc, &0203           ; B=2 (cols), C=3 (rows)
+                ld      a, &46              ; Bright Yellow (Ink 6, Paper 0, Bright 1)
+                
+                                            ; 4. Execute fill
+                call    fill_bc_hl_a
+
+                pop     bc
+                pop     de
+                pop     hl
+                ret                
+
 
 ; draw menu icons for controls and player acharacters
 draw_menu_icons:
@@ -9073,11 +9389,15 @@ panel_hdr_ser:  db  1, 2, 3, 4, 5, 6, 7, 8    ; 0
                 db  &0e, &6D, &6E, &6F, &70, &71, &0c, &0d; 16
 panel_body:     db  &0f, 0, 0, 0, 0, 0, 0, &3a; 24
                 db  &10, 0, 0, 0, 0, 0, 0, &3b; 32
+                db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
                 db  &11, 0, 0, 0, 0, 0, 0, &3c; 40
+                db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
+                db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
                 db  &12, 0, 0, 0, 0, 0, 0, &3d; 48
                 db  &13, 0, &59, &5a, &5b, &5c, 0, &3e; 56
                 db  &14, 0, 0, 0, &5d, 0, 0, &3f; 64
-                db  &15, &49, &4a, &4b, &4c, &4d, &4e, &40; 72
+                db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
+                ;db  &15, &49, &4a, &4b, &4c, &4d, &4e, &40; 72
                 db  &16, 0, 0, 0, 0, 0, 0, &41; 80
                 db  &17, 0, 0, 0, 0, 0, 0, &42; 88
                 db  &18, 0, 0, 0, 0, 0, 0, &43; 96
@@ -9089,9 +9409,9 @@ panel_body:     db  &0f, 0, 0, 0, 0, 0, 0, &3a; 24
                 db  &1e, &1f, &20, &21, 0, 0, &22, &23; 144
                 db  &24, &25, &26, &27, &28, &29, &2a, &2b; 152
                 db  &2c, &2d, &2e, &2f, &30, &31, &32, &33; 160
-                db  0, &34, &35, 0, 0, 0, 0, 0; 168
-                db  0, 0, &36, &37, 0, 0, 0, 0; 176
-                db  0, 0, &38, &39, 0, 0, 0, 0; 184
+                ;db  0, &34, &35, 0, 0, 0, 0, 0; 168
+                ;db  0, 0, &36, &37, 0, 0, 0, 0; 176
+                ;db  0, 0, &38, &39, 0, 0, 0, 0; 184
 
 g_bigdoor_frame:db  6, &20
                 db  &ff, &fe, 0, 0, &3f, &ff

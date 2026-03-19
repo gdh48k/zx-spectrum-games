@@ -4634,8 +4634,21 @@ h_pickup_item:
                 call    check_touching       ; is player touching item?
                 jr      nc, draw_16x16       ; jump if not
 
+                                             ;ACG key part picked up?
+                ; ---------------------------------- 
+                ld      a, (ix+0)            ; Get item ID from entity buffer
+                cp      &8c                  ; Is it < &8C (part 1)?
+                jr      c, update_inv        ; If not, jump
+                cp      &8f                  ; Is it > 8F (part 3+1)?
+                jr      nc, update_inv       ; If so, jump
 
-                ld      a, (pickup_flags)
+                ; A is currently &8C, &8D, or &8E
+                sub     &8c                  ; Normalize to 0, 1, or 2
+                call    update_acg_color     ; Light up side panel (Uses xy_to_attr)
+                ; ---------------------------------- 
+
+
+  update_inv:   ld      a, (pickup_flags)
                 or      3                    ; disallow further pickups
                 ld      (pickup_flags), a
                 call    drop_item            ; drop last item in inventory
@@ -7567,11 +7580,11 @@ loc_A259:
                 pop     hl
                 ld      bc, &20              ; line pitch
                 add     hl, bc               ; down a row
-                pop     bc
-                dec     c
+                pop     bc                   ;convert pixel coords in HL to attribute address
+                dec     c  
                 jr      nz, loc_A257
-                ld      hl, &08c8            ; MOD: Change &90c8 to %08c8 for Scroll 'title' coords
-                call    xy_to_attr           ; convert pixel coords in HL to attribute address
+                ld      hl, &90C8
+                call    xy_to_attr
                 ld      a, (room_attr)
                 ld      bc, &0502            ; MOD: Change &0303 to &0502 for 2 (x) x 5 (y)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
@@ -7661,7 +7674,7 @@ loc_A30C:
 
 
 key_part_indices:
-                db &8C, &8D, &8E           ; Graphics for the 3 parts
+                db &8C, &8D, &8E           ; Graphics for the 3 ACG parts
 
 ; --- Coordinate Table (X, Y in pixels) ---
 ; These map to the side panel area (X=240, column 30)
@@ -7674,15 +7687,6 @@ key_part_coords:
 
 
 draw_acg_key:
-
-;ld      ix, entity_to_draw
-;ld      (ix+0), &7      ; Graphic ID
-;ld      (ix+3), 200       ; X=128
-;ld      (ix+4), 54        ; Y=64
-;ld      (ix+5), &47       ; Attribute (from draw_lives)
-;ld      (ix+1), 1         ; Force active flag
-;ld      (ix+2), 0         ; Animation frame
-;call    draw_entity       ; Does this draw anything?
 
                 ld      ix, entity_to_draw ; Standard entity buffer
                 ld      hl, key_part_indices ; Point to table of 3 graphic IDs
@@ -7707,7 +7711,7 @@ draw_key_loop:
 ; 2. Load coordinates/colour
 
                 ld      a, (de) ; X coordinate
-               ld      (ix+3), a
+                ld      (ix+3), a
                 inc     de
                 ld      a, (de) ; Y coordinate
                 ld      (ix+4), a
@@ -7719,7 +7723,7 @@ draw_key_loop:
 ; 3. Render
                 call clear_sprite
                 call draw_entity ; Use existing 
-             pop de 
+                pop de 
                 pop hl
 
 
@@ -7729,8 +7733,53 @@ draw_key_loop:
                 inc     de  
                 inc     de
                 pop bc ; Restore loop counter
-              djnz    draw_key_loop
+                djnz    draw_key_loop
+
+; 5 Initialise ACG key to  'dark blue'                
+                ld      hl, acg_attr_yx      ; MOD: NEW ATTR FOR ACG KEG
+                call    xy_to_attr           ; convert pixel coords in HL to attribute address
+                ld      bc, &0603            ; 6x3
+                ld      a, &01               ; dark blue (ACG KEY)
+                call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 ret
+
+
+; Input: A = Piece Offset (0, 1, or 2)
+update_acg_color:
+                push    hl
+                push    de
+                push    bc
+
+                                            ; 1a. Load the base coordinates from the EQU
+                ld      hl, acg_attr_yx     ; H = &30, L = &C8
+
+                                            ; 1b. Calculate the offset for the X coordinate
+                                            ; A starts as index 0, 1, or 2
+                add     a, a
+                add     a, a
+                add     a, a
+                add     a, a                ; Offset * 16 pixels
+                
+                                            ; 1c. Add the offset to the base X already in L
+                add     a, l                ; Add the base X (&C8) to the offset
+                ld      l, a                ; Update L with the new X
+                
+                                            ; Result: H remains &30, L is now &C8, &D8, or &E8
+
+                                            ; 2. Convert pixel coords to attribute address
+                call    xy_to_attr          ; Returns attr address in HL
+
+                                            ; 3. Setup parameters for building block
+                ld      bc, &0203           ; B=2 (cols), C=3 (rows)
+                ld      a, &46              ; Bright Yellow (Ink 6, Paper 0, Bright 1)
+                
+                                            ; 4. Execute fill
+                call    fill_bc_hl_a
+
+                pop     bc
+                pop     de
+                pop     hl
+                ret                
 
 
 ; draw menu icons for controls and player acharacters

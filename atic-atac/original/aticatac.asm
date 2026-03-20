@@ -4656,9 +4656,9 @@ update_acg_flag:
                 ld      (hl), a             ; Save it back!
                 call    acg_key_sound
 
-                ; --- THE FIX: MUZZLE THE ENGINE ---
+                
                 ld      a, (pickup_flags)
-                or      2                    ; Set Bit 1 (Signifies "Handled")
+                or      3                    ; Set Bit 1 (Signifies "Handled")
                 ld      (pickup_flags), a
 
                 ; --- The "Fake" Inventory Pickup ---
@@ -4671,26 +4671,14 @@ update_acg_flag:
                 ld      (ix+5), a            ; Set the entity's attribute to "background"
                 call    set_entity_attrs2    ; Update attribute memory (removes the "ink")
 
-                ; --- RESTORE PLAYER COLOR ---
-                ;push    ix                   ; Save the ACG key entity pointer
-                ;ld      ix, player           ; Point IX to your player data block (&EA90)
-                ;call    set_entity_attrs2    ; Force-apply the player's blue color (player_attr)
-                ;pop     ix                   ; Restore the ACG key entity pointer
-                
-                
-
                 call    draw_panel_attrs     ; Refresh side panel (Turns Blue to Yellow)
                 call    draw_inventory
 
                 ld      (ix+0), 0            ; *** IMPORTANT: Deactivate item in room buffer
                                              ; This stops the player from "re-touching" it.
-                
-                ; If your game has a "pickup" sound, you could call it here
-                ; call inventory_sound 
-
-                ret                          ; Exit h_pickup_item safely
+                                
+                ret                          
                 ; ---------------------------------- 
-
 
 update_inv:     ld      a, (pickup_flags)
                 or      3                    ; disallow further pickups
@@ -4834,10 +4822,22 @@ read_keyboard:
                 ret
 
 h_blank:
+                ; --- STEP 1: THE SAFETY RESET ---
+                ld      a, (pickup_pressed)
+                and     a                   ; Is the button physically UP?
+                jr      nz, .check_handled  ; If DOWN, go to the "Handled" check
+                
+                xor     a                   ; If UP, force-clear the flags
+                ld      (pickup_flags), a   ; This fixes the "Permanent Disable"
+                jr      .skip_to_player     ; Jump past the "Handled" block
+
+
+
+.check_handled:
                 ld      a, (pickup_flags)
                 bit     1, a                ; Was a pickup already handled?
                 ret     nz                  ; YES? Then STOP. No shuffle, no drop
-
+.skip_to_player:
                 ld      a, (player)
                 dec     a
                 cp      &30                  ; is player active?

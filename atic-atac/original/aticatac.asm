@@ -4654,6 +4654,7 @@ acg_flag_loop:
 update_acg_flag:
                 or      (hl)                ; Combine new bit with existing flags
                 ld      (hl), a             ; Save it back!
+                call    acg_key_sound
 
                 ; --- THE FIX: MUZZLE THE ENGINE ---
                 ld      a, (pickup_flags)
@@ -8004,6 +8005,13 @@ inventory_sound:
 drop_sound:
                 ld      bc, &2080            ; long high beep
                 jr      beep                 ; freq B (low is higher), length C
+
+acg_key_sound:
+                ld      bc, &4020           ; Mid note
+                call    beep
+                ld      bc, &2020           ; High note
+                call    beep
+                ret
 
 ; play walk clicks if due
 walk_sound:

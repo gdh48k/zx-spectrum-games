@@ -3475,6 +3475,8 @@ creatures:      db  &5c                       ; spider
                 db  &6a                       ; batlet
 
 ; draw chicken energy bar
+
+chicken_yx equ     &81c8
 draw_chicken:
                 ld      a, (player_energy)
                 srl     a
@@ -3521,7 +3523,7 @@ draw_chicken:
                 push    hl
                 ld      a, &14               ; empty chicken graphic
                 ld      (ix+0), a
-                ld      hl, &81c8            ; chicken y,x (From 77c8 to 81c8)
+                ld      hl, chicken_yx       ; chicken y,x (From 77c8 to 81c8)
                 ld      a, h
                 sub     c
                 ld      h, a
@@ -3558,7 +3560,7 @@ loc_8C12:
                 ld      (g_chicken_full+1), a
                 ld      a, &13               ; full chicken graphic
                 ld      (ix+0), a
-                ld      hl, &7fc8              ; chicken coords (From 77c8 to 7fc8) 
+                ld      hl, chicken_yx         ; chicken coords (From 77c8 to 81c8) 
                 ld      (chicken_entity+3), hl ; coords
                 call    draw_rot_obj
                 ld      b, 6
@@ -7716,16 +7718,6 @@ colour_acg_3:
                 ld      bc, &0203
                 call    fill_bc_hl_a
 
-
-
-
-
-
-                ;ld      hl, acg_attr_yx      ; MOD: NEW ATTR FOR ACG KEG
-                ;call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ;ld      bc, &0603            ; 6x3
-                ;ld      a, &01               ; dark blue (ACG KEY)
-                ;call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ld      hl, lives_attr_yx    ; MOD: Change &7fc8 to &86c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address

@@ -3742,6 +3742,10 @@ reset_game_state:
                 ld      de, player           ; working game state
                 ld      bc, &1570            ; 0x10000-player, rather than real init data size!
                 ldir
+
+                xor     a
+                ld      (acg_key_flag), a ; <--- MANUALLY RESET OUR FLAG
+
                 ret
 
 ; reduce auto-walk counter
@@ -4621,6 +4625,8 @@ loc_92EF:
                 jp      set_entity_attrs2    ; set attrs covering previous and new position
 
 ; pickup item handler
+
+acg_key_flag:   db      0
 h_pickup_item:
                 call    save_entity          ; save entity position for undraw
                 ld      a, (pickup_pressed)
@@ -7631,7 +7637,7 @@ lives_attr_yx   equ     &86c8
 
 chicken_attr_yx equ     &66c8  
 
-acg_key_flag    db      0
+
 
 dark_blue       db      01
 bright_white    db      &47        
@@ -12663,5 +12669,4 @@ devil:          ds  16
 frankenstein:   ds  16
 hunchback:      ds  16
 linked_items:   ds  4384
-
 end start

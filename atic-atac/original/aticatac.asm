@@ -7633,7 +7633,8 @@ chicken_attr_yx equ     &66c8
 
 acg_key_flag    db      0
 
-dark_blue       db      01        
+dark_blue       db      01
+bright_white    db      &47        
 
 draw_panel_attrs:
                                              ; COLOUR BACKGROUND
@@ -7722,7 +7723,7 @@ colour_acg_3:
                 ld      hl, lives_attr_yx    ; MOD: Change &7fc8 to &86c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0603            ; 6x3
-                ld      a, &47               ; bright white (LIVES)
+                ld      a, &4f               ; bright white (LIVES)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ld      hl, chicken_attr_yx  ; MOD: Change &5fc8 to &66c8 y,x coords
@@ -7738,7 +7739,7 @@ colour_acg_3:
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ld      bc, &0601             ; 6x1
-                ld      a, &47               ; bright white (score)
+                ld      a, (bright_white)              ; bright white (score)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ld      hl, &50c8            ; MOD: Change &38c8 to &48c8 y,x coords
@@ -9400,20 +9401,21 @@ panel_hdr_ser:  db  1, 2, 3, 4, 5, 6, 7, 8    ; 0
                 db  &0e, &6D, &6E, &6F, &70, &71, &0c, &0d; 16
 panel_body:     db  &0f, 0, 0, 0, 0, 0, 0, &3a; 24
                 db  &10, 0, 0, 0, 0, 0, 0, &3b; 32
-                db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
-                db  &11, 0, 0, 0, 0, 0, 0, &3c; 40
-                db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
-                db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
-                db  &12, 0, 0, 0, 0, 0, 0, &3d; 48
-                db  &13, 0, &59, &5a, &5b, &5c, 0, &3e; 56
-                db  &14, 0, 0, 0, &5d, 0, 0, &3f; 64
-                db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
+                db  &1a, 0, 0, 0, 0, 0, 0, &3c ; PLACEHOLDER
+                db  &1a, 0, 0, 0, 0, 0, 0, &10; 40
+                ;db  &3c, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
+                db  &11, 0, 0, 0, 0, 0, 0, &3d ; PLACEHOLDER
+                db  &12, 0, 0, 0, 0, 0, 0, &3e; 48
+                db  &13, 0, &59, &5a, &5b, &5c, 0, &3f; 56
+                db  &14, 0, 0, 0, &5d, 0, 0, &40; 64
+                db  &15, 0, 0, 0, 0, 0, 0, &41; PLACEHOLDER
                 ;db  &15, &49, &4a, &4b, &4c, &4d, &4e, &40; 72
-                db  &16, 0, 0, 0, 0, 0, 0, &41; 80
+                db  &16, 0, 0, 0, 0, 0, 0, &41; 80  ****11th row
                 db  &17, 0, 0, 0, 0, 0, 0, &42; 88
                 db  &18, 0, 0, 0, 0, 0, 0, &43; 96
                 db  &19, 0, 0, 0, 0, 0, 0, &44; 104
                 db  &1a, 0, 0, 0, 0, 0, 0, &45; 112
+                db  &1a, 0, 0, 0, 0, 0, 0, &45; 112 DUPLICATED
                 db  &1b, 0, 0, 0, 0, 0, 0, &46; 120
                 db  &1c, 0, 0, 0, 0, 0, 0, &47; 128
                 db  &1d, 0, 0, 0, 0, 0, 0, &48; 136

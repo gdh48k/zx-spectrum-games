@@ -832,8 +832,8 @@ barrel_6B_6D:   db  &1a, &6b, &34, &50, &b7, &a0, 4, 6
                 db  &1a, &6d, &34, &50, &27, 0, 4, &56
 barrel_8A_08:   db  &1a, &8a, &34, &98, &6f, &60, &b7, 3
                 db  &1a, 8, &34, &28, &6f, &e1, 6, 3
-acgexit_00_8E:  ;db  &24, 0, &c4, &98, &7f, &40, &ba, &d6
-                db  &24, 7, &c4, &98, &7f, &40, &ba, &d6    
+acgexit_00_8E:  db  &24, 0, &c4, &98, &7f, &40, &ba, &d6
+                ;db  &24, 7, &c4, &98, &7f, &40, &ba, &d6    
                 db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
 skeleton_53_8F: db  &26, &53, 0, &80, &77, &61, 0, 0
                 db  &26, &8f, 0, &80, &77, &61, 0, 0
@@ -863,7 +863,7 @@ room_table:     dw  room_00, room_01, room_02, room_03, room_04, room_05, room_0
 room_00:        dw  door_07_00
                 dw  door_19_00
                 dw  door_01_00_c
-                ;dw  acgexit_00_8E
+                dw  acgexit_00_8E
                 dw  knight_00_06
                 dw  knight_00_06_2
                 dw  pic_shi_00_19
@@ -913,8 +913,8 @@ room_06:        dw  door_06_05
 room_07:        dw  door_07_00
                 dw  door_07_06
                 dw  knight_05_07
-                dw  acgexit_00_8E
-                ;dw  pic_shi_07_06
+                ;dw  acgexit_00_8E
+                dw  pic_shi_07_06
                 dw  0
 room_08:        dw  door_08_06_g
                 dw  door_09_08

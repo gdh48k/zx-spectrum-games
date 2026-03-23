@@ -3476,7 +3476,7 @@ creatures:      db  &5c                       ; spider
 
 ; draw chicken energy bar
 
-chicken_yx equ     &81c8
+chicken_yx equ     &80c8
 draw_chicken:
                 ld      a, (player_energy)
                 srl     a
@@ -7640,7 +7640,10 @@ chicken_attr_yx equ     &66c8
 
 
 dark_blue       db      01
-bright_white    db      &47        
+bright_white    db      &47
+bright_white_bl db      &4f  
+bright_yellow   db      &46
+bright_yellow_gr db     &66        
 
 draw_panel_attrs:
                                              ; COLOUR BACKGROUND
@@ -7729,13 +7732,13 @@ colour_acg_3:
                 ld      hl, lives_attr_yx    ; MOD: Change &7fc8 to &86c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0603            ; 6x3
-                ld      a, &4f               ; bright white (LIVES)
+                ld      a, (bright_white_bl)   ; bright white (LIVES)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ld      hl, chicken_attr_yx  ; MOD: Change &5fc8 to &66c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0604             ; 6x4
-                ld      a, &46               ; bright yellow (chicken)
+                ld      a, (bright_yellow_gr)               ; bright yellow (CHICKEN)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ld      hl, &50c8            ; 58c8 to 40c8
@@ -7759,6 +7762,9 @@ colour_acg_3:
                 jp      fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
 
 ; draw lives sprites in side panel
+
+lives_yx        dw      &95c8  
+
 draw_lives:
                 push    ix
                 ld      ix, entity_to_draw
@@ -7768,7 +7774,7 @@ draw_lives:
                 or      1                    ; offset to first graphic
                 ld      (ix+0), a            ; character type
                 ld      (ix+5), &47          ; bright white
-                ld      hl, &95c8            ; coords H=Y, L=X (CHANGED FROM 8dc8 to 95c8)
+                ld      hl, (lives_yx)            ; coords H=Y, L=X (CHANGED FROM 8dc8 to 95c8)
                 ld      (ix+3), l
                 ld      (ix+4), h
                 ld      a, (lives)

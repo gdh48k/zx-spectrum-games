@@ -3746,6 +3746,14 @@ reset_game_state:
                 xor     a
                 ld      (acg_key_flag), a ; <--- MANUALLY RESET OUR FLAG
 
+                ; --- TEST OVERRIDE ---
+                ;ld      a, &09
+                ;ld      (score_bcd), a
+                ;ld      a, &99
+                ;ld      (score_bcd+1), a
+                ;ld      a, &50
+                ;ld      (score_bcd+2), a
+                ; ---------------------
                 ret
 
 ; reduce auto-walk counter
@@ -7493,17 +7501,44 @@ add_score_bc_bcd:
                 ld      a, (hl)
                 adc     a, 0                 ; carry 10000s
                 daa
+
+                ; --- MOD: CAP LOGIC ---
+                jr      c, force_99999       ; If CPU carry flag set (went past &FF)
+                cp      &10                  ; Is the value BCD 100,000 or more?
+                jr      c, save_and_continue ; If less than &10, it's a valid 5-digit score
+
+force_99999:
+                ld      a, &09               ; Set 10,000s digit to 9
+                ld      (score_bcd), a
+                ld      a, &99               ; Set others to 99
+                ld      (score_bcd+1), a
+                ld      (score_bcd+2), a     ; Score is now &09 &99 &99
+                jr      loc_A1AE             ; Skip saving 'A' since we manually set it
+
+save_and_continue:
                 ld      (hl), a
 loc_A1AE:
                 ld      hl, digit_charset
                 ld      (charset_addr), hl
-                ld      hl,  display+&10c8
+                ;ld      hl,  display+&10c8
+                ld      hl, score_yx
 
+score_yx equ     &50d0
 ; print player score at position HL
 print_score:
                 call    xy_to_display        ; convert coords in HL to display address in HL
                 ld      de, score_bcd
-                ld      b, 3                 ; 3 bytes = 6 digits
+                
+                ; --- MOD: DO NOT DISPLAY 6th DIGIT ---
+                ld      a, (de)
+                and     %00001111            ; Mask out the 100,000s digit (first nibble)
+                call    print_char           ; Print & move HL right
+                inc     de
+
+                ; --- LOOP FOR REMAINING 4 DIGITS ---
+
+
+                ld      b, 2                 ; 2 bytes = 4 digits
 print_bcd_bytes:
                 ld      a, (de)              ; print B BCD bytes at DE
                 rrca

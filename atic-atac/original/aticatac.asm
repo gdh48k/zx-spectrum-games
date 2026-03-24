@@ -5292,18 +5292,32 @@ clock_tick:
                 and     &0f                  ; clip hours to 0-15
                 ld      (hl), a
 loc_9604:
-                ld      hl, &58c8            ; timer coords (y,x); changed from &40c8 to &58c8 
+                ;ld      hl, &58c8            ; timer coords (y,x); changed from &40c8 to &58c8 
+                clock_yx equ     &58d0
+                ld      hl, clock_yx
 
 ; print clock time at position HL
 print_clock:
-                call    xy_to_display        ; convert coords in HL to display address in HL
-                ld      de, clock_hours
-                ld      b, 2
-                call    print_bcd_digit      ; print a single BCD digit
-                ld      de, clock_seconds
-                inc     hl
-                ld      b, 1
-                jp      print_bcd_bytes      ; print B BCD bytes at DE
+                ;call    xy_to_display        ; convert coords in HL to display address in HL
+                ;ld      de, clock_hours
+                ;ld      b, 2
+                ;call    print_bcd_digit      ; print a single BCD digit
+                ;ld      de, clock_seconds
+                ;inc     hl
+                ;ld      b, 1
+                ;jp      print_bcd_bytes      ; print B BCD bytes at DE
+
+                call    xy_to_display        ; Convert coords to screen addr
+                ld      de, clock_minutes    ; Point to Minutes
+                ld      b, 1                 ; Print ONLY 1 byte (MM)
+                call    print_bcd_bytes      ; This draws "MM"
+                
+                inc     hl                   ; SKIP the colon character on screen
+                
+                ld      de, clock_seconds    ; Point to Seconds
+                ld      b, 1                 ; Print ONLY 1 byte (SS)
+                jp      print_bcd_bytes      ; This draws "SS" and returns
+
 
 ; ACG exit door handler
 h_acg_exit:

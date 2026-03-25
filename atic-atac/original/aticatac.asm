@@ -1897,7 +1897,21 @@ loc_7EAD:
                 jr      lookup_graphic
 
 ; run player, weapon, and sound handlers
+touching_any_item:  db 0
 run_player:
+                ; --- THE ONLY RESET IN THE GAME ---
+                ld      a, (touching_any_item)
+                and     a
+                jr      nz, .skip_reset      ; If touching ANY item, don't reset
+                
+                ld      a, (pickup_flags)
+                and     4                    ; Clear Bits 0-1, Keep Bit 2
+                ld      (pickup_flags), a
+
+.skip_reset:
+                xor     a
+                ld      (touching_any_item), a ; Reset tracker for next frame
+                
                 di
                 push    ix
                 ld      a, 1
@@ -1917,6 +1931,14 @@ handler_loop:
                 and     a
                 sbc     hl, de               ; end of list?
                 jr      c, loc_7EBE          ; jump if not
+
+                ; --- NEW: FLAG RESET LOGIC --- **REMOVED**
+                ;ld      a, (pickup_flags)
+                ;and     4                    ; KEEP bit 2 (Manual Drop Lock)
+                ;                             ; WIPE bits 0-1 (Auto-pickup cooldown)
+                ;ld      (pickup_flags), a
+                ; -----------------------------
+
                 call    clock_tick           ; advance the clock 1 frame
                 ld      a, (sysvar_FRAMES)
                 ld      (last_FRAMES), a
@@ -4637,20 +4659,33 @@ loc_92EF:
 acg_key_flag:   db      0
 h_pickup_item:
                 call    save_entity          ; save entity position for undraw
+                ; COMMENT OUT THIS SECTION TO ACTIVATE AUTO PICK UP - NOT FINISHED
                 ld      a, (pickup_pressed)
                 and     a                    ; if pick-up key pressed?
                 jr      z, pickup_released   ; jump if not
                 ld      a, (pickup_flags)
                 and     3                    ; is pick-up allowed?
                 jr      nz, draw_16x16       ; jump if not
+
+                ; --- STEP 1: IS PLAYER ACTIVE? --- (original code)
                 ld      a, (player)
                 dec     a
                 cp      &30                  ; is player active?
                 jr      nc, draw_16x16       ; jump if not
-                call    check_touching       ; is player touching item?
-                jr      nc, draw_16x16       ; jump if not
+                ;call    check_touching       ; is player touching item?
+                ;jr      nc, draw_16x16       ; jump if not
 
-                                             ;ACG key part picked up?
+                ; --- STEP 2: ARE WE TOUCHING AN ITEM? ---
+                call    check_touching       
+                jr      nc, draw_16x16     ; IF NO CONTACT: Re-arm the vacuum
+
+                ; --- STEP 3: CONTACT MADE - IS VACUUM BLOCKED? ---
+                ld      a, (pickup_flags)
+                and     7                    ; Check Bits 0, 1 (Auto) and 2 (Manual)
+                jr      nz, draw_16x16       ; IF BLOCKED: Just draw the item and exit
+
+
+                ;MOD - ACG key part picked up? (LATER RENAMED STEP 4)
                 ; ---------------------------------- 
                 ld      a, (ix+0)            ; Get item ID from entity buffer
                 cp      &8c                  ; Is it < &8C (part 1)?
@@ -4695,6 +4730,14 @@ update_acg_flag:
                                 
                 ret                          
                 ; ---------------------------------- 
+
+reset_vacuum:
+                ; We reach here only if NO item is being touched.
+                ;ld      a, (pickup_flags)
+                ;and     4                    ; KEEP bit 2 (Drop key hold), Clear 0-1
+                ;ld      (pickup_flags), a
+                ;call    draw_16x16           ; Call the separate routine
+                ;ret
 
 update_inv:     ld      a, (pickup_flags)
                 or      3                    ; disallow further pickups
@@ -4843,9 +4886,16 @@ h_blank:
                 and     a                   ; Is the button physically UP?
                 jr      nz, .check_handled  ; If DOWN, go to the "Handled" check
                 
-                xor     a                   ; If UP, force-clear the flags
-                ld      (pickup_flags), a   ; This fixes the "Permanent Disable"
-                jr      .skip_to_player     ; Jump past the "Handled" block
+                ; ---- MOD: Remove clearing of all bits of pickup_flags
+                ;xor     a                   ; If UP, force-clear the flags
+                ;ld      (pickup_flags), a   ; This fixes the "Permanent Disable"
+                ;jr      .skip_to_player     ; Jump past the "Handled" block
+
+                ; Only clear Bit 2 ---
+                ld      a, (pickup_flags)   ; [1] Load current flags
+                and     %11111011           ; [2] Clear ONLY bit 2 (same as &FB)
+                ld      (pickup_flags), a   ; [3] Save back
+                jr      .skip_to_player
 
 
 

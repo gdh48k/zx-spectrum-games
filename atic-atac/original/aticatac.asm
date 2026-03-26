@@ -67,7 +67,7 @@ mod_options:    db  '1  CLASSIC MOD'
                 db  &c5
                 db  '2  EXPLORER MODE - OPEN CASTL'
                 db  &c5
-                db  '3  MINI MODE - 4 ORLA & BERTI'
+                db  '3  MINI MODE FOR ORLA/BERTI'
                 db  &c5
                 db  '4  TB'
                 db  &c3
@@ -1897,20 +1897,20 @@ loc_7EAD:
                 jr      lookup_graphic
 
 ; run player, weapon, and sound handlers
-touching_any_item:  db 0
+;touching_any_item:  db 0
 run_player:
                 ; --- THE ONLY RESET IN THE GAME ---
-                ld      a, (touching_any_item)
-                and     a
-                jr      nz, .skip_reset      ; If touching ANY item, don't reset
+                ;ld      a, (touching_any_item)
+                ;and     a
+                ;jr      nz, .skip_reset      ; If touching ANY item, don't reset
                 
-                ld      a, (pickup_flags)
-                and     4                    ; Clear Bits 0-1, Keep Bit 2
-                ld      (pickup_flags), a
+                ;ld      a, (pickup_flags)
+                ;and     4                    ; Clear Bits 0-1, Keep Bit 2
+                ;ld      (pickup_flags), a
 
-.skip_reset:
-                xor     a
-                ld      (touching_any_item), a ; Reset tracker for next frame
+;.skip_reset:
+                ;xor     a
+                ;ld      (touching_any_item), a ; Reset tracker for next frame
                 
                 di
                 push    ix
@@ -4635,10 +4635,10 @@ loc_92C7:
                 ret
 
 ; clear pickup key flag
-pickup_released:
-                ld      a, (pickup_flags)
-                and     &fd                 ; clear b1 (pickup key not pressed)
-                ld      (pickup_flags), a
+;pickup_released:
+;                ld      a, (pickup_flags)
+;               and     &fd                 ; clear b1 (pickup key not pressed)
+;               ld      (pickup_flags), a
 draw_16x16:
                 ld      a, &10               ; 16 lines high by default
 
@@ -4657,37 +4657,49 @@ loc_92EF:
 ; pickup item handler
 
 acg_key_flag:   db      0
+auto_pickup_flag: equ   1
+
 h_pickup_item:
                 call    save_entity          ; save entity position for undraw
-                ; COMMENT OUT THIS SECTION TO ACTIVATE AUTO PICK UP - NOT FINISHED
-                ld      a, (pickup_pressed)
-                and     a                    ; if pick-up key pressed?
-                jr      z, pickup_released   ; jump if not
-                ld      a, (pickup_flags)
-                and     3                    ; is pick-up allowed?
-                jr      nz, draw_16x16       ; jump if not
 
+                ; --- THE GUARD DOG (The Wall) ---
+                ld      a, (pickup_flags)
+                bit     1, a                 
+                jr      nz, pickup_released  ; If latched, skip to release check
+
+                ; --- THE TOGGLE GATE ---
+                ld      a, auto_pickup_flag ; 0 = Manual, 1 = Auto
+                and     a
+                jr      z, man_logic
+
+auto_logic:
+                
                 ; --- STEP 1: IS PLAYER ACTIVE? --- (original code)
                 ld      a, (player)
                 dec     a
                 cp      &30                  ; is player active?
                 jr      nc, draw_16x16       ; jump if not
-                ;call    check_touching       ; is player touching item?
-                ;jr      nc, draw_16x16       ; jump if not
 
-                ; --- STEP 2: ARE WE TOUCHING AN ITEM? ---
+                call    check_touching       ; Are we touching it?
+                jr      nc, draw_16x16       ; If no, exit.
+                jr      item_id_check
+            
+                
+man_logic:      
+                ld      a, (pickup_pressed)
+                and     a                    ; if pick-up key pressed?
+                jr      z, pickup_released   ; jump if not
+
                 call    check_touching       
-                jr      nc, draw_16x16     ; IF NO CONTACT: Re-arm the vacuum
+                jr      nc, draw_16x16       ; Key pressed but not touching? Exit.
 
-                ; --- STEP 3: CONTACT MADE - IS VACUUM BLOCKED? ---
-                ld      a, (pickup_flags)
-                and     7                    ; Check Bits 0, 1 (Auto) and 2 (Manual)
-                jr      nz, draw_16x16       ; IF BLOCKED: Just draw the item and exit
+
+
 
 
                 ;MOD - ACG key part picked up? (LATER RENAMED STEP 4)
                 ; ---------------------------------- 
-                ld      a, (ix+0)            ; Get item ID from entity buffer
+item_id_check:  ld      a, (ix+0)            ; Get item ID from entity buffer
                 cp      &8c                  ; Is it < &8C (part 1)?
                 jr      c, update_inv        ; If not, jump
                 cp      &8f                  ; Is it > 8F (part 3+1)?
@@ -4705,7 +4717,7 @@ acg_flag_loop:
 update_acg_flag:
                 or      (hl)                ; Combine new bit with existing flags
                 ld      (hl), a             ; Save it back!
-                call    acg_key_sound
+                call    inventory_sound
 
                 
                 ld      a, (pickup_flags)
@@ -4731,21 +4743,57 @@ update_acg_flag:
                 ret                          
                 ; ---------------------------------- 
 
-reset_vacuum:
-                ; We reach here only if NO item is being touched.
-                ;ld      a, (pickup_flags)
-                ;and     4                    ; KEEP bit 2 (Drop key hold), Clear 0-1
+update_inv:     
+                
+                ;ld      a, 2                 ; Set ONLY Bit 1 (The Latch)
                 ;ld      (pickup_flags), a
-                ;call    draw_16x16           ; Call the separate routine
                 ;ret
 
-update_inv:     ld      a, (pickup_flags)
+                ld      a, (pickup_flags)
                 or      3                    ; disallow further pickups
                 ld      (pickup_flags), a
+
+                ; --- TEMPORARY KILL-SWITCH ---
+                ;ld      (ix+0), 0           ; Deactivate the item on the floor
+                ;ret                         ; <--- ADD THIS RET HERE
+
                 call    drop_item            ; drop last item in inventory
                 call    shift_inventory      ; move items 1+2 to slots 2+3
                 call    add_inventory        ; add item to inventory slot 1
                 jp      draw_inventory       ; draw any items in player inventory
+
+                ; --- PART 3: THE RESET (NEW) ---
+pickup_released:
+                ; 1. IF MANUAL: Is key still held?
+                ld      a, (pickup_pressed)
+                and     a
+                jr      nz, .skip_reset      ; If button held, stay locked.
+
+                ; --- PART 2: THE "JUST SWAPPED" SHIELD ---
+                ; If Bit 0 is set, we ignore check_touching for one frame
+                ; to let the new item "settle" under the player.
+                ld      a, (pickup_flags)
+                bit     0, a
+                jr      z, .normal_touch_check
+                
+                ; If we are here, we just swapped. 
+                ; Clear the "Shield" (Bit 0) but KEEP the Latch (Bit 1).
+                res     0, a
+                ld      (pickup_flags), a
+                jr      .skip_reset          ; Force the lock to stay ON for this frame.
+
+.normal_touch_check:
+                call    check_touching
+                jr      c, .skip_reset       ; Still touching? Stay locked.
+
+                ; 3. RE-ARM: Clear the latch only when CLEAR of item and key.
+                ld      a, (pickup_flags)
+                res     1, a                 
+                ld      (pickup_flags), a
+
+ .skip_reset:
+                ; 3. EXIT: Just draw the item and move to the next entity
+                jp      draw_16x16
 
 ; add item to inventory slot 1
 add_inventory:
@@ -4881,59 +4929,35 @@ read_keyboard:
                 ret
 
 h_blank:
-                ; --- STEP 1: THE SAFETY RESET ---
-                ld      a, (pickup_pressed)
-                and     a                   ; Is the button physically UP?
-                jr      nz, .check_handled  ; If DOWN, go to the "Handled" check
-                
-                ; ---- MOD: Remove clearing of all bits of pickup_flags
-                ;xor     a                   ; If UP, force-clear the flags
-                ;ld      (pickup_flags), a   ; This fixes the "Permanent Disable"
-                ;jr      .skip_to_player     ; Jump past the "Handled" block
-
-                ; Only clear Bit 2 ---
-                ld      a, (pickup_flags)   ; [1] Load current flags
-                and     %11111011           ; [2] Clear ONLY bit 2 (same as &FB)
-                ld      (pickup_flags), a   ; [3] Save back
-                jr      .skip_to_player
-
-
-
-.check_handled:
+                ; --- STEP 1: THE PASSIVE READ ---
+                ; Just look at the flags. Don't touch them.
                 ld      a, (pickup_flags)
-                bit     1, a                ; Was a pickup already handled?
-                ret     nz                  ; YES? Then STOP. No shuffle, no drop
-.skip_to_player:
+                and     3                   ; Is Shield (0) or Latch (1) active?
+                ret     nz                  ; YES: A pickup is in progress. EXIT.
+
+                ; --- STEP 2: PHYSICAL BUTTON CHECK ---
+                ; Is the button even being held down?
+                ld      a, (pickup_pressed)
+                and     a                   
+                ret     z                   ; NO: Nothing to drop or shuffle. EXIT.
+
+                ; --- STEP 3: PLAYER STATE ---
                 ld      a, (player)
                 dec     a
-                cp      &30                  ; is player active?
-                ret     nc                   ; return if not
-                ld      a, (pickup_pressed)
-                and     a                    ; pick-up key down?
-                jr      z, loc_9417          ; jump if not
-                               
-                ld      a, (pickup_flags)
-                and     3                    ; pick-up allowed?
-                jr      nz, loc_940E         ; jump if not
-                or      2                    ; pickup key pressed
-                ld      (pickup_flags), a
-                call    drop_item            ; drop last item in inventory
-                call    shift_inventory      ; move items 1+2 to slots 2+3
+                cp      &30                 ; Is player active?
+                ret     nc                  ; NO: Exit.
+
+                ; --- STEP 4: THE ACTION ---
+                ; We only reach here if NO pickup is happening AND button is DOWN.
+                ; Note: We don't set Bit 1 here; we let the entity loop handle it.
+                call    drop_item           
+                call    shift_inventory     
                 ld      hl, 0
                 ld      (inventory1), hl
                 ld      (inventory1+2), hl
-                call    draw_inventory       ; draw any items in player inventory
-loc_940E:
-                ld      a, (pickup_flags)
-                and     &fe                 ; pickup key not processed
-                ld      (pickup_flags), a
+                call    draw_inventory      
                 ret
-loc_9417:
-                ld      a, (pickup_flags)
-                and     &fd                 ; pickup key released
-                ld      (pickup_flags), a
-                jr      loc_940E
-
+                
 h_barrel:
                 ld      a, (mod_selection)      ; LOGIC: IF MOD SELECTED BYPASS_CHAR_CHK
                 and     3

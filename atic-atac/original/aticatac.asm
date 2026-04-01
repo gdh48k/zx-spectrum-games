@@ -4657,42 +4657,50 @@ loc_92EF:
 ; pickup item handler
 
 acg_key_flag:   db      0
+pickup_timer:   db      0
 auto_pickup_flag: equ   1
 
 h_pickup_item:
-                call    save_entity          ; save entity position for undraw
+                call    save_entity         ; Save for undraw
 
-                ; --- THE GUARD DOG (The Wall) ---
+                ; --- 1. THE PICKUP TIMER (The Buffer) ---
+                ld      a, (pickup_timer)
+                and     a                   ; Is timer at zero?
+                jr      z, .check_handled   ; If zero, proceed to pickup logic.
+
+                ; --- TIMER ACTIVE: COUNT DOWN ---
+                dec     a                   ; Subtract 1 from timer
+                ld      (pickup_timer), a
+                jp      draw_16x16          ; Skip pickup this frame
+
+.check_handled:
+                ; --- 2. THE HANDLED CHECK ---
                 ld      a, (pickup_flags)
-                bit     1, a                 
-                jr      nz, pickup_released  ; If latched, skip to release check
+                bit     1, a                ; Is an action already handled?
+                jr      nz, pickup_released ; Skip to release logic
 
-                ; --- THE TOGGLE GATE ---
-                ld      a, auto_pickup_flag ; 0 = Manual, 1 = Auto
+                ; --- 3. AUTO / MANUAL TOGGLE ---
+                ld      a, (auto_pickup_flag)
                 and     a
                 jr      z, man_logic
 
 auto_logic:
-                
-                ; --- STEP 1: IS PLAYER ACTIVE? --- (original code)
+                ; --- 4A. AUTO PICKUP LOGIC ---
                 ld      a, (player)
                 dec     a
-                cp      &30                  ; is player active?
-                jr      nc, draw_16x16       ; jump if not
+                cp      &30                 ; Active?
+                jr      nc, draw_16x16
+                call    check_touching      ; Touching?
+                jr      nc, draw_16x16
+                jr      item_id_check       ; Success: Go to ID check
 
-                call    check_touching       ; Are we touching it?
-                jr      nc, draw_16x16       ; If no, exit.
-                jr      item_id_check
-            
-                
 man_logic:      
+                ; --- 4B. MANUAL PICKUP LOGIC ---
                 ld      a, (pickup_pressed)
-                and     a                    ; if pick-up key pressed?
-                jr      z, pickup_released   ; jump if not
-
-                call    check_touching       
-                jr      nc, draw_16x16       ; Key pressed but not touching? Exit.
-
+                and     a                   ; Key pressed?
+                jr      z, pickup_released
+                call    check_touching      ; Touching?
+                jr      nc, draw_16x16
 
 
 
@@ -4744,55 +4752,39 @@ update_acg_flag:
                 ; ---------------------------------- 
 
 update_inv:     
-                
-                ;ld      a, 2                 ; Set ONLY Bit 1 (The Latch)
-                ;ld      (pickup_flags), a
-                ;ret
+                ; --- 1. WIND UP THE AMNESIA TIMER ---
+                ; This gives us ~0.2s to move away from the dropped item
+                ld      a, 10
+                ld      (pickup_timer), a
 
+                ; --- 2. SET THE HANDLED LATCH ---
+                ; We only set Bit 1 now. Bit 0 is handled by the timer.
                 ld      a, (pickup_flags)
-                or      3                    ; disallow further pickups
+                or      %00000010           ; Set "Handled" (Bit 1)
                 ld      (pickup_flags), a
 
-                ; --- TEMPORARY KILL-SWITCH ---
-                ;ld      (ix+0), 0           ; Deactivate the item on the floor
-                ;ret                         ; <--- ADD THIS RET HERE
-
-                call    drop_item            ; drop last item in inventory
-                call    shift_inventory      ; move items 1+2 to slots 2+3
-                call    add_inventory        ; add item to inventory slot 1
-                jp      draw_inventory       ; draw any items in player inventory
+                ; --- 3. THE TRANSACTION ---
+                call    drop_item           ; Drop Slot 3 to the floor
+                call    shift_inventory     ; Move Slot 1+2 -> Slot 2+3
+                call    add_inventory       ; Put NEW item into Slot 1
+                
+                jp      draw_inventory      ; Side panel refresh & Exit
 
                 ; --- PART 3: THE RESET (NEW) ---
 pickup_released:
-                ; 1. IF MANUAL: Is key still held?
+                ; --- 7. RELEASE LOGIC ---
                 ld      a, (pickup_pressed)
                 and     a
-                jr      nz, .skip_reset      ; If button held, stay locked.
+                jr      nz, .skip_reset     ; Still holding key? Stay latched.
 
-                ; --- PART 2: THE "JUST SWAPPED" SHIELD ---
-                ; If Bit 0 is set, we ignore check_touching for one frame
-                ; to let the new item "settle" under the player.
-                ld      a, (pickup_flags)
-                bit     0, a
-                jr      z, .normal_touch_check
-                
-                ; If we are here, we just swapped. 
-                ; Clear the "Shield" (Bit 0) but KEEP the Latch (Bit 1).
-                res     0, a
-                ld      (pickup_flags), a
-                jr      .skip_reset          ; Force the lock to stay ON for this frame.
-
-.normal_touch_check:
                 call    check_touching
-                jr      c, .skip_reset       ; Still touching? Stay locked.
+                jr      c, .skip_reset      ; Still touching item? Stay latched.
 
-                ; 3. RE-ARM: Clear the latch only when CLEAR of item and key.
                 ld      a, (pickup_flags)
-                res     1, a                 
+                res     1, a                ; Safe to clear "Handled" bit
                 ld      (pickup_flags), a
 
- .skip_reset:
-                ; 3. EXIT: Just draw the item and move to the next entity
+.skip_reset:
                 jp      draw_16x16
 
 ; add item to inventory slot 1
@@ -4929,33 +4921,46 @@ read_keyboard:
                 ret
 
 h_blank:
-                ; --- STEP 1: THE PASSIVE READ ---
-                ; Just look at the flags. Don't touch them.
-                ld      a, (pickup_flags)
-                and     3                   ; Is Shield (0) or Latch (1) active?
-                ret     nz                  ; YES: A pickup is in progress. EXIT.
-
-                ; --- STEP 2: PHYSICAL BUTTON CHECK ---
-                ; Is the button even being held down?
-                ld      a, (pickup_pressed)
-                and     a                   
-                ret     z                   ; NO: Nothing to drop or shuffle. EXIT.
-
-                ; --- STEP 3: PLAYER STATE ---
+                ; --- 1. PLAYER STATUS CHECK ---
                 ld      a, (player)
                 dec     a
                 cp      &30                 ; Is player active?
-                ret     nc                  ; NO: Exit.
+                ret     nc                  ; Return if not
 
-                ; --- STEP 4: THE ACTION ---
-                ; We only reach here if NO pickup is happening AND button is DOWN.
-                ; Note: We don't set Bit 1 here; we let the entity loop handle it.
+                ; --- 2. INPUT DETECTION ---
+                ld      a, (pickup_pressed)
+                and     a                   ; Is the pick-up key NOT pressed?
+                jr      z, .key_released    ; If NOT pressed, go to reset
+
+                ; --- 3. DROP HANDLED CHECK ---
+                ld      a, (pickup_flags)
+                bit     1, a                ; Check Bit 1: Is "Drop Handled"?
+                ret     nz                  ; YES: Already dropped this press. Stop.
+
+                ; --- 4. EXECUTE MANUAL DROP ---
+                ; Set the Pickup Timer to 10 frames (~0.2 seconds)
+                ld      a, 10
+                ld      (pickup_timer), a
+
+                ld      a, (pickup_flags)
+                or      %00000010           ; Set Bit 1: Mark as "Drop Handled"
+                ld      (pickup_flags), a
+
                 call    drop_item           
                 call    shift_inventory     
-                ld      hl, 0
+                
+                ld      hl, 0               ; Clear Slot 1
                 ld      (inventory1), hl
                 ld      (inventory1+2), hl
+                
                 call    draw_inventory      
+                ret
+
+.key_released:
+                ; --- 5. THE RESET ---
+                ld      a, (pickup_flags)
+                res     1, a                ; Clear "Drop Handled" only
+                ld      (pickup_flags), a
                 ret
                 
 h_barrel:

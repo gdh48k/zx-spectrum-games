@@ -5526,7 +5526,7 @@ game_stats:
                 jp      print_bcd_bytes      ; print B BCD bytes at DE
 
 time_msg:       db  &45                       ; bright cyan
-                db  'TIME       '
+                db  'TIME      '
                 db  '#  '
                 db  &a0
 

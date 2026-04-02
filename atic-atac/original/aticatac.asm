@@ -71,8 +71,8 @@ mod_options:    db  '1  CLASSIC MOD'
                 db  &c5
                 db  '4  TB'
                 db  &c3
-                db  '5  TB'
-                db  &c3
+                db  '5  AUTO-PICKU'
+                db  &d0
                 db  '6  TB'
                 db  &c3
                 db  '0  ENTE'
@@ -1593,7 +1593,7 @@ menu_loop:
 
                 bit     0, e                 ; 1 pressed?
                 jr      z, loc_7C43          ; jump if not
-                and     &f9                 ; select Keyboard (11111001)
+                and     &f9                  ; Mask b1 & b2 (11111001) - select Keyboard/Classic Mode (11111001)
 loc_7C43:
                 bit     1, e                 ; 2 pressed?
                 jr      z, loc_7C4B          ; jump if not
@@ -1611,8 +1611,8 @@ loc_7C53:
 loc_7C59:
                 bit     4, e                 ; 5 pressed?
                 jr      z, loc_7C61          ; jump if not
-                and     &e7
-                or      8                    ; select Wizard
+                and     &e7                  ; Mask b3& b4 (1110011)
+                or      8                    ; Set b3 - select Wizard/Auto-pickup
 loc_7C61:
                 ld      d, a
                 ld      a, &ef              ; xxx67890
@@ -4680,9 +4680,15 @@ h_pickup_item:
                 jr      nz, pickup_released ; Skip to release logic
 
                 ; --- 3. AUTO / MANUAL TOGGLE ---
-                ld      a, (auto_pickup_flag)
-                and     a
-                jr      z, man_logic
+
+                ld      a, (mod_selection)   ; LOGIC: IF MOD NOT SELECTED JUMP TO MANUAL LOGIC
+                and     &00001000
+                cp      8                    ; 
+                jp      z,   man_logic       ; 
+
+                ;ld      a, (auto_pickup_flag)
+                ;and     a
+                ;jr      z, man_logic
 
 auto_logic:
                 ; --- 4A. AUTO PICKUP LOGIC ---

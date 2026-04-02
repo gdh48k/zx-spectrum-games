@@ -4682,8 +4682,7 @@ h_pickup_item:
                 ; --- 3. AUTO / MANUAL TOGGLE ---
 
                 ld      a, (mod_selection)   ; LOGIC: IF MOD NOT SELECTED JUMP TO MANUAL LOGIC
-                and     &00001000
-                and     8                    ; 
+                and     8
                 jp      z,   man_logic       ; 
 
                 ;ld      a, (auto_pickup_flag)
@@ -4735,7 +4734,7 @@ update_acg_flag:
 
                 
                 ld      a, (pickup_flags)
-                or      3                    ; Set Bit 1 (Signifies "Handled")
+                or      %00000010           ; Set Bit 1 (Signifies "Handled")
                 ld      (pickup_flags), a
 
                 ; --- The "Fake" Inventory Pickup ---

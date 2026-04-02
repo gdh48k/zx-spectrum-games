@@ -4683,7 +4683,7 @@ h_pickup_item:
 
                 ld      a, (mod_selection)   ; LOGIC: IF MOD NOT SELECTED JUMP TO MANUAL LOGIC
                 and     &00001000
-                cp      8                    ; 
+                and     8                    ; 
                 jp      z,   man_logic       ; 
 
                 ;ld      a, (auto_pickup_flag)

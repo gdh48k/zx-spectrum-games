@@ -67,12 +67,12 @@ mod_options:    db  '1  CLASSIC MOD'
                 db  &c5
                 db  '2  EXPLORER MODE - OPEN CASTL'
                 db  &c5
-                db  '3  MINI MODE - 4 ORLA & BERTI'
+                db  '3  MINI MODE FOR ORLA/BERTI'
                 db  &c5
                 db  '4  TB'
                 db  &c3
-                db  '5  TB'
-                db  &c3
+                db  '5  AUTO-PICKU'
+                db  &d0
                 db  '6  TB'
                 db  &c3
                 db  '0  ENTE'
@@ -832,8 +832,8 @@ barrel_6B_6D:   db  &1a, &6b, &34, &50, &b7, &a0, 4, 6
                 db  &1a, &6d, &34, &50, &27, 0, 4, &56
 barrel_8A_08:   db  &1a, &8a, &34, &98, &6f, &60, &b7, 3
                 db  &1a, 8, &34, &28, &6f, &e1, 6, 3
-acgexit_00_8E:  ;db  &24, 0, &c4, &98, &7f, &40, &ba, &d6
-                db  &24, 7, &c4, &98, &7f, &40, &ba, &d6    
+acgexit_00_8E:  db  &24, 0, &c4, &98, &7f, &40, &ba, &d6
+                ;db  &24, 7, &c4, &98, &7f, &40, &ba, &d6    
                 db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
 skeleton_53_8F: db  &26, &53, 0, &80, &77, &61, 0, 0
                 db  &26, &8f, 0, &80, &77, &61, 0, 0
@@ -863,7 +863,7 @@ room_table:     dw  room_00, room_01, room_02, room_03, room_04, room_05, room_0
 room_00:        dw  door_07_00
                 dw  door_19_00
                 dw  door_01_00_c
-                ;dw  acgexit_00_8E
+                dw  acgexit_00_8E
                 dw  knight_00_06
                 dw  knight_00_06_2
                 dw  pic_shi_00_19
@@ -913,8 +913,8 @@ room_06:        dw  door_06_05
 room_07:        dw  door_07_00
                 dw  door_07_06
                 dw  knight_05_07
-                dw  acgexit_00_8E
-                ;dw  pic_shi_07_06
+                ;dw  acgexit_00_8E
+                dw  pic_shi_07_06
                 dw  0
 room_08:        dw  door_08_06_g
                 dw  door_09_08
@@ -1593,7 +1593,7 @@ menu_loop:
 
                 bit     0, e                 ; 1 pressed?
                 jr      z, loc_7C43          ; jump if not
-                and     &f9                 ; select Keyboard (11111001)
+                and     &f9                  ; Mask b1 & b2 (11111001) - select Keyboard/Classic Mode (11111001)
 loc_7C43:
                 bit     1, e                 ; 2 pressed?
                 jr      z, loc_7C4B          ; jump if not
@@ -1611,8 +1611,8 @@ loc_7C53:
 loc_7C59:
                 bit     4, e                 ; 5 pressed?
                 jr      z, loc_7C61          ; jump if not
-                and     &e7
-                or      8                    ; select Wizard
+                and     &e7                  ; Mask b3& b4 (1110011)
+                or      8                    ; Set b3 - select Wizard/Auto-pickup
 loc_7C61:
                 ld      d, a
                 ld      a, &ef              ; xxx67890
@@ -1897,7 +1897,21 @@ loc_7EAD:
                 jr      lookup_graphic
 
 ; run player, weapon, and sound handlers
+;touching_any_item:  db 0
 run_player:
+                ; --- THE ONLY RESET IN THE GAME ---
+                ;ld      a, (touching_any_item)
+                ;and     a
+                ;jr      nz, .skip_reset      ; If touching ANY item, don't reset
+                
+                ;ld      a, (pickup_flags)
+                ;and     4                    ; Clear Bits 0-1, Keep Bit 2
+                ;ld      (pickup_flags), a
+
+;.skip_reset:
+                ;xor     a
+                ;ld      (touching_any_item), a ; Reset tracker for next frame
+                
                 di
                 push    ix
                 ld      a, 1
@@ -1917,6 +1931,14 @@ handler_loop:
                 and     a
                 sbc     hl, de               ; end of list?
                 jr      c, loc_7EBE          ; jump if not
+
+                ; --- NEW: FLAG RESET LOGIC --- **REMOVED**
+                ;ld      a, (pickup_flags)
+                ;and     4                    ; KEEP bit 2 (Manual Drop Lock)
+                ;                             ; WIPE bits 0-1 (Auto-pickup cooldown)
+                ;ld      (pickup_flags), a
+                ; -----------------------------
+
                 call    clock_tick           ; advance the clock 1 frame
                 ld      a, (sysvar_FRAMES)
                 ld      (last_FRAMES), a
@@ -3475,6 +3497,8 @@ creatures:      db  &5c                       ; spider
                 db  &6a                       ; batlet
 
 ; draw chicken energy bar
+
+chicken_yx equ     &80c8
 draw_chicken:
                 ld      a, (player_energy)
                 srl     a
@@ -3521,7 +3545,7 @@ draw_chicken:
                 push    hl
                 ld      a, &14               ; empty chicken graphic
                 ld      (ix+0), a
-                ld      hl, &81c8            ; chicken y,x (From 77c8 to 81c8)
+                ld      hl, chicken_yx       ; chicken y,x (From 77c8 to 81c8)
                 ld      a, h
                 sub     c
                 ld      h, a
@@ -3558,7 +3582,7 @@ loc_8C12:
                 ld      (g_chicken_full+1), a
                 ld      a, &13               ; full chicken graphic
                 ld      (ix+0), a
-                ld      hl, &7fc8              ; chicken coords (From 77c8 to 7fc8) 
+                ld      hl, chicken_yx         ; chicken coords (From 77c8 to 81c8) 
                 ld      (chicken_entity+3), hl ; coords
                 call    draw_rot_obj
                 ld      b, 6
@@ -3740,6 +3764,18 @@ reset_game_state:
                 ld      de, player           ; working game state
                 ld      bc, &1570            ; 0x10000-player, rather than real init data size!
                 ldir
+
+                xor     a
+                ld      (acg_key_flag), a ; <--- MANUALLY RESET OUR FLAG
+
+                ; --- TEST OVERRIDE ---
+                ;ld      a, &09
+                ;ld      (score_bcd), a
+                ;ld      a, &99
+                ;ld      (score_bcd+1), a
+                ;ld      a, &50
+                ;ld      (score_bcd+2), a
+                ; ---------------------
                 ret
 
 ; reduce auto-walk counter
@@ -4599,10 +4635,10 @@ loc_92C7:
                 ret
 
 ; clear pickup key flag
-pickup_released:
-                ld      a, (pickup_flags)
-                and     &fd                 ; clear b1 (pickup key not pressed)
-                ld      (pickup_flags), a
+;pickup_released:
+;                ld      a, (pickup_flags)
+;               and     &fd                 ; clear b1 (pickup key not pressed)
+;               ld      (pickup_flags), a
 draw_16x16:
                 ld      a, &10               ; 16 lines high by default
 
@@ -4619,24 +4655,65 @@ loc_92EF:
                 jp      set_entity_attrs2    ; set attrs covering previous and new position
 
 ; pickup item handler
+
+acg_key_flag:   db      0
+pickup_timer:   db      0
+auto_pickup_flag: equ   1
+
 h_pickup_item:
-                call    save_entity          ; save entity position for undraw
-                ld      a, (pickup_pressed)
-                and     a                    ; if pick-up key pressed?
-                jr      z, pickup_released   ; jump if not
+                call    save_entity         ; Save for undraw
+
+                ; --- 1. THE PICKUP TIMER (The Buffer) ---
+                ld      a, (pickup_timer)
+                and     a                   ; Is timer at zero?
+                jr      z, .check_handled   ; If zero, proceed to pickup logic.
+
+                ; --- TIMER ACTIVE: COUNT DOWN ---
+                dec     a                   ; Subtract 1 from timer
+                ld      (pickup_timer), a
+                jp      draw_16x16          ; Skip pickup this frame
+
+.check_handled:
+                ; --- 2. THE HANDLED CHECK ---
                 ld      a, (pickup_flags)
-                and     3                    ; is pick-up allowed?
-                jr      nz, draw_16x16       ; jump if not
+                bit     1, a                ; Is an action already handled?
+                jr      nz, pickup_released ; Skip to release logic
+
+                ; --- 3. AUTO / MANUAL TOGGLE ---
+
+                ld      a, (mod_selection)   ; LOGIC: IF MOD NOT SELECTED JUMP TO MANUAL LOGIC
+                and     &00001000
+                and     8                    ; 
+                jp      z,   man_logic       ; 
+
+                ;ld      a, (auto_pickup_flag)
+                ;and     a
+                ;jr      z, man_logic
+
+auto_logic:
+                ; --- 4A. AUTO PICKUP LOGIC ---
                 ld      a, (player)
                 dec     a
-                cp      &30                  ; is player active?
-                jr      nc, draw_16x16       ; jump if not
-                call    check_touching       ; is player touching item?
-                jr      nc, draw_16x16       ; jump if not
+                cp      &30                 ; Active?
+                jr      nc, draw_16x16
+                call    check_touching      ; Touching?
+                jr      nc, draw_16x16
+                jr      item_id_check       ; Success: Go to ID check
 
-                                             ;ACG key part picked up?
+man_logic:      
+                ; --- 4B. MANUAL PICKUP LOGIC ---
+                ld      a, (pickup_pressed)
+                and     a                   ; Key pressed?
+                jr      z, pickup_released
+                call    check_touching      ; Touching?
+                jr      nc, draw_16x16
+
+
+
+
+                ;MOD - ACG key part picked up? (LATER RENAMED STEP 4)
                 ; ---------------------------------- 
-                ld      a, (ix+0)            ; Get item ID from entity buffer
+item_id_check:  ld      a, (ix+0)            ; Get item ID from entity buffer
                 cp      &8c                  ; Is it < &8C (part 1)?
                 jr      c, update_inv        ; If not, jump
                 cp      &8f                  ; Is it > 8F (part 3+1)?
@@ -4654,10 +4731,11 @@ acg_flag_loop:
 update_acg_flag:
                 or      (hl)                ; Combine new bit with existing flags
                 ld      (hl), a             ; Save it back!
+                call    inventory_sound
 
-                ; --- THE FIX: MUZZLE THE ENGINE ---
+                
                 ld      a, (pickup_flags)
-                or      2                    ; Set Bit 1 (Signifies "Handled")
+                or      3                    ; Set Bit 1 (Signifies "Handled")
                 ld      (pickup_flags), a
 
                 ; --- The "Fake" Inventory Pickup ---
@@ -4670,34 +4748,50 @@ update_acg_flag:
                 ld      (ix+5), a            ; Set the entity's attribute to "background"
                 call    set_entity_attrs2    ; Update attribute memory (removes the "ink")
 
-                ; --- RESTORE PLAYER COLOR ---
-                ;push    ix                   ; Save the ACG key entity pointer
-                ;ld      ix, player           ; Point IX to your player data block (&EA90)
-                ;call    set_entity_attrs2    ; Force-apply the player's blue color (player_attr)
-                ;pop     ix                   ; Restore the ACG key entity pointer
-                
-                
-
                 call    draw_panel_attrs     ; Refresh side panel (Turns Blue to Yellow)
                 call    draw_inventory
 
                 ld      (ix+0), 0            ; *** IMPORTANT: Deactivate item in room buffer
                                              ; This stops the player from "re-touching" it.
-                
-                ; If your game has a "pickup" sound, you could call it here
-                ; call inventory_sound 
-
-                ret                          ; Exit h_pickup_item safely
+                                
+                ret                          
                 ; ---------------------------------- 
 
+update_inv:     
+                ; --- 1. WIND UP THE AMNESIA TIMER ---
+                ; This gives us ~0.2s to move away from the dropped item
+                ld      a, 10
+                ld      (pickup_timer), a
 
-update_inv:     ld      a, (pickup_flags)
-                or      3                    ; disallow further pickups
+                ; --- 2. SET THE HANDLED LATCH ---
+                ; We only set Bit 1 now. Bit 0 is handled by the timer.
+                ld      a, (pickup_flags)
+                or      %00000010           ; Set "Handled" (Bit 1)
                 ld      (pickup_flags), a
-                call    drop_item            ; drop last item in inventory
-                call    shift_inventory      ; move items 1+2 to slots 2+3
-                call    add_inventory        ; add item to inventory slot 1
-                jp      draw_inventory       ; draw any items in player inventory
+
+                ; --- 3. THE TRANSACTION ---
+                call    drop_item           ; Drop Slot 3 to the floor
+                call    shift_inventory     ; Move Slot 1+2 -> Slot 2+3
+                call    add_inventory       ; Put NEW item into Slot 1
+                
+                jp      draw_inventory      ; Side panel refresh & Exit
+
+                ; --- PART 3: THE RESET (NEW) ---
+pickup_released:
+                ; --- 7. RELEASE LOGIC ---
+                ld      a, (pickup_pressed)
+                and     a
+                jr      nz, .skip_reset     ; Still holding key? Stay latched.
+
+                call    check_touching
+                jr      c, .skip_reset      ; Still touching item? Stay latched.
+
+                ld      a, (pickup_flags)
+                res     1, a                ; Safe to clear "Handled" bit
+                ld      (pickup_flags), a
+
+.skip_reset:
+                jp      draw_16x16
 
 ; add item to inventory slot 1
 add_inventory:
@@ -4833,40 +4927,48 @@ read_keyboard:
                 ret
 
 h_blank:
-                ld      a, (pickup_flags)
-                bit     1, a                ; Was a pickup already handled?
-                ret     nz                  ; YES? Then STOP. No shuffle, no drop
-
+                ; --- 1. PLAYER STATUS CHECK ---
                 ld      a, (player)
                 dec     a
-                cp      &30                  ; is player active?
-                ret     nc                   ; return if not
+                cp      &30                 ; Is player active?
+                ret     nc                  ; Return if not
+
+                ; --- 2. INPUT DETECTION ---
                 ld      a, (pickup_pressed)
-                and     a                    ; pick-up key down?
-                jr      z, loc_9417          ; jump if not
-                               
+                and     a                   ; Is the pick-up key NOT pressed?
+                jr      z, .key_released    ; If NOT pressed, go to reset
+
+                ; --- 3. DROP HANDLED CHECK ---
                 ld      a, (pickup_flags)
-                and     3                    ; pick-up allowed?
-                jr      nz, loc_940E         ; jump if not
-                or      2                    ; pickup key pressed
+                bit     1, a                ; Check Bit 1: Is "Drop Handled"?
+                ret     nz                  ; YES: Already dropped this press. Stop.
+
+                ; --- 4. EXECUTE MANUAL DROP ---
+                ; Set the Pickup Timer to 10 frames (~0.2 seconds)
+                ld      a, 10
+                ld      (pickup_timer), a
+
+                ld      a, (pickup_flags)
+                or      %00000010           ; Set Bit 1: Mark as "Drop Handled"
                 ld      (pickup_flags), a
-                call    drop_item            ; drop last item in inventory
-                call    shift_inventory      ; move items 1+2 to slots 2+3
-                ld      hl, 0
+
+                call    drop_item           
+                call    shift_inventory     
+                
+                ld      hl, 0               ; Clear Slot 1
                 ld      (inventory1), hl
                 ld      (inventory1+2), hl
-                call    draw_inventory       ; draw any items in player inventory
-loc_940E:
+                
+                call    draw_inventory      
+                ret
+
+.key_released:
+                ; --- 5. THE RESET ---
                 ld      a, (pickup_flags)
-                and     &fe                 ; pickup key not processed
+                res     1, a                ; Clear "Drop Handled" only
                 ld      (pickup_flags), a
                 ret
-loc_9417:
-                ld      a, (pickup_flags)
-                and     &fd                 ; pickup key released
-                ld      (pickup_flags), a
-                jr      loc_940E
-
+                
 h_barrel:
                 ld      a, (mod_selection)      ; LOGIC: IF MOD SELECTED BYPASS_CHAR_CHK
                 and     3
@@ -5275,105 +5377,130 @@ clock_tick:
                 and     &0f                  ; clip hours to 0-15
                 ld      (hl), a
 loc_9604:
-                ld      hl, &58c8            ; timer coords (y,x); changed from &40c8 to &58c8 
+                ;ld      hl, &58c8            ; timer coords (y,x); changed from &40c8 to &58c8 
+                clock_yx equ     &58d0
+                ld      hl, clock_yx
 
 ; print clock time at position HL
 print_clock:
-                call    xy_to_display        ; convert coords in HL to display address in HL
-                ld      de, clock_hours
-                ld      b, 2
-                call    print_bcd_digit      ; print a single BCD digit
-                ld      de, clock_seconds
-                inc     hl
-                ld      b, 1
-                jp      print_bcd_bytes      ; print B BCD bytes at DE
+                ;call    xy_to_display        ; convert coords in HL to display address in HL
+                ;ld      de, clock_hours
+                ;ld      b, 2
+                ;call    print_bcd_digit      ; print a single BCD digit
+                ;ld      de, clock_seconds
+                ;inc     hl
+                ;ld      b, 1
+                ;jp      print_bcd_bytes      ; print B BCD bytes at DE
+
+                call    xy_to_display        ; Convert coords to screen addr
+                ld      de, clock_minutes    ; Point to Minutes
+                ld      b, 1                 ; Print ONLY 1 byte (MM)
+                call    print_bcd_bytes      ; This draws "MM"
+                
+                inc     hl                   ; SKIP the colon character on screen
+                
+                ld      de, clock_seconds    ; Point to Seconds
+                ld      b, 1                 ; Print ONLY 1 byte (SS)
+                jp      print_bcd_bytes      ; This draws "SS" and returns
+
 
 ; ACG exit door handler
 h_acg_exit:
-                ;ld      a, (mod_auto_sort_enabled)
-                ;or      a
-                ;jr      z, strict_order
 
-any_order:      ld      b,  3               ; B = no of parts to ACG key
-                ld      hl, inventory1+2
-                ld      c,  0               ; C = bit mask (cleared)
+                ld      a, (acg_key_flag)   ; Get the collection state
+                and     7                   ; Isolate bits 0, 1, and 2
+                cp      7                   ; All three parts present?
+                jr      nz, loc_963B        ; If not, show "blocked" message/sfx
 
-a_o_loop:
-                ld      a, (hl)
-chk_p1:         cp      &8C                 ; Part 1 held?
-                jr      nz, chk_p2         ; Jump if not
-                set     0, c                ; Set b0 if so
-                jr      a_o_next_slot
-chk_p2:
-                cp      &8D                 ; Part 2 held?
-                jr      nz, chk_p3          ; Jump if not
-                set     1, c                ; Set b1 if so
-                jr      a_o_next_slot
-chk_p3:
-                cp      &8E                 ; Part 2 held?
-                jr      nz, a_o_next_slot   ; Jump if not
-                set     2, c                ; Set b2 if so
+                ; --- SUCCESS: OPEN DOOR ---
+                call    enter_door          ; Trigger the door transition
+                ld      bc, &3020           ; Update area dimensions
+                jp      loc_91F5            ; Finalize movement 
 
-a_o_next_slot:
-                ld      a, 4                ; Move to next slot
-                add     a, l
-                ld      l, a
-                jr      nc, a_o_no_c        ; Jump if Plus 4 does NOT exceed 255 (l register)
-                inc     h                   ; If so, increment h register
-a_o_no_c:
-                djnz    a_o_loop
-
-                ld      a, c
-                cp      %00000111           ; All 3 parts found? (b0-b2 = 111)
-                jr      z, .success         ; Jump if so
-                or      a                   ; Clear Carry (Failure)
-                jr      nc, loc_963B
-.success:
-                scf                         ; Set Carry (Success)
-                jr      unlock_acg                        
-
-
-strict_order:
-                ld      hl,  inventory1+2    ; graphic idx
-                ld      de, 4                ; 4 bytes per inventory slot
-                
-                ld      a, (hl)
-                cp      &8c                  ; ACG key part 1?
-                jr      nz, loc_963B         ; jump if not
-                
-                add     hl, de               ; next slot
-                ld      a, (hl)
-                cp      &8d                  ; ACG key part 2?
-                jr      nz, loc_963B         ; jump if not
-                
-                add     hl, de               ; next slot
-                ld      a, (hl)
-                cp      &8e                  ; ACG key part 3?
-                jr      nz, loc_963B         ; jump if not
-                
-unlock_acg:     
-                call sort_visual_keys
-                call    enter_door           ; enter linked object (door etc.)
-                ld      bc, &3020            ; 48x32
-                jp      loc_91F5
 loc_963B:
                 call    loc_9565
-                jp      h_room_item          ; draw room item
+                jp      h_room_item          ; draw room item                
+
+;any_order:      ld      b,  3               ; B = no of parts to ACG key
+;                ld      hl, inventory1+2
+;                ld      c,  0               ; C = bit mask (cleared)
+
+;a_o_loop:
+;                ld      a, (hl)
+;chk_p1:         cp      &8C                 ; Part 1 held?
+;                jr      nz, chk_p2         ; Jump if not
+;                set     0, c                ; Set b0 if so
+;                jr      a_o_next_slot
+;chk_p2:
+;                cp      &8D                 ; Part 2 held?
+;                jr      nz, chk_p3          ; Jump if not
+;                set     1, c                ; Set b1 if so
+;                jr      a_o_next_slot
+;chk_p3:
+;                cp      &8E                 ; Part 2 held?
+;                jr      nz, a_o_next_slot   ; Jump if not
+;                set     2, c                ; Set b2 if so
+;
+;a_o_next_slot:
+;                ld      a, 4                ; Move to next slot
+;                add     a, l
+;                ld      l, a
+;                jr      nc, a_o_no_c        ; Jump if Plus 4 does NOT exceed 255 (l register)
+;                inc     h                   ; If so, increment h register
+;a_o_no_c:
+;                djnz    a_o_loop
+;
+;                ld      a, c
+;                cp      %00000111           ; All 3 parts found? (b0-b2 = 111)
+;                jr      z, .success         ; Jump if so
+;                or      a                   ; Clear Carry (Failure)
+;                jr      nc, loc_963B
+;.success:
+;                scf                         ; Set Carry (Success)
+;                jr      unlock_acg                        
+;
+;
+;strict_order:
+;                ld      hl,  inventory1+2    ; graphic idx
+;                ld      de, 4                ; 4 bytes per inventory slot
+;                
+;                ld      a, (hl)
+;                cp      &8c                  ; ACG key part 1?
+;                jr      nz, loc_963B         ; jump if not
+;                
+;                add     hl, de               ; next slot
+;                ld      a, (hl)
+;                cp      &8d                  ; ACG key part 2?
+;                jr      nz, loc_963B         ; jump if not
+;                
+;                add     hl, de               ; next slot
+;                ld      a, (hl)
+;                cp      &8e                  ; ACG key part 3?
+;                jr      nz, loc_963B         ; jump if not
+;                
+;unlock_acg:     
+;                call sort_visual_keys
+;                call    enter_door           ; enter linked object (door etc.)
+;                ld      bc, &3020            ; 48x32
+;                jp      loc_91F5
+;loc_963B:
+;                call    loc_9565
+;                jp      h_room_item          ; draw room item
 
 ; auto_sort ACG key into correct order
-sort_visual_keys:
-                push    hl
-                ld      hl, inventory1+2       ; Point to Slot 1 ID
-                ld      (hl), &8C              ; Force Part 1
-                
-                ld      de, 4                  ; Offset to Slot 2
-                add     hl, de
-                ld      (hl), &8D              ; Force Part 2
-                
-                add     hl, de                 ; Offset to Slot 3
-                ld      (hl), &8E              ; Force Part 3
-                pop     hl
-                ret
+;sort_visual_keys:
+;                push    hl
+;                ld      hl, inventory1+2       ; Point to Slot 1 ID
+;                ld      (hl), &8C              ; Force Part 1
+;                
+;                ld      de, 4                  ; Offset to Slot 2
+;                add     hl, de
+;                ld      (hl), &8D              ; Force Part 2
+;                
+;                add     hl, de                 ; Offset to Slot 3
+;                ld      (hl), &8E              ; Force Part 3
+;                pop     hl
+;                ret
 
 ; show game statistics
 game_stats:
@@ -5756,7 +5883,7 @@ get_key_room:
 
 green_key_rooms:db  5, 6, 7, &6d, &25, &24, &23, &22
                 ;db  1, 2, 3, 4, 5, 6, 7, &19, &6d
-                db  18, &13, &6c, 4, &6e, 6, 8, &6d
+                db  18, &07, &05, 4, &6e, 6, 2, &6d
 red_key_rooms:  db  &17, &13, 9, &0d, &89, &87, &80, &85
                 db  &17, 3, 5, 7, 9, &13, &17, &0D
                 ;db  &0f, &0b, &0D, &0e, &6f, &10, &70
@@ -7473,17 +7600,44 @@ add_score_bc_bcd:
                 ld      a, (hl)
                 adc     a, 0                 ; carry 10000s
                 daa
+
+                ; --- MOD: CAP LOGIC ---
+                jr      c, force_99999       ; If CPU carry flag set (went past &FF)
+                cp      &10                  ; Is the value BCD 100,000 or more?
+                jr      c, save_and_continue ; If less than &10, it's a valid 5-digit score
+
+force_99999:
+                ld      a, &09               ; Set 10,000s digit to 9
+                ld      (score_bcd), a
+                ld      a, &99               ; Set others to 99
+                ld      (score_bcd+1), a
+                ld      (score_bcd+2), a     ; Score is now &09 &99 &99
+                jr      loc_A1AE             ; Skip saving 'A' since we manually set it
+
+save_and_continue:
                 ld      (hl), a
 loc_A1AE:
                 ld      hl, digit_charset
                 ld      (charset_addr), hl
-                ld      hl,  display+&10c8
+                ;ld      hl,  display+&10c8
+                ld      hl, score_yx
 
+score_yx equ     &50d0
 ; print player score at position HL
 print_score:
                 call    xy_to_display        ; convert coords in HL to display address in HL
                 ld      de, score_bcd
-                ld      b, 3                 ; 3 bytes = 6 digits
+                
+                ; --- MOD: DO NOT DISPLAY 6th DIGIT ---
+                ld      a, (de)
+                and     %00001111            ; Mask out the 100,000s digit (first nibble)
+                call    print_char           ; Print & move HL right
+                inc     de
+
+                ; --- LOOP FOR REMAINING 4 DIGITS ---
+
+
+                ld      b, 2                 ; 2 bytes = 4 digits
 print_bcd_bytes:
                 ld      a, (de)              ; print B BCD bytes at DE
                 rrca
@@ -7617,9 +7771,13 @@ lives_attr_yx   equ     &86c8
 
 chicken_attr_yx equ     &66c8  
 
-acg_key_flag    db      0
 
-dark_blue       db      01        
+
+dark_blue       db      01
+bright_white    db      &47
+bright_white_bl db      &4f  
+bright_yellow   db      &46
+bright_yellow_gr db     &66        
 
 draw_panel_attrs:
                                              ; COLOUR BACKGROUND
@@ -7704,27 +7862,17 @@ colour_acg_3:
                 ld      bc, &0203
                 call    fill_bc_hl_a
 
-
-
-
-
-
-                ;ld      hl, acg_attr_yx      ; MOD: NEW ATTR FOR ACG KEG
-                ;call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ;ld      bc, &0603            ; 6x3
-                ;ld      a, &01               ; dark blue (ACG KEY)
-                ;call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ld      hl, lives_attr_yx    ; MOD: Change &7fc8 to &86c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0603            ; 6x3
-                ld      a, &47               ; bright white (LIVES)
+                ld      a, (bright_white_bl)   ; bright white (LIVES)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ld      hl, chicken_attr_yx  ; MOD: Change &5fc8 to &66c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0604             ; 6x4
-                ld      a, &46               ; bright yellow (chicken)
+                ld      a, (bright_yellow_gr)               ; bright yellow (CHICKEN)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ld      hl, &50c8            ; 58c8 to 40c8
@@ -7734,7 +7882,7 @@ colour_acg_3:
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ld      bc, &0601             ; 6x1
-                ld      a, &47               ; bright white (score)
+                ld      a, (bright_white)              ; bright white (score)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ld      hl, &50c8            ; MOD: Change &38c8 to &48c8 y,x coords
@@ -7748,6 +7896,9 @@ colour_acg_3:
                 jp      fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
 
 ; draw lives sprites in side panel
+
+lives_yx        dw      &95c8  
+
 draw_lives:
                 push    ix
                 ld      ix, entity_to_draw
@@ -7757,7 +7908,7 @@ draw_lives:
                 or      1                    ; offset to first graphic
                 ld      (ix+0), a            ; character type
                 ld      (ix+5), &47          ; bright white
-                ld      hl, &95c8            ; coords H=Y, L=X (CHANGED FROM 8dc8 to 95c8)
+                ld      hl, (lives_yx)            ; coords H=Y, L=X (CHANGED FROM 8dc8 to 95c8)
                 ld      (ix+3), l
                 ld      (ix+4), h
                 ld      a, (lives)
@@ -7993,6 +8144,13 @@ inventory_sound:
 drop_sound:
                 ld      bc, &2080            ; long high beep
                 jr      beep                 ; freq B (low is higher), length C
+
+acg_key_sound:
+                ld      bc, &4020           ; Mid note
+                call    beep
+                ld      bc, &2020           ; High note
+                call    beep
+                ret
 
 ; play walk clicks if due
 walk_sound:
@@ -9389,20 +9547,22 @@ panel_hdr_ser:  db  1, 2, 3, 4, 5, 6, 7, 8    ; 0
                 db  &0e, &6D, &6E, &6F, &70, &71, &0c, &0d; 16
 panel_body:     db  &0f, 0, 0, 0, 0, 0, 0, &3a; 24
                 db  &10, 0, 0, 0, 0, 0, 0, &3b; 32
-                db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
-                db  &11, 0, 0, 0, 0, 0, 0, &3c; 40
-                db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
-                db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
-                db  &12, 0, 0, 0, 0, 0, 0, &3d; 48
-                db  &13, 0, &59, &5a, &5b, &5c, 0, &3e; 56
-                db  &14, 0, 0, 0, &5d, 0, 0, &3f; 64
-                db  0, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
-                ;db  &15, &49, &4a, &4b, &4c, &4d, &4e, &40; 72
-                db  &16, 0, 0, 0, 0, 0, 0, &41; 80
+                db  &1a, 0, 0, 0, 0, 0, 0, &3c ; PLACEHOLDER
+                db  &1a, 0, 0, 0, 0, 0, 0, &10; 40
+                ;db  &3c, 0, 0, 0, 0, 0, 0, 0 ; PLACEHOLDER
+                db  &11, 0, 0, 0, 0, 0, 0, &3d ; PLACEHOLDER
+                db  &12, 0, 0, 0, 0, 0, 0, &3e; 48
+                ;db  &13, 0, &59, &5a, &5b, &5c, 0, &3f; 56 "TIME"
+                db  &13, 0, 0, 0, 0, 0, 0, &3f; 56
+                db  &14, 0, 0, 0, 0, 0, 0, &40; 64
+                db  &15, 0, 0, 0, &5d, 0, 0, &41; PLACEHOLDER ":"  *** Add &59 for T after &15
+                ;db  &15, &49, &4a, &4b, &4c, &4d, &4e, &40; 72 "SCORE"
+                db  &16, 0, 0, 0, 0, 0, 0, &41; 80  ****11th row
                 db  &17, 0, 0, 0, 0, 0, 0, &42; 88
                 db  &18, 0, 0, 0, 0, 0, 0, &43; 96
                 db  &19, 0, 0, 0, 0, 0, 0, &44; 104
                 db  &1a, 0, 0, 0, 0, 0, 0, &45; 112
+                db  &1a, 0, 0, 0, 0, 0, 0, &45; 112 DUPLICATED
                 db  &1b, 0, 0, 0, 0, 0, 0, &46; 120
                 db  &1c, 0, 0, 0, 0, 0, 0, &47; 128
                 db  &1d, 0, 0, 0, 0, 0, 0, &48; 136
@@ -12650,5 +12810,4 @@ devil:          ds  16
 frankenstein:   ds  16
 hunchback:      ds  16
 linked_items:   ds  4384
-
 end start

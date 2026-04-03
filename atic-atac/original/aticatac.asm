@@ -5376,7 +5376,7 @@ clock_tick:
                 and     &0f                  ; clip hours to 0-15
                 ld      (hl), a
 loc_9604:
-                ;ld      hl, &58c8            ; timer coords (y,x); changed from &40c8 to &58c8 
+                ;ld      hl, &58c8            ; timer coords (y,x); changed from &40c8 to &58d0 
                 clock_yx equ     &58d0
                 ld      hl, clock_yx
 
@@ -7766,10 +7766,12 @@ loc_A22D:
 ; draw side-panel colours, which follow room colour
 
 acg_attr_yx     equ     &30c8
-lives_attr_yx   equ     &86c8 
-
+score_cap_yx    equ     &56c8
+;score_yx        equ     &56d0
+time_cap_yx     equ     &5ec8
+time_yx         equ     &5ed0
 chicken_attr_yx equ     &66c8  
-
+lives_attr_yx   equ     &86c8 
 
 
 dark_blue       db      01
@@ -7874,23 +7876,27 @@ colour_acg_3:
                 ld      a, (bright_yellow)   ; bright yellow (CHICKEN)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
-                ld      hl, &50c8            ; 58c8 to 40c8
+                ld      hl, score_cap_yx     ; 58c8 to 5ec8
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ld      bc, &0601             ; 6x1
+                ld      bc, &0101             ; 6x1
                 ld      a, &45               ; bright cyan (score caption)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
-                ld      bc, &0601             ; 6x1
-                ld      a, (bright_white)              ; bright white (score)
-                call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
-                
-                ld      hl, &50c8            ; MOD: Change &38c8 to &48c8 y,x coords
+                ld      hl, score_yx     
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ld      bc, &0601             ; 6x1
-                ld      a, &47               ; bright magenta (time caption)
+                ld      bc, &0501            ; 6x1
+                ld      a, (bright_white)     ; bright white (score)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
-                ld      bc, &0601
+                ld      hl, time_cap_yx            ; MOD: Change &38c8 to &48c8 y,x coords
+                call    xy_to_attr           ; convert pixel coords in HL to attribute address
+                ld      bc, &0101             ; 6x1
+                ld      a, &43               ; bright magenta (time caption)
+                call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
+                
+                ld      hl, time_yx          
+                call    xy_to_attr 
+                ld      bc, &0501
                 ld      a, &47               ; bright white (time)
                 jp      fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
 
@@ -9553,8 +9559,8 @@ panel_body:     db  &0f, 0, 0, 0, 0, 0, 0, &3a; 24
                 db  &12, 0, 0, 0, 0, 0, 0, &3e; 48
                 ;db  &13, 0, &59, &5a, &5b, &5c, 0, &3f; 56 "TIME"
                 db  &13, 0, 0, 0, 0, 0, 0, &3f; 56
-                db  &14, 0, 0, 0, 0, 0, 0, &40; 64
-                db  &15, 0, 0, 0, &5d, 0, 0, &41; PLACEHOLDER ":"  *** Add &59 for T after &15
+                db  &14, &59, 0, 0, 0, 0, 0, &40; 64
+                db  &15, &59, 0, 0, &5d, 0, 0, &41; PLACEHOLDER ":"  *** Add &59 for T after &15
                 ;db  &15, &49, &4a, &4b, &4c, &4d, &4e, &40; 72 "SCORE"
                 db  &16, 0, 0, 0, 0, 0, 0, &41; 80  ****11th row
                 db  &17, 0, 0, 0, 0, 0, 0, &42; 88

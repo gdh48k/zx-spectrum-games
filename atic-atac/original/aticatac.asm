@@ -3646,9 +3646,9 @@ flash_score:
                 jr      z, loc_8CA7          ; jump if so (stop flash)
                 and     &0f                  ; 16th frame?
                 call    z, start_beep        ; call if so (beep)
-                ld      hl,  display+&10c8
+                ld      hl,  display+&10d0   ; MOD: Offset changed from &10c8 to &10d0 (moved one char to right)
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ld      b, 6
+                ld      b, 5                 ; MOD: No of chars to flash changed from 6 to 5 (first digit removed)
 loc_8C9F:
                 ld      a, (hl)
                 or      &80                  ; enable flash attribute

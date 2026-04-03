@@ -3498,7 +3498,7 @@ creatures:      db  &5c                       ; spider
 
 ; draw chicken energy bar
 
-chicken_yx equ     &80c8
+chicken_yx equ     &7fc8
 draw_chicken:
                 ld      a, (player_energy)
                 srl     a
@@ -3545,7 +3545,7 @@ draw_chicken:
                 push    hl
                 ld      a, &14               ; empty chicken graphic
                 ld      (ix+0), a
-                ld      hl, chicken_yx       ; chicken y,x (From 77c8 to 81c8)
+                ld      hl, chicken_yx       ; chicken y,x (From 77c8 to 7fc8)
                 ld      a, h
                 sub     c
                 ld      h, a
@@ -7865,13 +7865,13 @@ colour_acg_3:
                 ld      hl, lives_attr_yx    ; MOD: Change &7fc8 to &86c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0603            ; 6x3
-                ld      a, (bright_white_bl)   ; bright white (LIVES)
+                ld      a, (bright_white)   ; bright white (LIVES)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ld      hl, chicken_attr_yx  ; MOD: Change &5fc8 to &66c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ld      bc, &0604             ; 6x4
-                ld      a, (bright_yellow_gr)               ; bright yellow (CHICKEN)
+                ld      bc, &0604            ; 6x4
+                ld      a, (bright_yellow)   ; bright yellow (CHICKEN)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ld      hl, &50c8            ; 58c8 to 40c8

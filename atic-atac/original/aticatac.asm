@@ -4389,12 +4389,14 @@ change_room:
                 or      &0f
                 ld      (player_contact), a
 enter_room:
-                ld      a, (player_room)
-                call    visit_room           ; mark room A as visited
+                ;ld      a, (player_room)
+                ;call    visit_room           ; mark room A as visited
                 call    clear_play_area      ; clear screen and attrs of play area
                 call    draw_room_frame      ; draw lines that make up outer room frame
                 call    draw_panel_attrs     ; draw side-panel colours, which follow room colour
                 call    draw_inventory       ; draw any items in player inventory
+                ld      a, (player_room)
+                call    visit_room           ; mark room A as visited
                 call    entry_sound          ; room entry sound effect
                 jp      main_loop
 
@@ -5553,8 +5555,17 @@ visit_room:
                 and     &38
                 or      &c6
                 ld      (loc_96C6+1), a      ; self-modify bit in SET below
+                and     &38
+                or      &46                  ; BIT base opcode
+                ld      (loc_bit+1), a       ; patch BIT instruction
+
+
+loc_bit:
+                bit     0, (hl)              ; Z=0 if already visited, Z=1 if first visit
+                push    af
 loc_96C6:
                 set     0, (hl)              ; mark room as visited
+                pop     af
                 ret
 
 ; calculate percentage of rooms visited
@@ -8203,7 +8214,14 @@ clear_sound:
 
 ; room entry sound effect
 entry_sound:
-                ld      bc, &650a
+                ;ld      bc, &650a
+                ;jr      queue_sound
+                jr      z, entry_sound_new      ; Z=1 means first visit
+entry_sound_revisit:
+                ld      bc, &6508        ; 08 notes, different pitch range
+                jr      queue_sound
+entry_sound_new:
+                ld      bc, &650a        ; full 10 note sweep
                 jr      queue_sound
 
 ; play next note of sound effect

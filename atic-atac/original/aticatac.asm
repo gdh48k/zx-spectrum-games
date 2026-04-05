@@ -5577,9 +5577,9 @@ flash_counter:  db  0        ; frame counter for flash timing
 ;----------------------------------------------------------
 minimap_gf:
         db  &00, 18,  9      ; col 6, row 3
-        db  &01, 15,  6      ; col 5, row 2
-        db  &02, 12,  6      ; col 4, row 2
-        db  &03,  9,  6      ; col 3, row 2
+        db  &01, 18,  6      ; col 5, row 2
+        db  &02, 15,  6      ; col 4, row 2
+        db  &03, 12,  6      ; col 3, row 2
         db  &04, 12,  9      ; col 4, row 3
         db  &05, 12, 12      ; col 4, row 4
         db  &06, 15, 12      ; col 5, row 4
@@ -5602,8 +5602,8 @@ minimap_gf:
         db  &17, 15,  0      ; col 5, row 0
         db  &18, 15,  3      ; col 5, row 1
         db  &19, 15,  9      ; col 5, row 3
-        db  &6B,  6,  6      ; col 2, row 2
-        db  &6C,  9,  6      ; col 3, row 2
+        db  &6B,  9,  6      ; col 2, row 2
+        db  &6C,  6,  6      ; col 3, row 2
         db  &6D,  6, 12      ; col 2, row 4
         db  &6E,  9, 12      ; col 3, row 4
         db  &6F,  3, 21      ; col 1, row 7
@@ -5616,7 +5616,7 @@ minimap_gf:
 ; MINIMAP_X, MINIMAP_Y — minimap origin in panel
 ; Change MINIMAP_Y to reposition vertically in panel
 ;----------------------------------------------------------
-MINIMAP_X       equ     &cd  ; abs x = 200px (panel left edge)
+MINIMAP_X       equ     &d0  ; abs x = 200px (panel left edge)
 MINIMAP_Y       equ     &9D  ; abs y = 157px — adjust to reposition
 
 ;----------------------------------------------------------
@@ -5792,12 +5792,7 @@ ld  l, a        ; L = rel_x + 2
 jp  set_pixel_hl 
 
 
-;----------------------------------------------------------
-; set_pixel_hl
-; H = rel_y, L = rel_x (relative to minimap origin)
-; Adds MINIMAP_X/Y, converts to screen address, sets pixel
-; Corrupts: AF, AF', HL
-;----------------------------------------------------------
+
 ;----------------------------------------------------------
 ; pixel_address
 ; Entry: H = abs_y, L = abs_x
@@ -5805,12 +5800,9 @@ jp  set_pixel_hl
 ; Corrupts: AF, BC, DE, HL
 ;----------------------------------------------------------
 pixel_address:
-        ld      a, l             ; abs_x
+        ld      a, l
         and     7
-        ld      b, a
-        ld      a, 7
-        sub     b
-        ld      b, a             ; B = shift count (7=left, 0=right)
+        ld      b, a             ; B = X position (0-7)
 
         ld      c, h             ; C = abs_y
         ld      e, l             ; E = abs_x
@@ -5826,7 +5818,7 @@ pixel_address:
         ld      a, c
         and     &07
         or      h
-        ld      h, a             ; H complete
+        ld      h, a             
 
         ; Low byte: Y5Y4Y3 X7X6X5X4X3
         ld      a, c
@@ -5834,15 +5826,18 @@ pixel_address:
         rlca
         rlca
         ld      l, a
+        
+        ; --- CHANGE HERE ---
         ld      a, e
+        and     &F8              ; Isolate high 5 bits of X (the character column)
         rrca
         rrca
         rrca
-        and     &1F
+        and     &1F              ; MASK REQUIRED: Prevents bits 0-2 of X from 
+                                 ; rotating into the Y-bits (bits 5-7 of L)
         or      l
-        ld      l, a             ; L complete
+        ld      l, a             
         ret
-
 ;----------------------------------------------------------
 ; set_pixel_hl
 ; Entry: H = rel_y, L = rel_x
@@ -5857,15 +5852,19 @@ set_pixel_hl:
         add     a, l
         ld      l, a
 
-        call    pixel_address    ; HL = screen address, B = shift count
+        call    pixel_address    
 
-        ld      a, b
-        or      a                ; Z=1 if B=0 (no shift needed)
-        ld      a, &80
-        jr      z, .noshift
-.yesshift: rrca
-        djnz    .yesshift
-.noshift:
+        ; --- NEW LOGIC START ---
+        ld      a, &80           ; Base pixel (leftmost)
+        inc     b                ; Increment B to handle the 0 case safely
+.shift_loop:
+        dec     b                ; Decrement back
+        jr      z, .done_shift   ; If it was 0 (or is now 0), we are finished
+        rrca                     ; Shift the pixel bit right
+        jr      .shift_loop      ; Repeat until B reaches 0
+.done_shift:
+        ; --- NEW LOGIC END ---
+
         or      (hl)
         ld      (hl), a
         ret

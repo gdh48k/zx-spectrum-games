@@ -5616,7 +5616,7 @@ minimap_gf:
 ; MINIMAP_X, MINIMAP_Y — minimap origin in panel
 ; Change MINIMAP_Y to reposition vertically in panel
 ;----------------------------------------------------------
-MINIMAP_X       equ     &d0  ; abs x = 200px (panel left edge)
+MINIMAP_X       equ     &cd  ; abs x = 200px (panel left edge)
 MINIMAP_Y       equ     &9D  ; abs y = 157px — adjust to reposition
 
 ;----------------------------------------------------------
@@ -5798,27 +5798,70 @@ jp  set_pixel_hl
 ; Adds MINIMAP_X/Y, converts to screen address, sets pixel
 ; Corrupts: AF, AF', HL
 ;----------------------------------------------------------
+;----------------------------------------------------------
+; pixel_address
+; Entry: H = abs_y, L = abs_x
+; Exit:  HL = screen address, B = shift count
+; Corrupts: AF, BC, DE, HL
+;----------------------------------------------------------
+pixel_address:
+        ld      a, l             ; abs_x
+        and     7
+        ld      b, a
+        ld      a, 7
+        sub     b
+        ld      b, a             ; B = shift count (7=left, 0=right)
+
+        ld      c, h             ; C = abs_y
+        ld      e, l             ; E = abs_x
+
+        ; High byte: 010 Y7Y6 0 Y2Y1Y0
+        ld      a, c
+        and     &C0
+        rrca
+        rrca
+        rrca
+        or      &40
+        ld      h, a
+        ld      a, c
+        and     &07
+        or      h
+        ld      h, a             ; H complete
+
+        ; Low byte: Y5Y4Y3 X7X6X5X4X3
+        ld      a, c
+        and     &38
+        rlca
+        rlca
+        ld      l, a
+        ld      a, e
+        rrca
+        rrca
+        rrca
+        and     &1F
+        or      l
+        ld      l, a             ; L complete
+        ret
+
+;----------------------------------------------------------
+; set_pixel_hl
+; Entry: H = rel_y, L = rel_x
+; Corrupts: AF, BC, DE, HL
+;----------------------------------------------------------
 set_pixel_hl:
         ld      a, MINIMAP_Y
         add     a, h
-        ld      h, a                 ; H = abs_y
+        ld      h, a
 
         ld      a, MINIMAP_X
         add     a, l
-        ld      l, a                 ; L = abs_x
+        ld      l, a
 
-        and     7                    ; abs_x & 7 = screen column within byte
-        ld      b, a                 ; B = screen column
-        ld      a, 7
-        sub     b                    ; A = 7 - column = bit shift count
-        ex      af, af'              ; save corrected shift count
+        call    pixel_address    ; HL = screen address, B = shift count
 
-        call    xy_to_display
-
-        ex      af, af'              ; restore bit position
-        ld      b, a                 ; B = bit number
+        ld      a, b
+        or      a                ; Z=1 if B=0 (no shift needed)
         ld      a, &80
-        or      a
         jr      z, .noshift
 .yesshift: rrca
         djnz    .yesshift

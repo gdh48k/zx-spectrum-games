@@ -8155,12 +8155,12 @@ loc_A259:
                 pop     bc                   ;convert pixel coords in HL to attribute address
                 dec     c  
                 jr      nz, loc_A257
-                ld      hl, &90C8
-                call    xy_to_attr
-                                             ; COLOUR CHAR NAME
-                ld      a, (room_attr)
-                ld      bc, &0502            ; MOD: Change &0303 to &0502 for 2 (x) x 5 (y)
-                call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
+                ;ld      hl, &90C8
+                ;call    xy_to_attr
+                ;                             ; COLOUR CHAR NAME
+                ;ld      a, (room_attr)
+                ;ld      bc, &0502            ; MOD: Change &0303 to &0502 for 2 (x) x 5 (y)
+                ;call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 ;inc     l
                 ;ld      (hl), a
                 ;add     hl, de

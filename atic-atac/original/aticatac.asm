@@ -1764,7 +1764,28 @@ start_game:
                 call    reset_game_state     ; copy initial game state to working state area
                 call    randomise_doors      ; randomise which doors can open/close
                 call    prepare_player       ; prepare player to spawn
+                call    draw_minimap_unvisited
+                ;call    test_pixels
                 jp      enter_room
+
+; Temporary diagnostic — draw 8 pixels in a horizontal line
+; to verify xy_to_display works correctly
+test_pixels:
+        ld      b, 8             ; 8 pixels
+        ld      d, &9D           ; Y = 157 (MINIMAP_Y)
+        ld      e, &D0           ; X = 208 (MINIMAP_X)
+.loop:
+        ld      h, d             ; H = Y
+        ld      l, e             ; L = X
+        call    xy_to_display    ; HL = screen address
+        ld      a, (hl)
+        or      &80              ; set bit 7 (leftmost pixel in byte)
+        ld      (hl), a
+        inc     e                ; next pixel right
+        djnz    .loop
+        ret  
+
+
 
 main_loop:
                 ld      sp, main_selection
@@ -5539,6 +5560,322 @@ score_msg:      db  &45                       ; bright cyan
 percent_msg:    db  &45                       ; bright cyan
                 db  '$             '
                 db  &a0
+
+;----------------------------------------------------------
+; Minimap variables — co-located with minimap code
+;----------------------------------------------------------
+current_floor:  db  0        ; 0=ground, &FF=transition
+flash_state:    db  1        ; 1=centre pixel on, 0=off
+flash_counter:  db  0        ; frame counter for flash timing
+
+;----------------------------------------------------------
+; Ground floor minimap table
+; Format: db room_id, rel_x, rel_y
+; rel coords = pixel offsets from MINIMAP_X, MINIMAP_Y
+; Each cell = 3px, no gaps
+; Terminated by &FF
+;----------------------------------------------------------
+minimap_gf:
+        db  &00, 18,  9      ; col 6, row 3
+        db  &01, 15,  6      ; col 5, row 2
+        db  &02, 12,  6      ; col 4, row 2
+        db  &03,  9,  6      ; col 3, row 2
+        db  &04, 12,  9      ; col 4, row 3
+        db  &05, 12, 12      ; col 4, row 4
+        db  &06, 15, 12      ; col 5, row 4
+        db  &07, 18, 12      ; col 6, row 4
+        db  &08, 15, 15      ; col 5, row 5
+        db  &09, 15, 18      ; col 5, row 6
+        db  &0A, 12, 18      ; col 4, row 6
+        db  &0B,  9, 18      ; col 3, row 6
+        db  &0C,  6, 18      ; col 2, row 6
+        db  &0D,  3, 18      ; col 1, row 6
+        db  &0E,  3, 15      ; col 1, row 5
+        db  &0F,  3, 12      ; col 1, row 4
+        db  &10,  3,  9      ; col 1, row 3
+        db  &11,  3,  6      ; col 1, row 2
+        db  &12,  3,  3      ; col 1, row 1
+        db  &13,  3,  0      ; col 1, row 0
+        db  &14,  6,  0      ; col 2, row 0
+        db  &15,  9,  0      ; col 3, row 0
+        db  &16, 12,  0      ; col 4, row 0
+        db  &17, 15,  0      ; col 5, row 0
+        db  &18, 15,  3      ; col 5, row 1
+        db  &19, 15,  9      ; col 5, row 3
+        db  &6B,  6,  6      ; col 2, row 2
+        db  &6C,  9,  6      ; col 3, row 2
+        db  &6D,  6, 12      ; col 2, row 4
+        db  &6E,  9, 12      ; col 3, row 4
+        db  &6F,  3, 21      ; col 1, row 7
+        db  &70,  3, 24      ; col 1, row 8
+        db  &73,  0,  0      ; col 0, row 0
+        db  &8E, 21,  9      ; col 7, row 3
+        db  &FF              ; end marker
+
+;----------------------------------------------------------
+; MINIMAP_X, MINIMAP_Y — minimap origin in panel
+; Change MINIMAP_Y to reposition vertically in panel
+;----------------------------------------------------------
+MINIMAP_X       equ     &d0  ; abs x = 200px (panel left edge)
+MINIMAP_Y       equ     &9D  ; abs y = 157px — adjust to reposition
+
+;----------------------------------------------------------
+; draw_minimap_unvisited
+; Draws single centre pixel for every room in ground floor
+; Call once at game start after prepare_player
+; No game state read — purely static layout
+; Corrupts: AF, AF', BC, DE, HL, IX
+;----------------------------------------------------------
+draw_minimap_unvisited:
+        ld      ix, minimap_gf
+.loop1:
+        ld      a, (ix+0)            ; room id
+        cp      &FF
+        ret     z                    ; end of table
+
+        ld      d, (ix+1)            ; rel_x
+        ld      e, (ix+2)            ; rel_y
+
+        call    draw_unvisited_room  ; single centre pixel
+
+        ld      bc, 3
+        add     ix, bc               ; advance to next entry
+        jr      .loop1
+
+;----------------------------------------------------------
+; draw_minimap
+; Full redraw of minimap based on visited_rooms and player_room
+; Call on every room entry
+; Corrupts: AF, AF', BC, DE, HL, IX
+;----------------------------------------------------------
+draw_minimap:
+        ld      a, (current_floor)
+        or      a
+        ret     nz                   ; not ground floor — skip for now
+
+        ld      ix, minimap_gf
+.loop2:
+        ld      a, (ix+0)            ; room id
+        cp      &FF
+        ret     z
+
+        ld      d, (ix+1)            ; rel_x — safe across check_visited
+        ld      e, (ix+2)            ; rel_y — safe across check_visited
+
+        ; Check if current room
+        ld      b, a                 ; save room id
+        ld      a, (player_room)
+        cp      b
+        jr      z, .current
+
+        ; Check visited state
+        ld      a, b                 ; restore room id
+        call    check_visited        ; Z=1 if visited
+        jr      z, .visited
+
+        ; Unvisited — single centre pixel
+        call    draw_unvisited_room
+        jr      .next
+
+.visited:
+        ; Visited — hollow 3x3 square
+        call    draw_visited_room
+        jr      .next
+
+.current:
+        ; Current room — hollow 3x3 + flashing centre pixel
+        call    draw_visited_room    ; always draw square
+        ld      a, (flash_state)
+        or      a
+        jr      z, .next             ; flash off — skip centre pixel
+        call    draw_unvisited_room  ; reuse — draws centre pixel at D,E
+
+.next:
+        ld      bc, 3
+        add     ix, bc
+        jr      .loop2
+
+;----------------------------------------------------------
+; draw_unvisited_room
+; Single centre pixel at rel_x+1, rel_y+1
+; D = rel_x, E = rel_y
+; Corrupts: AF, AF', HL
+;----------------------------------------------------------
+draw_unvisited_room:
+        ld      h, e
+        inc     h                    ; H = rel_y + 1
+        ld      l, d
+        inc     l                    ; L = rel_x + 1
+        jp      set_pixel_hl         ; tail call
+
+;----------------------------------------------------------
+; draw_visited_room
+; Hollow 3x3 square border — 8 pixels
+; D = rel_x, E = rel_y
+;
+; Pixel layout:
+;   X X X   (rel_x,   rel_y)   (rel_x+1, rel_y)   (rel_x+2, rel_y)
+;   X . X   (rel_x,   rel_y+1)                     (rel_x+2, rel_y+1)
+;   X X X   (rel_x,   rel_y+2) (rel_x+1, rel_y+2)  (rel_x+2, rel_y+2)
+;
+; Corrupts: AF, AF', HL
+;----------------------------------------------------------
+draw_visited_room:
+        call    .px0y0
+        call    .px1y0
+        call    .px2y0
+        call    .px0y1
+        call    .px2y1
+        call    .px0y2
+        call    .px1y2
+        call    .px2y2
+        ret
+
+.px0y0:
+        ld  h, e        ; H = rel_y + 0  (E unchanged)
+        ld  l, d        ; L = rel_x + 0  (D unchanged)
+        jp  set_pixel_hl
+
+.px1y0:
+        ld  h, e        ; H = rel_y + 0
+        ld  a, d        ; A = rel_x
+        inc a           ; A = rel_x + 1
+        ld  l, a        ; L = rel_x + 1
+        jp  set_pixel_hl 
+
+.px2y0: 
+        ld  h, e        ; H = rel_y + 0
+        ld  a, d        ; A = rel_x
+        add a, 2        ; A = rel_x + 2
+        ld  l, a        ; L = rel_x + 2
+        jp  set_pixel_hl
+
+.px0y1: 
+        ld  a, e        ; A = rel_y
+        inc a           ; A = rel_y + 1
+        ld  h, a        ; H = rel_y + 1
+        ld  l, d        ; L = rel_x + 0
+        jp  set_pixel_hl
+
+.px2y1: 
+ld  a, e        ; A = rel_y
+inc a           ; A = rel_y + 1
+ld  h, a        ; H = rel_y + 1
+ld  a, d        ; A = rel_x  (reload — H just consumed A)
+add a, 2        ; A = rel_x + 2
+ld  l, a        ; L = rel_x + 2
+jp  set_pixel_hl
+
+.px0y2: 
+ld  a, e        ; A = rel_y
+add a, 2        ; A = rel_y + 2
+ld  h, a        ; H = rel_y + 2
+ld  l, d        ; L = rel_x + 0
+jp  set_pixel_hl
+
+.px1y2:
+ld  a, e        ; A = rel_y
+add a, 2        ; A = rel_y + 2
+ld  h, a        ; H = rel_y + 2
+ld  a, d        ; A = rel_x
+inc a           ; A = rel_x + 1
+ld  l, a        ; L = rel_x + 1
+jp  set_pixel_hl 
+
+.px2y2:
+ld  a, e        ; A = rel_y
+add a, 2        ; A = rel_y + 2
+ld  h, a        ; H = rel_y + 2
+ld  a, d        ; A = rel_x
+add a, 2        ; A = rel_x + 2
+ld  l, a        ; L = rel_x + 2
+jp  set_pixel_hl 
+
+
+;----------------------------------------------------------
+; set_pixel_hl
+; H = rel_y, L = rel_x (relative to minimap origin)
+; Adds MINIMAP_X/Y, converts to screen address, sets pixel
+; Corrupts: AF, AF', HL
+;----------------------------------------------------------
+set_pixel_hl:
+        ld      a, MINIMAP_Y
+        add     a, h
+        ld      h, a                 ; H = abs_y
+
+        ld      a, MINIMAP_X
+        add     a, l
+        ld      l, a                 ; L = abs_x
+
+        and     7                    ; abs_x & 7 = screen column within byte
+        ld      b, a                 ; B = screen column
+        ld      a, 7
+        sub     b                    ; A = 7 - column = bit shift count
+        ex      af, af'              ; save corrected shift count
+
+        call    xy_to_display
+
+        ex      af, af'              ; restore bit position
+        ld      b, a                 ; B = bit number
+        ld      a, &80
+        or      a
+        jr      z, .noshift
+.yesshift: rrca
+        djnz    .yesshift
+.noshift:
+        or      (hl)
+        ld      (hl), a
+        ret
+
+;----------------------------------------------------------
+; update_flash
+; Toggle flash_state every 32 frames (~0.6s at 50Hz)
+; Call once per frame from main loop
+; Corrupts: AF, HL
+;----------------------------------------------------------
+update_flash:
+        ld      hl, flash_counter
+        inc     (hl)
+        ld      a, (hl)
+        and     &1F                  ; 32 frame period
+        ret     nz
+        ld      hl, flash_state
+        ld      a, (hl)
+        xor     1                    ; toggle 0<->1
+        ld      (hl), a
+        ret
+
+;----------------------------------------------------------
+; check_visited
+; A = room_id
+; Returns Z=1 if visited, Z=0 if not visited
+; Corrupts: AF, BC, HL
+; Safe: DE preserved throughout
+;----------------------------------------------------------
+check_visited:
+        ld      c, a
+        srl     c
+        srl     c
+        srl     c                    ; C = room_id / 8 (byte index)
+        ld      b, 0
+        ld      hl, visited_rooms
+        add     hl, bc               ; HL = byte containing room's bit
+        rlca
+        rlca
+        rlca
+        and     &38
+        or      &46                  ; BIT n,(HL) opcode base
+        ld      (check_bit+1), a     ; self-modify operand byte
+check_bit:
+        bit     0, (hl)              ; patched at runtime — tests correct bit
+        ret                          ; Z=1 unvisited, Z=0 visited
+
+
+
+
+
+
+
 
 ; mark room A as visited
 visit_room:

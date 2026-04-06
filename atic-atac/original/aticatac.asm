@@ -1764,7 +1764,7 @@ start_game:
                 call    reset_game_state     ; copy initial game state to working state area
                 call    randomise_doors      ; randomise which doors can open/close
                 call    prepare_player       ; prepare player to spawn
-                call    draw_minimap_unvisited
+                call    draw_minimap
                 ;call    test_pixels
                 jp      enter_room
 
@@ -1920,19 +1920,7 @@ loc_7EAD:
 ; run player, weapon, and sound handlers
 ;touching_any_item:  db 0
 run_player:
-                ; --- THE ONLY RESET IN THE GAME ---
-                ;ld      a, (touching_any_item)
-                ;and     a
-                ;jr      nz, .skip_reset      ; If touching ANY item, don't reset
-                
-                ;ld      a, (pickup_flags)
-                ;and     4                    ; Clear Bits 0-1, Keep Bit 2
-                ;ld      (pickup_flags), a
-
-;.skip_reset:
-                ;xor     a
-                ;ld      (touching_any_item), a ; Reset tracker for next frame
-                
+        
                 di
                 push    ix
                 ld      a, 1
@@ -1953,12 +1941,9 @@ handler_loop:
                 sbc     hl, de               ; end of list?
                 jr      c, loc_7EBE          ; jump if not
 
-                ; --- NEW: FLAG RESET LOGIC --- **REMOVED**
-                ;ld      a, (pickup_flags)
-                ;and     4                    ; KEEP bit 2 (Manual Drop Lock)
-                ;                             ; WIPE bits 0-1 (Auto-pickup cooldown)
-                ;ld      (pickup_flags), a
-                ; -----------------------------
+                call    update_flash        ; Tick the 32-frame timer
+                call    update_minimap      ; Redraw the map with the new flash state
+        
 
                 call    clock_tick           ; advance the clock 1 frame
                 ld      a, (sysvar_FRAMES)
@@ -4416,6 +4401,7 @@ enter_room:
                 call    draw_room_frame      ; draw lines that make up outer room frame
                 call    draw_panel_attrs     ; draw side-panel colours, which follow room colour
                 call    draw_inventory       ; draw any items in player inventory
+                call    update_minimap
                 ;ld      a, (player_room)
                 ;call    visit_room           ; mark room A as visited
                 call    entry_sound          ; room entry sound effect
@@ -5620,13 +5606,13 @@ MINIMAP_X       equ     &d0  ; abs x = 200px (panel left edge)
 MINIMAP_Y       equ     &9D  ; abs y = 157px — adjust to reposition
 
 ;----------------------------------------------------------
-; draw_minimap_unvisited
+; draw_minimap
 ; Draws single centre pixel for every room in ground floor
 ; Call once at game start after prepare_player
 ; No game state read — purely static layout
 ; Corrupts: AF, AF', BC, DE, HL, IX
 ;----------------------------------------------------------
-draw_minimap_unvisited:
+draw_minimap:
         ld      ix, minimap_gf
 .loop1:
         ld      a, (ix+0)            ; room id
@@ -5643,12 +5629,12 @@ draw_minimap_unvisited:
         jr      .loop1
 
 ;----------------------------------------------------------
-; draw_minimap
+; update_minimap
 ; Full redraw of minimap based on visited_rooms and player_room
 ; Call on every room entry
 ; Corrupts: AF, AF', BC, DE, HL, IX
 ;----------------------------------------------------------
-draw_minimap:
+update_minimap:
         ld      a, (current_floor)
         or      a
         ret     nz                   ; not ground floor — skip for now
@@ -5668,23 +5654,27 @@ draw_minimap:
         cp      b
         jr      z, .current
 
-        ; Check visited state
-        ld      a, b                 ; restore room id
-        call    check_visited        ; Z=1 if visited
-        jr      z, .visited
 
-        ; Unvisited — single centre pixel
-        call    draw_unvisited_room
-        jr      .next
+;--------------------REMOVE CHECKS FOR NOW - ONLY WANT TO FLASH PIXEL AT THIS STAGE
+        ; Check visited state
+        ;ld      a, b                 ; restore room id
+        ;call    check_visited        ; Z=1 if visited
+        ;jr      z, .visited
+
+        ; Unvisited — single centre pixel 
+        ;call    draw_unvisited_room      
+        ;jr      .next                    
 
 .visited:
         ; Visited — hollow 3x3 square
-        call    draw_visited_room
-        jr      .next
+        ;call    draw_visited_room
+        ;jr      .next
+
+;--------------------REMOVE CHECKS FOR NOW - ONLY WANT TO FLASH PIXEL AT THIS STAGE
 
 .current:
         ; Current room — hollow 3x3 + flashing centre pixel
-        call    draw_visited_room    ; always draw square
+        ;call    draw_visited_room    ; always draw square
         ld      a, (flash_state)
         or      a
         jr      z, .next             ; flash off — skip centre pixel

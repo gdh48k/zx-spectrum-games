@@ -1825,7 +1825,7 @@ loc_7E03:
                 cp      c                    ; same frame as last time?
                 call    nz, run_player       ; call if not
                 ld      hl, loop2_return
-                jr      process_action
+                jp      process_action
 
 loop2_return:
                 ld      de, &10              ; 16 bytes per linked entity pair
@@ -1836,7 +1836,62 @@ loop2_return:
                 and     a
                 sbc     hl, de
                 jr      c, loc_7E03
+
+
+; --- Add these to your variable section ---
+pixel_addr_save:  dw  0    ; Stores the 16-bit Screen Address (HL)
+pixel_shift_save: db  0    ; Stores the bit-shift value (B)
+
 draw_room:
+
+    ; --- NEW: Update Minimap Pointer for Flashing ---
+    push    af
+    push    bc
+    push    de 
+    push    hl
+    push    ix   ; Protect the engine registers
+    ld      a, (player_room)
+    ld      b, a
+    ld      ix, minimap_gf
+.m_search:
+    ld      a, (ix+0)
+    cp      &FF                  ; End of table?
+    jr      z, .m_done
+    cp      b
+    jr      z, .m_found
+    ld      de, 3
+    add     ix, de
+    jr      .m_search
+.m_found:
+    ; Calculate the center pixel coordinates (rel_x+1, rel_y+1)
+    ld      a, (ix+1)            ; rel_x
+    inc     a
+    ld      l, a
+    ld      a, (ix+2)            ; rel_y
+    inc     a
+    ld      h, a
+    
+    ; Add Screen Offsets
+    ld      a, MINIMAP_Y
+    add     a, h
+    ld      h, a
+    ld      a, MINIMAP_X
+    add     a, l
+    ld      l, a                 ; Now H=abs_y, L=abs_x
+
+    call    pixel_address        ; Returns HL=Address, B=Shift
+    ld      (pixel_addr_save), hl
+    ld      a, b
+    ld      (pixel_shift_save), a
+.m_done:
+    pop     ix
+    pop     hl
+    pop     de
+    pop     bc
+    pop     af
+    ; --- END OF NEW BLOCK ---
+                
+
                 ld      a, (player_room)
                 ld      l, a
                 ld      h, 0
@@ -1942,7 +1997,7 @@ handler_loop:
                 jr      c, loc_7EBE          ; jump if not
 
                 call    update_flash        ; Tick the 32-frame timer
-                call    update_minimap      ; Redraw the map with the new flash state
+                ;call    update_minimap      ; Redraw the map with the new flash state
         
 
                 call    clock_tick           ; advance the clock 1 frame
@@ -5653,17 +5708,7 @@ update_minimap:
         ld      a, (player_room)
         cp      b
         jr      z, .current
-
-
-;--------------------REMOVE CHECKS FOR NOW - ONLY WANT TO FLASH PIXEL AT THIS STAGE
-        ; Check visited state
-        ;ld      a, b                 ; restore room id
-        ;call    check_visited        ; Z=1 if visited
-        ;jr      z, .visited
-
-        ; Unvisited — single centre pixel 
-        ;call    draw_unvisited_room      
-        ;jr      .next                    
+                
 
 .visited:
         ; Visited — hollow 3x3 square
@@ -5866,16 +5911,49 @@ set_pixel_hl:
 ; Corrupts: AF, HL
 ;----------------------------------------------------------
 update_flash:
-        ld      hl, flash_counter
-        inc     (hl)
-        ld      a, (hl)
-        and     &1F                  ; 32 frame period
-        ret     nz
-        ld      hl, flash_state
-        ld      a, (hl)
-        xor     1                    ; toggle 0<->1
-        ld      (hl), a
-        ret
+        ;ld      hl, flash_counter
+        ;inc     (hl)
+        ;ld      a, (hl)
+        ;and     &1F                  ; 32 frame period
+        ;ret     nz
+        ;ld      hl, flash_state
+        ;ld      a, (hl)
+        ;xor     1                    ; toggle 0<->1
+        ;ld      (hl), a
+        ;ret
+
+ld      a, (flash_counter)
+    inc     a
+    ld      (flash_counter), a
+    and     31
+    ret     nz
+
+    push    af
+    push    bc
+    push    hl
+    ld      hl, (pixel_addr_save)
+    ld      a, l
+    or      h
+    jr      z, .exit             ; Safety check if no room found
+    
+    ld      a, (pixel_shift_save)
+    ld      b, a
+    ld      a, &80
+    inc     b
+.doshift: dec     b
+    jr      z, .flip
+    rrca
+    jr      .doshift
+.flip:
+    xor     (hl)                 ; The magic toggle
+    ld      (hl), a
+.exit:
+    pop     hl
+    pop     bc
+    pop     af
+    ret
+
+
 
 ;----------------------------------------------------------
 ; check_visited

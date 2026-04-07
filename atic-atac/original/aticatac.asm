@@ -1947,7 +1947,7 @@ handler_loop:
                 sbc     hl, de               ; end of list?
                 jr      c, loc_7EBE          ; jump if not
 
-                call    update_flash        ; Tick the 32-frame timer
+                call    check_flash_timer        ; Tick the 32-frame timer
                 ;call    update_minimap      ; Redraw the map with the new flash state
         
 
@@ -5651,40 +5651,29 @@ update_minimap:
     ld      a, (player_room)
     ld      hl, last_room_saved
     cp      (hl)                 ; Is this the same room as last time?
-    jr      z, .m_done           ; If yes, EXIT (Skip the expensive search)
-    
-    ; --- 2. Cleanup Old Flasher ---
-    ld      a, (flash_state)     ; Check if flasher is currently ON
-    or      a
-    jr      z, .skip_cleanup     ; If it's OFF, the pixel is already gone!
+    jr      z, .m_done           ; If yes, EXIT
 
+    ; --- 2. The Permanent Eraser (Janitor) ---
+    ; This runs as you EXIT the old room.
     ld      hl, (pixel_addr_save)
-    ld      a, l
-    or      h
-    jr      z, .skip_cleanup     ; Safety check for null address
-
     ld      a, (pixel_shift_save)
-    ld      b, a
-    ld      a, &80
-    inc     b
-.clean_shift: 
-    dec     b
-    jr      z, .do_clean
-    rrca
-    jr      .clean_shift
-.do_clean:
-    xor     (hl)                 ; Flip it OFF
-    ld      (hl), a
+    
+    ; Logic: Force the center bit to 0 (Black)
+    cpl                          ; Invert the mask (e.g., 10000000 -> 01111111)
+    and     (hl)                 ; Keep all pixels EXCEPT the center one
+    ld      (hl), a              ; Write it back to the screen
+    
+    ; Now the old room is guaranteed to be hollow.
+    xor     a
+    ld      (flash_state), a     ; Reset state for the next room
 
 .skip_cleanup:
-    ; Now that the old one is clean, update the room ID
+    ; Update the room ID record
     ld      a, (player_room)
     ld      (last_room_saved), a
-    
-    ;ld      (hl), a              ; If no, save the new room ID and search
 
-    ; --- 2. Search Table ---
-    ld      b, a
+    ; --- 3. Search Table ---
+    ld      b, a                 ; Room ID to find
     ld      ix, minimap_gf
 .m_search:
     ld      a, (ix+0)
@@ -5697,25 +5686,23 @@ update_minimap:
     jr      .m_search
 
 .m_found:
-    ; --- 3. NEW: Draw the Permanent Room Box ---
+    ; --- 4. Draw the Permanent Room Box ---
     ld      d, (ix+1)            ; D = rel_x
     ld      e, (ix+2)            ; E = rel_y
 
-    push    de                   ; Save coords so draw_visited_room doesn't eat them
+    push    de                   ; Protect coords from draw_visited_room
     call    draw_visited_room    ; Draw the 3x3 hollow square
-    pop     de                   ; Restore coords for the flasher math below
+    pop     de                   ; Restore coords
 
-    ; --- 4. Calculate Flasher Coordinates ---
-    ; IMPORTANT: Y goes to H, X goes to L
-    ld      a, e                 ; Y coord
-    inc     a                    ; Center (rel_y + 1)
+    ; --- 5. Calculate & Save Flasher Address ---
+    ld      a, e
+    inc     a                    ; Center Y (rel_y + 1)
     ld      h, a
     
-    ld      a, d                 ; X coord
-    inc     a                    ; Center (rel_x + 1)
+    ld      a, d
+    inc     a                    ; Center X (rel_x + 1)
     ld      l, a
 
-    ; --- 5. Add Screen Offsets ---
     ld      a, MINIMAP_Y
     add     a, h
     ld      h, a                 ; Final Screen Y
@@ -5724,17 +5711,23 @@ update_minimap:
     add     a, l
     ld      l, a                 ; Final Screen X
 
-    ; --- 6. Save the Pointer ---
     call    pixel_address        ; Returns HL=Addr, B=Shift
     ld      (pixel_addr_save), hl
     ld      a, b
     ld      (pixel_shift_save), a
 
-    ; --- 7. NEW: Sync the Flash Timer ---
+    ; --- 6. The Systematic Start ---
+    ld      hl, (pixel_addr_save)
+    ld      a, (pixel_shift_save)
+    and     (hl)                 ; Check if the center bit is 1 or 0
+    jr      z, .is_hollow        ; If already 0 (Black), skip the XOR
+
+    call    flash_center_pixel   ; Only XOR if there was a dot to remove
+
+.is_hollow:
     xor     a
-    ld      (flash_counter), a   ; Reset timer so flash starts "fresh"
-    ld      a, 1
-    ld      (flash_state), a     ; Optional: start in the ON state
+    ld      (flash_counter), a   ; Reset timer
+    ld      (flash_state), a     ; Sync state to 0 (OFF)
 
 .m_done:
     pop     ix
@@ -5989,55 +5982,52 @@ set_pixel_hl:
         ret
 
 ;----------------------------------------------------------
-; update_flash
+; check_flash_timer
 ; Toggle flash_state every 32 frames (~0.6s at 50Hz)
 ; Call once per frame from main loop
 ; Corrupts: AF, HL
 ;----------------------------------------------------------
-update_flash:
-        ;ld      hl, flash_counter
-        ;inc     (hl)
-        ;ld      a, (hl)
-        ;and     &1F                  ; 32 frame period
-        ;ret     nz
-        ;ld      hl, flash_state
-        ;ld      a, (hl)
-        ;xor     1                    ; toggle 0<->1
-        ;ld      (hl), a
-        ;ret
+check_flash_timer:
 
-ld      a, (flash_counter)
-    inc     a
-    ld      (flash_counter), a
-    and     31
-    ret     nz
-
-    push    af
-    push    bc
-    push    hl
-    ld      hl, (pixel_addr_save)
-    ld      a, l
-    or      h
-    jr      z, .exit             ; Safety check if no room found
     
-    ld      a, (pixel_shift_save)
-    ld      b, a
-    ld      a, &80
-    inc     b
-.doshift: dec     b
-    jr      z, .flip
-    rrca
-    jr      .doshift
-.flip:
-    xor     (hl)                 ; The magic toggle
-    ld      (hl), a
-.exit:
-    pop     hl
-    pop     bc
-    pop     af
-    ret
+        ld      a, (flash_counter)
+        inc     a
+        ld      (flash_counter), a
+        and     31                   ; Only trigger every 32 frames
+        ret     nz
 
+        ; --- The New, Clean Logic ---
+        call    flash_center_pixel   ; This replaces all those pushes and shifts!
 
+        ld      a, (flash_state)     ; Flip our tracking variable
+        xor     1
+        ld      (flash_state), a
+        ret
+
+;----------------------------------------------------------
+; flash_center_pixel
+; XORs the bit at the saved minimap address
+; Corrupts: AF, BC, HL
+;----------------------------------------------------------
+flash_center_pixel:
+        ld      hl, (pixel_addr_save)
+        ld      a, h
+        or      l
+        ret     z                    ; Safety check for null address
+
+        ld      a, (pixel_shift_save)
+        ld      b, a
+        ld      a, &80               ; Start with leftmost pixel bit
+        inc     b
+.do_shift_loop:
+        dec     b
+        jr      z, .do_xor
+        rrca                         ; Shift bit to correct position
+        jr      .do_shift_loop
+.do_xor:
+        xor     (hl)                 ; Toggle the pixel
+        ld      (hl), a
+        ret
 
 ;----------------------------------------------------------
 ; check_visited

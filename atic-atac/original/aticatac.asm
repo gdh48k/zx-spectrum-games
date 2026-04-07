@@ -5653,19 +5653,14 @@ update_minimap:
     cp      (hl)                 ; Is this the same room as last time?
     jr      z, .m_done           ; If yes, EXIT
 
-    ; --- 2. The Permanent Eraser (Janitor) ---
-    ; This runs as you EXIT the old room.
-    ld      hl, (pixel_addr_save)
-    ld      a, (pixel_shift_save)
+    ; --- 2. Cleanup Old Flasher (The Janitor) ---
+    ld      a, (flash_state)
+    cp      1                    ; Only clean if it was ON
+    jr      nz, .skip_cleanup    
     
-    ; Logic: Force the center bit to 0 (Black)
-    cpl                          ; Invert the mask (e.g., 10000000 -> 01111111)
-    and     (hl)                 ; Keep all pixels EXCEPT the center one
-    ld      (hl), a              ; Write it back to the screen
-    
-    ; Now the old room is guaranteed to be hollow.
+    call    flash_center_pixel   ; XOR it OFF
     xor     a
-    ld      (flash_state), a     ; Reset state for the next room
+    ld      (flash_state), a     ; Reset state to 0
 
 .skip_cleanup:
     ; Update the room ID record
@@ -5716,18 +5711,13 @@ update_minimap:
     ld      a, b
     ld      (pixel_shift_save), a
 
-    ; --- 6. The Systematic Start ---
-    ld      hl, (pixel_addr_save)
-    ld      a, (pixel_shift_save)
-    and     (hl)                 ; Check if the center bit is 1 or 0
-    jr      z, .is_hollow        ; If already 0 (Black), skip the XOR
-
-    call    flash_center_pixel   ; Only XOR if there was a dot to remove
-
-.is_hollow:
+    ; --- 6. The "Snappy" Start ---
+    ; Now that we have the new address, turn it OFF immediately
+    
+    call flash_center_pixel
     xor     a
-    ld      (flash_counter), a   ; Reset timer
-    ld      (flash_state), a     ; Sync state to 0 (OFF)
+    ld      (flash_counter), a   ; Reset timer so it triggers ASAP
+    ld      (flash_state), a     ; Set state to 0 (OFF)
 
 .m_done:
     pop     ix

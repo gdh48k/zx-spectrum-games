@@ -1838,59 +1838,10 @@ loop2_return:
                 jr      c, loc_7E03
 
 
-; --- Add these to your variable section ---
-pixel_addr_save:  dw  0    ; Stores the 16-bit Screen Address (HL)
-pixel_shift_save: db  0    ; Stores the bit-shift value (B)
+
 
 draw_room:
-
-    ; --- NEW: Update Minimap Pointer for Flashing ---
-    push    af
-    push    bc
-    push    de 
-    push    hl
-    push    ix   ; Protect the engine registers
-    ld      a, (player_room)
-    ld      b, a
-    ld      ix, minimap_gf
-.m_search:
-    ld      a, (ix+0)
-    cp      &FF                  ; End of table?
-    jr      z, .m_done
-    cp      b
-    jr      z, .m_found
-    ld      de, 3
-    add     ix, de
-    jr      .m_search
-.m_found:
-    ; Calculate the center pixel coordinates (rel_x+1, rel_y+1)
-    ld      a, (ix+1)            ; rel_x
-    inc     a
-    ld      l, a
-    ld      a, (ix+2)            ; rel_y
-    inc     a
-    ld      h, a
-    
-    ; Add Screen Offsets
-    ld      a, MINIMAP_Y
-    add     a, h
-    ld      h, a
-    ld      a, MINIMAP_X
-    add     a, l
-    ld      l, a                 ; Now H=abs_y, L=abs_x
-
-    call    pixel_address        ; Returns HL=Address, B=Shift
-    ld      (pixel_addr_save), hl
-    ld      a, b
-    ld      (pixel_shift_save), a
-.m_done:
-    pop     ix
-    pop     hl
-    pop     de
-    pop     bc
-    pop     af
-    ; --- END OF NEW BLOCK ---
-                
+                call    update_minimap
 
                 ld      a, (player_room)
                 ld      l, a
@@ -4456,7 +4407,7 @@ enter_room:
                 call    draw_room_frame      ; draw lines that make up outer room frame
                 call    draw_panel_attrs     ; draw side-panel colours, which follow room colour
                 call    draw_inventory       ; draw any items in player inventory
-                call    update_minimap
+                ;call    update_minimap
                 ;ld      a, (player_room)
                 ;call    visit_room           ; mark room A as visited
                 call    entry_sound          ; room entry sound effect
@@ -5683,13 +5634,123 @@ draw_minimap:
         add     ix, bc               ; advance to next entry
         jr      .loop1
 
+
+; --- Add these to your variable section ---
+pixel_addr_save:  dw  0    ; Stores the 16-bit Screen Address (HL)
+pixel_shift_save: db  0    ; Stores the bit-shift value (B)
+last_room_saved:  db &FF
+
+update_minimap:
+    push    af
+    push    bc
+    push    de
+    push    hl
+    push    ix
+
+    ; --- 1. Optimization Check ---
+    ld      a, (player_room)
+    ld      hl, last_room_saved
+    cp      (hl)                 ; Is this the same room as last time?
+    jr      z, .m_done           ; If yes, EXIT (Skip the expensive search)
+    
+    ; --- 2. Cleanup Old Flasher ---
+    ld      a, (flash_state)     ; Check if flasher is currently ON
+    or      a
+    jr      z, .skip_cleanup     ; If it's OFF, the pixel is already gone!
+
+    ld      hl, (pixel_addr_save)
+    ld      a, l
+    or      h
+    jr      z, .skip_cleanup     ; Safety check for null address
+
+    ld      a, (pixel_shift_save)
+    ld      b, a
+    ld      a, &80
+    inc     b
+.clean_shift: 
+    dec     b
+    jr      z, .do_clean
+    rrca
+    jr      .clean_shift
+.do_clean:
+    xor     (hl)                 ; Flip it OFF
+    ld      (hl), a
+
+.skip_cleanup:
+    ; Now that the old one is clean, update the room ID
+    ld      a, (player_room)
+    ld      (last_room_saved), a
+    
+    ;ld      (hl), a              ; If no, save the new room ID and search
+
+    ; --- 2. Search Table ---
+    ld      b, a
+    ld      ix, minimap_gf
+.m_search:
+    ld      a, (ix+0)
+    cp      &FF
+    jr      z, .m_done
+    cp      b
+    jr      z, .m_found
+    ld      de, 3
+    add     ix, de
+    jr      .m_search
+
+.m_found:
+    ; --- 3. NEW: Draw the Permanent Room Box ---
+    ld      d, (ix+1)            ; D = rel_x
+    ld      e, (ix+2)            ; E = rel_y
+
+    push    de                   ; Save coords so draw_visited_room doesn't eat them
+    call    draw_visited_room    ; Draw the 3x3 hollow square
+    pop     de                   ; Restore coords for the flasher math below
+
+    ; --- 4. Calculate Flasher Coordinates ---
+    ; IMPORTANT: Y goes to H, X goes to L
+    ld      a, e                 ; Y coord
+    inc     a                    ; Center (rel_y + 1)
+    ld      h, a
+    
+    ld      a, d                 ; X coord
+    inc     a                    ; Center (rel_x + 1)
+    ld      l, a
+
+    ; --- 5. Add Screen Offsets ---
+    ld      a, MINIMAP_Y
+    add     a, h
+    ld      h, a                 ; Final Screen Y
+    
+    ld      a, MINIMAP_X
+    add     a, l
+    ld      l, a                 ; Final Screen X
+
+    ; --- 6. Save the Pointer ---
+    call    pixel_address        ; Returns HL=Addr, B=Shift
+    ld      (pixel_addr_save), hl
+    ld      a, b
+    ld      (pixel_shift_save), a
+
+    ; --- 7. NEW: Sync the Flash Timer ---
+    xor     a
+    ld      (flash_counter), a   ; Reset timer so flash starts "fresh"
+    ld      a, 1
+    ld      (flash_state), a     ; Optional: start in the ON state
+
+.m_done:
+    pop     ix
+    pop     hl
+    pop     de
+    pop     bc
+    pop     af
+    ret
+
 ;----------------------------------------------------------
-; update_minimap
+; old_update_minimap
 ; Full redraw of minimap based on visited_rooms and player_room
 ; Call on every room entry
 ; Corrupts: AF, AF', BC, DE, HL, IX
 ;----------------------------------------------------------
-update_minimap:
+old_update_minimap:
         ld      a, (current_floor)
         or      a
         ret     nz                   ; not ground floor — skip for now
@@ -5756,14 +5817,37 @@ draw_unvisited_room:
 ; Corrupts: AF, AF', HL
 ;----------------------------------------------------------
 draw_visited_room:
+        push de
         call    .px0y0
+        pop de
+
+        push de
         call    .px1y0
+        pop de
+
+        push de
         call    .px2y0
+        pop de
+
+        push de
         call    .px0y1
+        pop de
+
+        push de
         call    .px2y1
+        pop de
+
+        push de
         call    .px0y2
+        pop de
+
+        push de
         call    .px1y2
+        pop de
+
+        push de
         call    .px2y2
+        pop de
         ret
 
 .px0y0:
@@ -5793,38 +5877,38 @@ draw_visited_room:
         jp  set_pixel_hl
 
 .px2y1: 
-ld  a, e        ; A = rel_y
-inc a           ; A = rel_y + 1
-ld  h, a        ; H = rel_y + 1
-ld  a, d        ; A = rel_x  (reload — H just consumed A)
-add a, 2        ; A = rel_x + 2
-ld  l, a        ; L = rel_x + 2
-jp  set_pixel_hl
+        ld  a, e        ; A = rel_y
+        inc a           ; A = rel_y + 1
+        ld  h, a        ; H = rel_y + 1
+        ld  a, d        ; A = rel_x  (reload — H just consumed A)
+        add a, 2        ; A = rel_x + 2
+        ld  l, a        ; L = rel_x + 2
+        jp  set_pixel_hl
 
 .px0y2: 
-ld  a, e        ; A = rel_y
-add a, 2        ; A = rel_y + 2
-ld  h, a        ; H = rel_y + 2
-ld  l, d        ; L = rel_x + 0
-jp  set_pixel_hl
+        ld  a, e        ; A = rel_y
+        add a, 2        ; A = rel_y + 2
+        ld  h, a        ; H = rel_y + 2
+        ld  l, d        ; L = rel_x + 0
+        jp  set_pixel_hl
 
 .px1y2:
-ld  a, e        ; A = rel_y
-add a, 2        ; A = rel_y + 2
-ld  h, a        ; H = rel_y + 2
-ld  a, d        ; A = rel_x
-inc a           ; A = rel_x + 1
-ld  l, a        ; L = rel_x + 1
-jp  set_pixel_hl 
+        ld  a, e        ; A = rel_y
+        add a, 2        ; A = rel_y + 2
+        ld  h, a        ; H = rel_y + 2
+        ld  a, d        ; A = rel_x
+        inc a           ; A = rel_x + 1
+        ld  l, a        ; L = rel_x + 1
+        jp  set_pixel_hl 
 
 .px2y2:
-ld  a, e        ; A = rel_y
-add a, 2        ; A = rel_y + 2
-ld  h, a        ; H = rel_y + 2
-ld  a, d        ; A = rel_x
-add a, 2        ; A = rel_x + 2
-ld  l, a        ; L = rel_x + 2
-jp  set_pixel_hl 
+        ld  a, e        ; A = rel_y
+        add a, 2        ; A = rel_y + 2
+        ld  h, a        ; H = rel_y + 2
+        ld  a, d        ; A = rel_x
+        add a, 2        ; A = rel_x + 2
+        ld  l, a        ; L = rel_x + 2
+        jp  set_pixel_hl 
 
 
 

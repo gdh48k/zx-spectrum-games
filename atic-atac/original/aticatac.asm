@@ -1948,7 +1948,7 @@ handler_loop:
                 jr      c, loc_7EBE          ; jump if not
 
                 call    check_flash_timer        ; Tick the 32-frame timer
-                ;call    update_minimap      ; Redraw the map with the new flash state
+                
         
 
                 call    clock_tick           ; advance the clock 1 frame
@@ -5594,8 +5594,8 @@ minimap_gf:
         db  &17, 15,  0      ; col 5, row 0
         db  &18, 15,  3      ; col 5, row 1
         db  &19, 15,  9      ; col 5, row 3
-        db  &6B,  9,  6      ; col 2, row 2
-        db  &6C,  6,  6      ; col 3, row 2
+        db  &6B,  6,  6      ; col 2, row 2
+        db  &6C,  9,  6      ; col 3, row 2
         db  &6D,  6, 12      ; col 2, row 4
         db  &6E,  9, 12      ; col 3, row 4
         db  &6F,  3, 21      ; col 1, row 7
@@ -5654,11 +5654,8 @@ update_minimap:
     jr      z, .m_done           ; If yes, EXIT
 
     ; --- 2. Cleanup Old Flasher (The Janitor) ---
-    ld      a, (flash_state)
-    cp      1                    ; Only clean if it was ON
-    jr      nz, .skip_cleanup    
     
-    call    flash_center_pixel   ; XOR it OFF
+    call    erase_center_pixel   ; Force the OLD room center to 0
     xor     a
     ld      (flash_state), a     ; Reset state to 0
 
@@ -5714,10 +5711,12 @@ update_minimap:
     ; --- 6. The "Snappy" Start ---
     ; Now that we have the new address, turn it OFF immediately
     
-    call flash_center_pixel
+    
     xor     a
     ld      (flash_counter), a   ; Reset timer so it triggers ASAP
+    ld      a, 1
     ld      (flash_state), a     ; Set state to 0 (OFF)
+    call flash_center_pixel
 
 .m_done:
     pop     ix
@@ -6018,6 +6017,40 @@ flash_center_pixel:
         xor     (hl)                 ; Toggle the pixel
         ld      (hl), a
         ret
+
+;----------------------------------------------------------
+; erase_center_pixel
+; Forces the bit at the saved minimap address to 0 (Hollow)
+; Corrupts: AF, BC, HL
+;----------------------------------------------------------
+erase_center_pixel:
+        ld      hl, (pixel_addr_save)
+        ld      a, h
+        or      l
+        ret     z                    ; Safety check for null address
+
+        ld      a, (pixel_shift_save)
+        ld      b, a
+        ld      a, &80               ; Start with leftmost pixel bit
+        inc     b
+.erase_loop:
+        dec     b
+        jr      z, .do_erase
+        rrca                         
+        jr      .erase_loop
+
+.do_erase:
+        cpl                  ; Flip the mask bits 🔄
+        and     (hl)         ; Force our bit to 0, leave others alone 🧹
+        ld      (hl), a      ; Write it back to the screen
+        ret
+        
+   
+
+
+
+
+
 
 ;----------------------------------------------------------
 ; check_visited

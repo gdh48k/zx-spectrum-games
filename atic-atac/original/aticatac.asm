@@ -5640,7 +5640,7 @@ pixel_addr_save:  dw  0    ; Stores the 16-bit Screen Address (HL)
 pixel_shift_save: db  0    ; Stores the bit-shift value (B)
 last_room_saved:  db &FF
 
-update_minimap:
+old_update_minimap:
     push    af
     push    bc
     push    de
@@ -5726,52 +5726,87 @@ update_minimap:
     pop     af
     ret
 
-;----------------------------------------------------------
-; old_update_minimap
-; Full redraw of minimap based on visited_rooms and player_room
-; Call on every room entry
-; Corrupts: AF, AF', BC, DE, HL, IX
-;----------------------------------------------------------
-old_update_minimap:
-        ld      a, (current_floor)
-        or      a
-        ret     nz                   ; not ground floor — skip for now
+update_minimap:
+    ; --- 1. The Gatekeeper ---
+    ld      a, (player_room)
+    ld      hl, last_room_saved
+    cp      (hl)
+    jr      z, .mm_done           ; If room hasn't changed, exit immediately
 
-        ld      ix, minimap_gf
-.loop2:
-        ld      a, (ix+0)            ; room id
-        cp      &FF
-        ret     z
+    ; ==========================================================
+    ; ROOM HAS CHANGED - RUN "CLEAN SWAP" ONCE
+    ; ==========================================================
 
-        ld      d, (ix+1)            ; rel_x — safe across check_visited
-        ld      e, (ix+2)            ; rel_y — safe across check_visited
+    ; --- 2. Erase Old (The Janitor - Step B) ---
+    ; This uses the OLD address still stored in pixel_addr_save
+    call    erase_center_pixel   
 
-        ; Check if current room
-        ld      b, a                 ; save room id
-        ld      a, (player_room)
-        cp      b
-        jr      z, .current
-                
+    ; --- 3. Search Table ---
+    ld      a, (player_room)     ; Get the new room ID
+    ld      b, a                 ; Store it for comparison
+    ld      ix, minimap_gf       ; Point to start of room table
+.mm_search:
+    ld      a, (ix+0)
+    cp      &FF                  ; End of table?
+    jr      z, .mm_done
+    cp      b
+    jr      z, .mm_found          ; Found our new room!
+    ld      de, 3                ; Each entry is 3 bytes (ID, X, Y)
+    add     ix, de
+    jr      .mm_search
 
-.visited:
-        ; Visited — hollow 3x3 square
-        ;call    draw_visited_room
-        ;jr      .next
+.mm_found:
+    ; --- 4. Draw the Permanent Room Box ---
+    ld      d, (ix+1)            ; D = rel_x
+    ld      e, (ix+2)            ; E = rel_y
 
-;--------------------REMOVE CHECKS FOR NOW - ONLY WANT TO FLASH PIXEL AT THIS STAGE
+    push    de                   ; Protect coords for drawing
+    call    draw_visited_room    ; Draw the 3x3 hollow square
+    pop     de                   ; Restore coords
 
-.current:
-        ; Current room — hollow 3x3 + flashing centre pixel
-        ;call    draw_visited_room    ; always draw square
-        ld      a, (flash_state)
-        or      a
-        jr      z, .next             ; flash off — skip centre pixel
-        call    draw_unvisited_room  ; reuse — draws centre pixel at D,E
+    ; --- 5. Calculate New Address (The Architect - Step A) ---
+    ld      a, e
+    inc     a                    ; Center Y (rel_y + 1)
+    ld      h, a
+    
+    ld      a, d
+    inc     a                    ; Center X (rel_x + 1)
+    ld      l, a
 
-.next:
-        ld      bc, 3
-        add     ix, bc
-        jr      .loop2
+    ld      a, MINIMAP_Y
+    add     a, h
+    ld      h, a                 ; Final Screen Y Coord
+    
+    ld      a, MINIMAP_X
+    add     a, l
+    ld      l, a                 ; Final Screen X Coord
+
+    call    pixel_address        ; Convert X,Y to HL=Addr, B=Shift
+
+    ; --- 6. Draw New (The Builder - Step C) ---
+    ; Snap the pixel ON immediately while we have the registers
+    push    hl
+    push    bc
+    call    draw_new_center_pixel 
+    pop     bc
+    pop     hl
+
+    ; Now save these for the separate Flasher routine
+    ld      (pixel_addr_save), hl
+    ld      a, b
+    ld      (pixel_shift_save), a
+
+    ; --- 7. Sync Timer & State ---
+    ld      a, (player_room)     ; Final update to the gatekeeper
+    ld      (last_room_saved), a
+
+    xor     a
+    ld      (flash_counter), a   ; Reset timer to 0 (start of cycle)
+    inc     a                    ; A = 1
+    ld      (flash_state), a     ; Set state to ON
+
+.mm_done:
+    ret
 
 ;----------------------------------------------------------
 ; draw_unvisited_room
@@ -6045,7 +6080,19 @@ erase_center_pixel:
         ld      (hl), a      ; Write it back to the screen
         ret
         
-   
+ draw_new_center_pixel:
+    ; HL = screen address, B = shift (Passed from caller)
+    ld      a, &80               ; Start with leftmost bit
+    inc     b
+.draw_loop:
+    dec     b
+    jr      z, .do_draw
+    rrca
+    jr      .draw_loop
+.do_draw:
+    or      (hl)                 ; Force the pixel to 1 (Draw)
+    ld      (hl), a
+    ret  
 
 
 

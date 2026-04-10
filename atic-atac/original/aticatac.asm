@@ -1764,6 +1764,7 @@ start_game:
                 call    reset_game_state     ; copy initial game state to working state area
                 call    randomise_doors      ; randomise which doors can open/close
                 call    prepare_player       ; prepare player to spawn
+                call    check_floor
                 call    draw_minimap
                 jp      enter_room
 
@@ -1840,6 +1841,7 @@ loop2_return:
 
 
 draw_room:
+                call    check_floor
                 call    update_minimap
 
                 ld      a, (player_room)
@@ -5555,9 +5557,15 @@ percent_msg:    db  &45                       ; bright cyan
 ;----------------------------------------------------------
 ; Minimap variables — co-located with minimap code
 ;----------------------------------------------------------
-current_floor:  db  0        ; 0=ground, &FF=transition
-flash_state:    db  1        ; 1=centre pixel on, 0=off
-flash_counter:  db  0        ; frame counter for flash timing
+current_floor:  db  0                         ; 0=ground, 1=first &FF=transition
+flash_state:    db  1                         ; 1=centre pixel on, 0=off
+flash_counter:  db  0                         ; frame counter for flash timing
+minimap_ptr:    dw  minimap_gf                ; 2-byte pointer to the current floor table
+                                              ; (defaults to GF on startup)
+
+
+FLOOR_GF        equ 0
+FLOOR_F1        equ 1
 
 ;----------------------------------------------------------
 ; Ground floor minimap table
@@ -5661,8 +5669,56 @@ minimap_f1:
 
         db  &FF              ; end marker
 
+room_floor_lookup:
+        ; --- Ground Floor Rooms (Floor 0) ---
+        ; IDs: &00-&19, &6B-&70, &73, &8E
+        db &00, 0, &01, 0, &02, 0, &03, 0, &04, 0, &05, 0
+        db &06, 0, &07, 0, &08, 0, &09, 0, &0A, 0, &0B, 0
+        db &0C, 0, &0D, 0, &0E, 0, &0F, 0, &10, 0, &11, 0
+        db &12, 0, &13, 0, &14, 0, &15, 0, &16, 0, &17, 0
+        db &18, 0, &19, 0, &6B, 0, &6C, 0, &6D, 0, &6E, 0
+        db &6F, 0, &70, 0, &73, 0, &8E, 0
 
+        ; --- First Floor Rooms (Floor 1) ---
+        ; IDs: &7F-&8D, &1E-&25
+        db &7F, 1, &80, 1, &81, 1, &82, 1, &87, 1, &88, 1
+        db &8B, 1, &21, 1, &20, 1, &1F, 1, &8C, 1, &22, 1
+        db &1E, 1, &8D, 1, &23, 1, &24, 1, &25, 1, &83, 1
+        db &84, 1, &89, 1, &8A, 1, &85, 1, &86, 1
 
+        db &FF ; Terminator
+
+check_floor:
+        ld      a, (player_room)
+        ld      hl, room_floor_lookup
+.floop:
+        ld      b, (hl)              ; Get Room ID from table
+        cp      b                    ; Is it our current room?
+        jr      z, .found
+        inc     hl                   ; Skip Room ID
+        inc     hl                   ; Skip Floor ID
+        ld      a, b                 ; Check if we hit the end
+        cp      &FF
+        ld      a, (player_room)     ; Restore A for next comparison
+        jr      nz, .floop
+        ret                          ; Fallback
+
+.found:
+        inc     hl                   ; Point to Floor ID
+        ld      a, (hl)
+        and     a                    ; Is it 0 (Ground Floor)?
+        jr      nz, .set_f1
+
+.set_gf:
+        ld      hl, minimap_gf
+        jr      .store
+
+.set_f1:
+        ld      hl, minimap_f1
+
+.store:
+        ld      (minimap_ptr), hl    ; Update the pointer for the engine
+        ret
 
 ;----------------------------------------------------------
 ; MINIMAP_X, MINIMAP_Y — minimap origin in panel
@@ -5670,6 +5726,7 @@ minimap_f1:
 ;----------------------------------------------------------
 MINIMAP_X       equ     &d0  ; abs x = 200px (panel left edge)
 MINIMAP_Y       equ     &9D  ; abs y = 157px — adjust to reposition
+
 
 ;----------------------------------------------------------
 ; draw_minimap
@@ -5679,8 +5736,7 @@ MINIMAP_Y       equ     &9D  ; abs y = 157px — adjust to reposition
 ; Corrupts: AF, AF', BC, DE, HL, IX
 ;----------------------------------------------------------
 draw_minimap:
-        ld      ix, minimap_gf
-        ;ld ix, minimap_f1 ; TEST F1
+        ld      ix, (minimap_ptr)    ; Load IX with whichever floor we are on
 .loop1:
         ld      a, (ix+0)            ; room id
         cp      &FF
@@ -5701,91 +5757,6 @@ pixel_addr_save:  dw  0    ; Stores the 16-bit Screen Address (HL)
 pixel_shift_save: db  0    ; Stores the bit-shift value (B)
 last_room_saved:  db &FF
 
-old_update_minimap:
-    push    af
-    push    bc
-    push    de
-    push    hl
-    push    ix
-
-    ; --- 1. Optimization Check ---
-    ld      a, (player_room)
-    ld      hl, last_room_saved
-    cp      (hl)                 ; Is this the same room as last time?
-    jr      z, .m_done           ; If yes, EXIT
-
-    ; --- 2. Cleanup Old Flasher (The Janitor) ---
-    
-    call    erase_center_pixel   ; Force the OLD room center to 0
-    xor     a
-    ld      (flash_state), a     ; Reset state to 0
-
-.skip_cleanup:
-    ; Update the room ID record
-    ld      a, (player_room)
-    ld      (last_room_saved), a
-
-    ; --- 3. Search Table ---
-    ld      b, a                 ; Room ID to find
-    ld      ix, minimap_gf
-.m_search:
-    ld      a, (ix+0)
-    cp      &FF
-    jr      z, .m_done
-    cp      b
-    jr      z, .m_found
-    ld      de, 3
-    add     ix, de
-    jr      .m_search
-
-.m_found:
-    ; --- 4. Draw the Permanent Room Box ---
-    ld      d, (ix+1)            ; D = rel_x
-    ld      e, (ix+2)            ; E = rel_y
-
-    push    de                   ; Protect coords from draw_visited_room
-    call    draw_visited_room    ; Draw the 3x3 hollow square
-    pop     de                   ; Restore coords
-
-    ; --- 5. Calculate & Save Flasher Address ---
-    ld      a, e
-    inc     a                    ; Center Y (rel_y + 1)
-    ld      h, a
-    
-    ld      a, d
-    inc     a                    ; Center X (rel_x + 1)
-    ld      l, a
-
-    ld      a, MINIMAP_Y
-    add     a, h
-    ld      h, a                 ; Final Screen Y
-    
-    ld      a, MINIMAP_X
-    add     a, l
-    ld      l, a                 ; Final Screen X
-
-    call    pixel_address        ; Returns HL=Addr, B=Shift
-    ld      (pixel_addr_save), hl
-    ld      a, b
-    ld      (pixel_shift_save), a
-
-    ; --- 6. The "Snappy" Start ---
-    ; Now that we have the new address, turn it OFF immediately
-    
-    
-    xor     a
-    ld      (flash_counter), a   ; Reset timer so it triggers ASAP
-    ld      a, 1
-    ld      (flash_state), a     ; Set state to 0 (OFF)
-    call flash_center_pixel
-
-.m_done:
-    pop     ix
-    pop     hl
-    pop     de
-    pop     bc
-    pop     af
-    ret
 
 update_minimap:
     ; --- 1. The Gatekeeper ---

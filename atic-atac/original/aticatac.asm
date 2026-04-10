@@ -5570,7 +5570,7 @@ flash_counter:  db  0        ; frame counter for flash timing
 minimap_gf:
         db  &00, 18,  9      ; col 6, row 3
         db  &01, 18,  6      ; col 5, row 2
-        db  &02, 15,  6      ; col 4, row 2
+        db  &02, 15,  6      ; col 4, row 2 (Stairs up)
         db  &03, 12,  6      ; col 3, row 2
         db  &04, 12,  9      ; col 4, row 3
         db  &05, 12, 12      ; col 4, row 4
@@ -5604,6 +5604,47 @@ minimap_gf:
         db  &8E, 21,  9      ; col 7, row 3
         db  &FF              ; end marker
 
+minimap_f1:
+        ; --- ROW 0 (2 rooms: Top Left Square Block) ---
+        db  &44,  6,  0      ; col 2
+        db  &42,  9,  0      ; col 3
+
+        ; --- ROW 1 (4 rooms: Second Horizontal Block) ---
+        db  &47,  0,  3      ; col 0
+        db  &46,  3,  3      ; col 1
+        db  &43,  6,  3      ; col 2
+        db  &40,  9,  3      ; col 3
+
+        ; --- ROW 2 (1 room: Vertical Rect 'F') ---
+        db  &48,  6,  6      ; col 2
+
+        ; --- ROW 3 (3 rooms: Rect, Octagon 'E', Right Extension) ---
+        db  &49,  6,  9      ; col 2
+        db  &34,  9,  9      ; col 3 (Room E)
+        db  &3B, 15,  9      ; col 5 (Room added to fix missing slot)
+
+        ; --- ROW 4 (3 rooms: Rect, Rect, Far Right Tower) ---
+        db  &35,  6, 12      ; col 2
+        db  &33,  9, 12      ; col 3
+        db  &3C, 18, 12      ; col 6 (Far Right Tower)
+
+        ; --- ROW 5 (4 rooms: Rect 'G/H', Oct, DOWN TO GROUND, Oct) ---
+        db  &4F,  6, 15      ; col 2 (Room G/H)
+        db  &4E,  9, 15      ; col 3
+        db  &24, 12, 15      ; col 4 (Stairs)
+        db  &59, 15, 15      ; col 5
+
+        ; --- ROW 6 (4 rooms: Bottom Left Square Block 'J') ---
+        db  &5E,  0, 18      ; col 0
+        db  &50,  3, 18      ; col 1 (Room J)
+        db  &51,  6, 18      ; col 2
+        db  &41,  9, 18      ; col 3
+
+        ; --- ROW 7 (2 rooms: Bottom Extensions) ---
+        db  &3E,  0, 21      ; col 0
+        db  &3D,  3, 21      ; col 1
+
+        db  &FF              ; end marker
 ;----------------------------------------------------------
 ; MINIMAP_X, MINIMAP_Y — minimap origin in panel
 ; Change MINIMAP_Y to reposition vertically in panel
@@ -5620,6 +5661,7 @@ MINIMAP_Y       equ     &9D  ; abs y = 157px — adjust to reposition
 ;----------------------------------------------------------
 draw_minimap:
         ld      ix, minimap_gf
+        ;ld ix, minimap_f1 ; TEST F1
 .loop1:
         ld      a, (ix+0)            ; room id
         cp      &FF

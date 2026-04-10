@@ -1765,7 +1765,6 @@ start_game:
                 call    randomise_doors      ; randomise which doors can open/close
                 call    prepare_player       ; prepare player to spawn
                 call    draw_minimap
-                ;call    test_pixels
                 jp      enter_room
 
 ; Temporary diagnostic — draw 8 pixels in a horizontal line
@@ -5568,40 +5567,58 @@ flash_counter:  db  0        ; frame counter for flash timing
 ; Terminated by &FF
 ;----------------------------------------------------------
 minimap_gf:
-        db  &00, 18,  9      ; col 6, row 3
-        db  &01, 18,  6      ; col 5, row 2
-        db  &02, 15,  6      ; col 4, row 2 (Stairs up)
-        db  &03, 12,  6      ; col 3, row 2
-        db  &04, 12,  9      ; col 4, row 3
-        db  &05, 12, 12      ; col 4, row 4
-        db  &06, 15, 12      ; col 5, row 4
-        db  &07, 18, 12      ; col 6, row 4
-        db  &08, 15, 15      ; col 5, row 5
-        db  &09, 15, 18      ; col 5, row 6
-        db  &0A, 12, 18      ; col 4, row 6
-        db  &0B,  9, 18      ; col 3, row 6
-        db  &0C,  6, 18      ; col 2, row 6
-        db  &0D,  3, 18      ; col 1, row 6
-        db  &0E,  3, 15      ; col 1, row 5
-        db  &0F,  3, 12      ; col 1, row 4
-        db  &10,  3,  9      ; col 1, row 3
-        db  &11,  3,  6      ; col 1, row 2
-        db  &12,  3,  3      ; col 1, row 1
-        db  &13,  3,  0      ; col 1, row 0
-        db  &14,  6,  0      ; col 2, row 0
-        db  &15,  9,  0      ; col 3, row 0
-        db  &16, 12,  0      ; col 4, row 0
-        db  &17, 15,  0      ; col 5, row 0
-        db  &18, 15,  3      ; col 5, row 1
-        db  &19, 15,  9      ; col 5, row 3
-        db  &6B,  6,  6      ; col 2, row 2
-        db  &6C,  9,  6      ; col 3, row 2
-        db  &6D,  6, 12      ; col 2, row 4
-        db  &6E,  9, 12      ; col 3, row 4
-        db  &6F,  3, 21      ; col 1, row 7
-        db  &70,  3, 24      ; col 1, row 8
-        db  &73,  0,  0      ; col 0, row 0
-        db  &8E, 21,  9      ; col 7, row 3
+        ; --- ROW 0 ---
+        db  &73,  0,  0      ; col 0
+        db  &13,  3,  0      ; col 1
+        db  &14,  6,  0      ; col 2
+        db  &15,  9,  0      ; col 3
+        db  &16, 12,  0      ; col 4
+        db  &17, 15,  0      ; col 5
+
+        ; --- ROW 1 ---
+        db  &12,  3,  3      ; col 1
+        db  &18, 15,  3      ; col 5
+
+        ; --- ROW 2 ---
+        db  &11,  3,  6      ; col 1
+        db  &6B,  6,  6      ; col 2
+        db  &6C,  9,  6      ; col 3
+        db  &03, 12,  6      ; col 3 (Room ID &03)
+        db  &02, 15,  6      ; col 4 (Stairs Up to F1)
+        db  &01, 18,  6      ; col 5 (Room ID &01)
+
+        ; --- ROW 3 ---
+        db  &10,  3,  9      ; col 1
+        db  &04, 12,  9      ; col 4
+        db  &19, 15,  9      ; col 5
+        db  &00, 18,  9      ; col 6
+        db  &8E, 21,  9      ; col 7
+
+        ; --- ROW 4 ---
+        db  &0F,  3, 12      ; col 1
+        db  &6D,  6, 12      ; col 2
+        db  &6E,  9, 12      ; col 3
+        db  &05, 12, 12      ; col 4
+        db  &06, 15, 12      ; col 5
+        db  &07, 18, 12      ; col 6
+
+        ; --- ROW 5 ---
+        db  &0E,  3, 15      ; col 1
+        db  &08, 15, 15      ; col 5
+
+        ; --- ROW 6 ---
+        db  &0D,  3, 18      ; col 1
+        db  &0C,  6, 18      ; col 2
+        db  &0B,  9, 18      ; col 3
+        db  &0A, 12, 18      ; col 4
+        db  &09, 15, 18      ; col 5
+
+        ; --- ROW 7 ---
+        db  &6F,  3, 21      ; col 1
+
+        ; --- ROW 8 ---
+        db  &70,  3, 24      ; col 1
+
         db  &FF              ; end marker
 
 minimap_f1:
@@ -5645,6 +5662,8 @@ minimap_f1:
         db  &FF              ; end marker
 
 
+
+
 ;----------------------------------------------------------
 ; MINIMAP_X, MINIMAP_Y — minimap origin in panel
 ; Change MINIMAP_Y to reposition vertically in panel
@@ -5660,8 +5679,8 @@ MINIMAP_Y       equ     &9D  ; abs y = 157px — adjust to reposition
 ; Corrupts: AF, AF', BC, DE, HL, IX
 ;----------------------------------------------------------
 draw_minimap:
-        ;ld      ix, minimap_gf
-        ld ix, minimap_f1 ; TEST F1
+        ld      ix, minimap_gf
+        ;ld ix, minimap_f1 ; TEST F1
 .loop1:
         ld      a, (ix+0)            ; room id
         cp      &FF

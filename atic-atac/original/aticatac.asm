@@ -5605,46 +5605,46 @@ minimap_gf:
         db  &FF              ; end marker
 
 minimap_f1:
-        ; --- ROW 0 (2 rooms: Top Left Square Block) ---
-        db  &44,  6,  0      ; col 2
-        db  &42,  9,  0      ; col 3
+        ; --- ROW 0 ---
+        db  &7F,  0,  0      ; col 0, row 0
+        db  &80,  3,  0      ; col 1, row 0
 
-        ; --- ROW 1 (4 rooms: Second Horizontal Block) ---
-        db  &47,  0,  3      ; col 0
-        db  &46,  3,  3      ; col 1
-        db  &43,  6,  3      ; col 2
-        db  &40,  9,  3      ; col 3
+        ; --- ROW 1 ---
+        db  &81,  0,  3      ; col 0, row 1
+        db  &82,  3,  3      ; col 1, row 1
+        db  &87,  6,  3      ; col 2, row 1
+        db  &88,  9,  3      ; col 3, row 1
 
-        ; --- ROW 2 (1 room: Vertical Rect 'F') ---
-        db  &48,  6,  6      ; col 2
+        ; --- ROW 2 ---
+        db  &8B,  6,  6      ; col 2, row 2
+        db  &21,  9,  6      ; col 3, row 2
+        db  &20, 12,  6      ; col 4, row 2 (Stairs up to Attic)
+        db  &1F, 15,  6      ; col 5, row 2
 
-        ; --- ROW 3 (3 rooms: Rect, Octagon 'E', Right Extension) ---
-        db  &49,  6,  9      ; col 2
-        db  &34,  9,  9      ; col 3 (Room E)
-        db  &3B, 15,  9      ; col 5 (Room added to fix missing slot)
+        ; --- ROW 3 ---
+        db  &8C,  6,  9      ; col 2, row 3
+        db  &22,  9,  9      ; col 3, row 3
+        db  &1E, 15,  9      ; col 5, row 3
 
-        ; --- ROW 4 (3 rooms: Rect, Rect, Far Right Tower) ---
-        db  &35,  6, 12      ; col 2
-        db  &33,  9, 12      ; col 3
-        db  &3C, 18, 12      ; col 6 (Far Right Tower)
+        ; --- ROW 4 ---
+        db  &8D,  6, 12      ; col 2, row 4
+        db  &23,  9, 12      ; col 3, row 4
+        db  &24, 12, 12      ; col 4, row 4 (Stairs down to Ground)
+        db  &25, 15, 12      ; col 5, row 4
 
-        ; --- ROW 5 (4 rooms: Rect 'G/H', Oct, DOWN TO GROUND, Oct) ---
-        db  &4F,  6, 15      ; col 2 (Room G/H)
-        db  &4E,  9, 15      ; col 3
-        db  &24, 12, 15      ; col 4 (Stairs)
-        db  &59, 15, 15      ; col 5
+        ; --- ROW 5 ---
+        db  &83,  0, 15      ; col 0, row 5
+        db  &84,  3, 15      ; col 1, row 5
+        db  &89,  6, 15      ; col 2, row 5
+        db  &8A,  9, 15      ; col 3, row 5
 
-        ; --- ROW 6 (4 rooms: Bottom Left Square Block 'J') ---
-        db  &5E,  0, 18      ; col 0
-        db  &50,  3, 18      ; col 1 (Room J)
-        db  &51,  6, 18      ; col 2
-        db  &41,  9, 18      ; col 3
-
-        ; --- ROW 7 (2 rooms: Bottom Extensions) ---
-        db  &3E,  0, 21      ; col 0
-        db  &3D,  3, 21      ; col 1
+        ; --- ROW 6 ---
+        db  &85,  0, 18      ; col 0, row 6
+        db  &86,  3, 18      ; col 1, row 6
 
         db  &FF              ; end marker
+
+
 ;----------------------------------------------------------
 ; MINIMAP_X, MINIMAP_Y — minimap origin in panel
 ; Change MINIMAP_Y to reposition vertically in panel
@@ -5660,8 +5660,8 @@ MINIMAP_Y       equ     &9D  ; abs y = 157px — adjust to reposition
 ; Corrupts: AF, AF', BC, DE, HL, IX
 ;----------------------------------------------------------
 draw_minimap:
-        ld      ix, minimap_gf
-        ;ld ix, minimap_f1 ; TEST F1
+        ;ld      ix, minimap_gf
+        ld ix, minimap_f1 ; TEST F1
 .loop1:
         ld      a, (ix+0)            ; room id
         cp      &FF

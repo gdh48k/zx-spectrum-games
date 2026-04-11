@@ -1768,24 +1768,6 @@ start_game:
                 call    draw_minimap
                 jp      enter_room
 
-; Temporary diagnostic — draw 8 pixels in a horizontal line
-; to verify xy_to_display works correctly
-test_pixels:
-        ld      b, 8             ; 8 pixels
-        ld      d, &9D           ; Y = 157 (MINIMAP_Y)
-        ld      e, &D0           ; X = 208 (MINIMAP_X)
-.loop:
-        ld      h, d             ; H = Y
-        ld      l, e             ; L = X
-        call    xy_to_display    ; HL = screen address
-        ld      a, (hl)
-        or      &80              ; set bit 7 (leftmost pixel in byte)
-        ld      (hl), a
-        inc     e                ; next pixel right
-        djnz    .loop
-        ret  
-
-
 
 main_loop:
                 ld      sp, main_selection
@@ -1841,7 +1823,7 @@ loop2_return:
 
 
 draw_room:
-                call    check_floor
+                ;call    check_floor
                 call    update_minimap
 
                 ld      a, (player_room)
@@ -5630,44 +5612,45 @@ minimap_gf:
         db  &FF              ; end marker
 
 minimap_f1:
-        ; --- ROW 0 ---
-        db  &7F,  0,  0      ; col 0, row 0
-        db  &80,  3,  0      ; col 1, row 0
+        ;db  &1f, 15,  6      ; col 5 (The Far-Right Room)
+        ; --- ROW 0 (Y=0) ---
+        db  &7F,  0,  0      ; col 0
+        db  &80,  3,  0      ; col 1
 
-        ; --- ROW 1 ---
-        db  &81,  0,  3      ; col 0, row 1
-        db  &82,  3,  3      ; col 1, row 1
-        db  &87,  6,  3      ; col 2, row 1
-        db  &88,  9,  3      ; col 3, row 1
+        ; --- ROW 1 (Y=3) ---
+        db  &81,  0,  3      ; col 0
+        db  &82,  3,  3      ; col 1
+        db  &87,  6,  3      ; col 2
+        db  &88,  9,  3      ; col 3
 
-        ; --- ROW 2 ---
-        db  &8B,  6,  6      ; col 2, row 2
-        db  &21,  9,  6      ; col 3, row 2
-        db  &20, 12,  6      ; col 4, row 2 (Stairs up to Attic)
-        db  &1F, 15,  6      ; col 5, row 2
+        ; --- ROW 2 (Y=6) ---
+        db  &8B,  6,  6      ; col 2
+        db  &21,  9,  6      ; col 3
+        db  &20, 12,  6      ; col 4 (Stairs Up)
+        db  &1f, 15,  6      ; col 5 (The Far-Right Room)
 
-        ; --- ROW 3 ---
-        db  &8C,  6,  9      ; col 2, row 3
-        db  &22,  9,  9      ; col 3, row 3
-        db  &1E, 15,  9      ; col 5, row 3
+        ; --- ROW 3 (Y=9) ---
+        db  &8C,  6,  9      ; col 2
+        db  &22,  9,  9      ; col 3
+        db  &1E, 15,  9      ; col 5 (Below 1F)
 
-        ; --- ROW 4 ---
-        db  &8D,  6, 12      ; col 2, row 4
-        db  &23,  9, 12      ; col 3, row 4
-        db  &24, 12, 12      ; col 4, row 4 (Stairs down to Ground)
-        db  &25, 15, 12      ; col 5, row 4
+        ; --- ROW 4 (Y=12) ---
+        db  &8D,  6, 12      ; col 2
+        db  &23,  9, 12      ; col 3
+        db  &24, 12, 12      ; col 4 (Stairs Down)
+        db  &25, 15, 12      ; col 5 (Below 1E)
 
-        ; --- ROW 5 ---
-        db  &83,  0, 15      ; col 0, row 5
-        db  &84,  3, 15      ; col 1, row 5
-        db  &89,  6, 15      ; col 2, row 5
-        db  &8A,  9, 15      ; col 3, row 5
+        ; --- ROW 5 (Y=15) ---
+        db  &83,  0, 15      ; col 0
+        db  &84,  3, 15      ; col 1
+        db  &89,  6, 15      ; col 2
+        db  &8A,  9, 15      ; col 3
 
-        ; --- ROW 6 ---
-        db  &85,  0, 18      ; col 0, row 6
-        db  &86,  3, 18      ; col 1, row 6
+        ; --- ROW 6 (Y=18) ---
+        db  &85,  0, 18      ; col 0
+        db  &86,  3, 18      ; col 1
 
-        db  &FF              ; end marker
+        db  &FF              ; End of Floor 1
 
 room_floor_lookup:
         ; --- Ground Floor Rooms (minimap_gf) ---
@@ -5788,6 +5771,7 @@ MINIMAP_Y       equ     &9D  ; abs y = 157px — adjust to reposition
 pixel_addr_save:  dw  0    ; Stores the 16-bit Screen Address (HL)
 pixel_shift_save: db  0    ; Stores the bit-shift value (B)
 last_room_saved:  db &FF
+minimap_yx:       dw &b5c8 ; Y=B5 (181), X=C8 (200)
 
 
 ;----------------------------------------------------------
@@ -5802,61 +5786,81 @@ last_room_saved:  db &FF
 draw_minimap:
         ld      ix, (minimap_ptr)    
 .dmloop:
-        ld      a, (ix+0)            ; Get Room ID
+        ld      a, (ix+0)
         cp      &FF
-        ret     z                    ; End of table
+        ret     z
 
-                          
-        ; --- Use the stack ONLY for IX, keep A in a safe register ---
         push    ix
-        ld      b, a                 ; Move Room ID to B for safekeeping
-        call    check_visited        ; check_visited now uses B or A
+        ld      b, a                 
+        call    check_visited        
+        ; --- FLAGS ARE SET HERE ---
         
-        ; The flags are now FRESH from the call. 
-        ; We can use them IMMEDIATELY.
-        pop     ix                   ; Note: POP IX does NOT affect flags
+        pop     ix                   ; IX is back (Flags untouched)
         
-        ld      d, (ix+1)            ; rel_x
-        ld      e, (ix+2)            ; rel_y
+        ; --- MOVE THE JUMP HERE ---
+        ; Decide NOW while the Zero flag is guaranteed fresh
+        jr      z, .skip_to_unvisited
 
-        jr      z, .is_unvisited     ; This now sees the TRUE result     
-        
-        call    draw_visited_room    ; Draw 3x3 box for visited
+        ; CASE: VISITED
+        ld      d, (ix+1)
+        ld      e, (ix+2)
+        call    draw_visited_room
         jr      .next
-.is_unvisited:
-        call    draw_unvisited_room  ; Draw center dot for unvisited
+
+.skip_to_unvisited:
+        ; CASE: UNVISITED
+        ld      d, (ix+1)
+        ld      e, (ix+2)
+        call    draw_unvisited_room
+
 .next:
-        ld      bc, 3
+        ld      bc, 3                ; Ensure BC is 3
         add     ix, bc
         jr      .dmloop
 
-;----------------------------------------------------------
+;------------------------------------------------------------------------------
 ; clear_minimap
-; Purpose: Wipes the 32x32 pixel area reserved for the minimap 
-;          in the side panel by "stamping" a 4x4 block of blank tiles.
-; Input:   None (Uses fixed screen coordinates for map area).
-; Output:  Clears the map area directly on screen.
-; Corrupts: AF, BC, DE, HL
-; Note:    Depends on loc_A228 (block draw) and charset_addr.
-;----------------------------------------------------------
+; THE JANITOR: Wipes a 40x40 area (5 bytes wide) at X=200, Y=181.
+;------------------------------------------------------------------------------
 clear_minimap:
-        ld      hl, panel_chars
-        ld      (charset_addr), hl
+        ld      b, 32                ; Height of wipe (40 pixels)
+        ld      c, 152               ; Start Y (Safe distance below lives)
+
+.line_loop:
+        push    bc                   ; Protect our line counter and current Y
         
-        ; Map Origin: Coordinates for top-left of the map area
-        ; H = X pixel (200), L = Y pixel (152)
-        ld      hl, &C898           
+        ld      h, c                 ; H = current Y
+        ld      l, 200               ; L = X (Side panel start)
+        call    pixel_address        ; Recalculate address for EVERY line
         
-        ld      de, blank_map_data  ; Point to the blank tile IDs
-        ld      bc, &0404           ; B=4 columns, C=4 rows
-        call    loc_A228            ; Re-use existing panel draw logic
+        ; Now we have the perfect HL for this specific scanline
+        xor     a
+        ld      (hl), a              ; Byte 1 (8 pixels)
+        inc     l
+        ld      (hl), a              ; Byte 2
+        inc     l
+        ld      (hl), a              ; Byte 3
+        inc     l
+        ld      (hl), a              ; Byte 4
+        inc     l
+        ld      (hl), a              ; Byte 5 (Total 40 pixels wide)
+        
+        pop     bc                   ; Get our Y and counter back
+        inc     c                    ; Increment Y
+        djnz    .line_loop           ; Loop until B=0
         ret
-
-; Data block for the clear operation (assuming tile index 0 is blank)
-blank_map_data:  db 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0
-
-
-
+;------------------------------------------------------------------------------
+; update_minimap
+; Handles room transitions, floor swapping, and flashing pixel coordination.
+;
+; LOGIC FLOW:
+; 1. Check if player_room has changed. If not, exit.
+; 2. Call check_floor to see if the new room belongs to a different floor.
+; 3. If floor changed: Wipe side panel and redraw the new floor skeleton.
+; 4. If same floor: Erase the old flashing pixel from the previous room.
+; 5. Search the current floor table (minimap_ptr) for room coordinates.
+; 6. Draw the visited room box and set up the new pixel for the flasher.
+;------------------------------------------------------------------------------
 update_minimap:
     ; --- 1. The Gatekeeper ---
     ld      a, (player_room)
@@ -5865,29 +5869,45 @@ update_minimap:
     jr      z, .mm_done           ; If room hasn't changed, exit immediately
 
     ; ==========================================================
-    ; ROOM HAS CHANGED - RUN "CLEAN SWAP" ONCE
+    ; ROOM HAS CHANGED - RUN TRANSITION LOGIC
     ; ==========================================================
 
-    ; --- 2. Erase Old (The Janitor - Step B) ---
-    ; This uses the OLD address still stored in pixel_addr_save
+    ; --- 2. Floor Swap Check ---
+    ; We check for a floor change BEFORE erasing or searching.
+    push    af                    ; Save new Room ID for later
+    call    check_floor           ; Updates (minimap_ptr), returns Carry if changed
+    jr      nc, .no_floor_swap    ; If NC, we are still on the same floor
+
+    ; --- 3. Floor Change Actions ---
+    ; Since the floor changed, the entire background is now invalid.
+    call    clear_minimap         ; Wipe the 32x32 side panel area
+    call    draw_minimap          ; Draw the dots/boxes for the NEW floor
+    ; Note: erase_center_pixel is redundant here but safe to call.
+
+.no_floor_swap:
+    pop     af                    ; Restore new Room ID
+
+    ; --- 4. Erase Old (The Janitor) ---
+    ; Clears the flashing pixel from the previous room location.
     call    erase_center_pixel   
 
-    ; --- 3. Search Table ---
-    ld      a, (player_room)     ; Get the new room ID
-    ld      b, a                 ; Store it for comparison
-    ld      ix, (minimap_ptr)    ; Point to relevant floor room table
+    ; --- 5. Search Table ---
+    ; (minimap_ptr) was updated by check_floor if a swap occurred.
+    ld      a, (player_room)     
+    ld      b, a                 
+    ld      ix, (minimap_ptr)    
 .mm_search:
     ld      a, (ix+0)
     cp      &FF                  ; End of table?
     jr      z, .mm_done
     cp      b
-    jr      z, .mm_found          ; Found our new room!
-    ld      de, 3                ; Each entry is 3 bytes (ID, X, Y)
+    jr      z, .mm_found         ; Found our new room!
+    ld      de, 3                
     add     ix, de
     jr      .mm_search
 
 .mm_found:
-    ; --- 4. Draw the Permanent Room Box ---
+    ; --- 6. Draw the Permanent Room Box ---
     ld      d, (ix+1)            ; D = rel_x
     ld      e, (ix+2)            ; E = rel_y
 
@@ -5895,7 +5915,7 @@ update_minimap:
     call    draw_visited_room    ; Draw the 3x3 hollow square
     pop     de                   ; Restore coords
 
-    ; --- 5. Calculate New Address (The Architect - Step A) ---
+    ; --- 7. Calculate New Address (The Architect) ---
     ld      a, e
     inc     a                    ; Center Y (rel_y + 1)
     ld      h, a
@@ -5906,33 +5926,32 @@ update_minimap:
 
     ld      a, MINIMAP_Y
     add     a, h
-    ld      h, a                 ; Final Screen Y Coord
+    ld      h, a                 ; Final Screen Y
     
     ld      a, MINIMAP_X
     add     a, l
-    ld      l, a                 ; Final Screen X Coord
+    ld      l, a                 ; Final Screen X
 
-    call    pixel_address        ; Convert X,Y to HL=Addr, B=Shift
+    call    pixel_address        ; Convert to HL=Addr, B=Shift
 
-    ; --- 6. Draw New (The Builder - Step C) ---
-    ; Snap the pixel ON immediately while we have the registers
+    ; --- 8. Draw New Pixel (The Builder) ---
     push    hl
     push    bc
     call    draw_new_center_pixel 
     pop     bc
     pop     hl
 
-    ; Now save these for the separate Flasher routine
+    ; Save for the separate Flasher routine
     ld      (pixel_addr_save), hl
     ld      a, b
     ld      (pixel_shift_save), a
 
-    ; --- 7. Sync Timer & State ---
-    ld      a, (player_room)     ; Final update to the gatekeeper
+    ; --- 9. Sync State ---
+    ld      a, (player_room)     
     ld      (last_room_saved), a
 
     xor     a
-    ld      (flash_counter), a   ; Reset timer to 0 (start of cycle)
+    ld      (flash_counter), a   ; Reset timer
     inc     a                    ; A = 1
     ld      (flash_state), a     ; Set state to ON
 

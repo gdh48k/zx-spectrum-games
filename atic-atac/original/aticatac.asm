@@ -5670,55 +5670,113 @@ minimap_f1:
         db  &FF              ; end marker
 
 room_floor_lookup:
-        ; --- Ground Floor Rooms (Floor 0) ---
-        ; IDs: &00-&19, &6B-&70, &73, &8E
-        db &00, 0, &01, 0, &02, 0, &03, 0, &04, 0, &05, 0
-        db &06, 0, &07, 0, &08, 0, &09, 0, &0A, 0, &0B, 0
-        db &0C, 0, &0D, 0, &0E, 0, &0F, 0, &10, 0, &11, 0
-        db &12, 0, &13, 0, &14, 0, &15, 0, &16, 0, &17, 0
-        db &18, 0, &19, 0, &6B, 0, &6C, 0, &6D, 0, &6E, 0
-        db &6F, 0, &70, 0, &73, 0, &8E, 0
+        ; --- Ground Floor Rooms (minimap_gf) ---
+        db &00, LOW minimap_gf, HIGH minimap_gf
+        db &01, LOW minimap_gf, HIGH minimap_gf
+        db &02, LOW minimap_gf, HIGH minimap_gf
+        db &03, LOW minimap_gf, HIGH minimap_gf
+        db &04, LOW minimap_gf, HIGH minimap_gf
+        db &05, LOW minimap_gf, HIGH minimap_gf
+        db &06, LOW minimap_gf, HIGH minimap_gf
+        db &07, LOW minimap_gf, HIGH minimap_gf
+        db &08, LOW minimap_gf, HIGH minimap_gf
+        db &09, LOW minimap_gf, HIGH minimap_gf
+        db &0A, LOW minimap_gf, HIGH minimap_gf
+        db &0B, LOW minimap_gf, HIGH minimap_gf
+        db &0C, LOW minimap_gf, HIGH minimap_gf
+        db &0D, LOW minimap_gf, HIGH minimap_gf
+        db &0E, LOW minimap_gf, HIGH minimap_gf
+        db &0F, LOW minimap_gf, HIGH minimap_gf
+        db &10, LOW minimap_gf, HIGH minimap_gf
+        db &11, LOW minimap_gf, HIGH minimap_gf
+        db &12, LOW minimap_gf, HIGH minimap_gf
+        db &13, LOW minimap_gf, HIGH minimap_gf
+        db &14, LOW minimap_gf, HIGH minimap_gf
+        db &15, LOW minimap_gf, HIGH minimap_gf
+        db &16, LOW minimap_gf, HIGH minimap_gf
+        db &17, LOW minimap_gf, HIGH minimap_gf
+        db &18, LOW minimap_gf, HIGH minimap_gf
+        db &19, LOW minimap_gf, HIGH minimap_gf
+        db &6B, LOW minimap_gf, HIGH minimap_gf
+        db &6C, LOW minimap_gf, HIGH minimap_gf
+        db &6D, LOW minimap_gf, HIGH minimap_gf
+        db &6E, LOW minimap_gf, HIGH minimap_gf
+        db &6F, LOW minimap_gf, HIGH minimap_gf
+        db &70, LOW minimap_gf, HIGH minimap_gf
+        db &73, LOW minimap_gf, HIGH minimap_gf
+        db &8E, LOW minimap_gf, HIGH minimap_gf
 
-        ; --- First Floor Rooms (Floor 1) ---
-        ; IDs: &7F-&8D, &1E-&25
-        db &7F, 1, &80, 1, &81, 1, &82, 1, &87, 1, &88, 1
-        db &8B, 1, &21, 1, &20, 1, &1F, 1, &8C, 1, &22, 1
-        db &1E, 1, &8D, 1, &23, 1, &24, 1, &25, 1, &83, 1
-        db &84, 1, &89, 1, &8A, 1, &85, 1, &86, 1
+        ; --- First Floor Rooms (minimap_f1) ---
+        db &7F, LOW minimap_f1, HIGH minimap_f1
+        db &80, LOW minimap_f1, HIGH minimap_f1
+        db &81, LOW minimap_f1, HIGH minimap_f1
+        db &82, LOW minimap_f1, HIGH minimap_f1
+        db &83, LOW minimap_f1, HIGH minimap_f1
+        db &84, LOW minimap_f1, HIGH minimap_f1
+        db &85, LOW minimap_f1, HIGH minimap_f1
+        db &86, LOW minimap_f1, HIGH minimap_f1
+        db &87, LOW minimap_f1, HIGH minimap_f1
+        db &88, LOW minimap_f1, HIGH minimap_f1
+        db &89, LOW minimap_f1, HIGH minimap_f1
+        db &8A, LOW minimap_f1, HIGH minimap_f1
+        db &8B, LOW minimap_f1, HIGH minimap_f1
+        db &8C, LOW minimap_f1, HIGH minimap_f1
+        db &8D, LOW minimap_f1, HIGH minimap_f1
+        db &1E, LOW minimap_f1, HIGH minimap_f1
+        db &1F, LOW minimap_f1, HIGH minimap_f1
+        db &20, LOW minimap_f1, HIGH minimap_f1
+        db &21, LOW minimap_f1, HIGH minimap_f1
+        db &22, LOW minimap_f1, HIGH minimap_f1
+        db &23, LOW minimap_f1, HIGH minimap_f1
+        db &24, LOW minimap_f1, HIGH minimap_f1
+        db &25, LOW minimap_f1, HIGH minimap_f1
 
         db &FF ; Terminator
 
+;----------------------------------------------------------
+; check_floor
+; Purpose: Looks up the map pointer for the current room.
+;          Sets Carry Flag (C=1) if the floor has changed.
+; Corrupts: AF, DE, HL
+;----------------------------------------------------------
 check_floor:
         ld      a, (player_room)
         ld      hl, room_floor_lookup
-.floop:
-        ld      b, (hl)              ; Get Room ID from table
-        cp      b                    ; Is it our current room?
+.cfloop:
+        ld      e, (hl)             ; Get Room ID
+        ld      a, e
+        cp      &FF                 ; End of table?
+        ret     z                   ; Return if not found
+
+        ld      a, (player_room)
+        cp      e                   ; Is this our room?
         jr      z, .found
-        inc     hl                   ; Skip Room ID
-        inc     hl                   ; Skip Floor ID
-        ld      a, b                 ; Check if we hit the end
-        cp      &FF
-        ld      a, (player_room)     ; Restore A for next comparison
-        jr      nz, .floop
-        ret                          ; Fallback
+
+        inc     hl                  ; Skip Room ID
+        inc     hl                  ; Skip Address Low
+        inc     hl                  ; Skip Address High
+        jr      .cfloop
 
 .found:
-        inc     hl                   ; Point to Floor ID
-        ld      a, (hl)
-        and     a                    ; Is it 0 (Ground Floor)?
-        jr      nz, .set_f1
+        inc     hl                  ; Point to the stored Map Address
+        ld      e, (hl)
+        inc     hl
+        ld      d, (hl)             ; DE = address (e.g., minimap_f1)
 
-.set_gf:
-        ld      hl, minimap_gf
-        jr      .store
-
-.set_f1:
-        ld      hl, minimap_f1
-
-.store:
-        ld      (minimap_ptr), hl    ; Update the pointer for the engine
+        ; --- Change Detection Logic ---
+        ld      hl, (minimap_ptr)   ; What was the old floor?
+        xor     a                   ; Clear carry
+        push    de                  ; Save new address
+        sbc     hl, de              ; Compare HL (old) and DE (new)
+        pop     de                  ; Restore new address
+        
+        ld      (minimap_ptr), de   ; Update the pointer
+        
+        ret     z                   ; If HL=DE, Z flag is set (Floor same)
+        scf                         ; If HL!=DE, set Carry Flag (Floor changed!)
         ret
+
+
 
 ;----------------------------------------------------------
 ; MINIMAP_X, MINIMAP_Y — minimap origin in panel
@@ -5727,35 +5785,76 @@ check_floor:
 MINIMAP_X       equ     &d0  ; abs x = 200px (panel left edge)
 MINIMAP_Y       equ     &9D  ; abs y = 157px — adjust to reposition
 
-
-;----------------------------------------------------------
-; draw_minimap
-; Draws single centre pixel for every room in ground floor
-; Call once at game start after prepare_player
-; No game state read — purely static layout
-; Corrupts: AF, AF', BC, DE, HL, IX
-;----------------------------------------------------------
-draw_minimap:
-        ld      ix, (minimap_ptr)    ; Load IX with whichever floor we are on
-.loop1:
-        ld      a, (ix+0)            ; room id
-        cp      &FF
-        ret     z                    ; end of table
-
-        ld      d, (ix+1)            ; rel_x
-        ld      e, (ix+2)            ; rel_y
-
-        call    draw_unvisited_room  ; single centre pixel
-
-        ld      bc, 3
-        add     ix, bc               ; advance to next entry
-        jr      .loop1
-
-
-; --- Add these to your variable section ---
 pixel_addr_save:  dw  0    ; Stores the 16-bit Screen Address (HL)
 pixel_shift_save: db  0    ; Stores the bit-shift value (B)
 last_room_saved:  db &FF
+
+
+;----------------------------------------------------------
+; draw_minimap
+; Purpose: Redraws the entire current floor footprint.
+;          Uses the visited_rooms bit array to decide between 
+;          drawing a single dot (unvisited) or a 3x3 box (visited).
+; Input:   (minimap_ptr) - Pointer to the current floor table.
+; Output:  Draws directly to the side panel display.
+; Corrupts: AF, AF', BC, DE, HL, IX
+;----------------------------------------------------------
+draw_minimap:
+        ld      ix, (minimap_ptr)    
+.dmloop:
+        ld      a, (ix+0)            ; Get Room ID
+        cp      &FF
+        ret     z                    ; End of table
+
+                          
+        ; --- Use the stack ONLY for IX, keep A in a safe register ---
+        push    ix
+        ld      b, a                 ; Move Room ID to B for safekeeping
+        call    check_visited        ; check_visited now uses B or A
+        
+        ; The flags are now FRESH from the call. 
+        ; We can use them IMMEDIATELY.
+        pop     ix                   ; Note: POP IX does NOT affect flags
+        
+        ld      d, (ix+1)            ; rel_x
+        ld      e, (ix+2)            ; rel_y
+
+        jr      z, .is_unvisited     ; This now sees the TRUE result     
+        
+        call    draw_visited_room    ; Draw 3x3 box for visited
+        jr      .next
+.is_unvisited:
+        call    draw_unvisited_room  ; Draw center dot for unvisited
+.next:
+        ld      bc, 3
+        add     ix, bc
+        jr      .dmloop
+
+;----------------------------------------------------------
+; clear_minimap
+; Purpose: Wipes the 32x32 pixel area reserved for the minimap 
+;          in the side panel by "stamping" a 4x4 block of blank tiles.
+; Input:   None (Uses fixed screen coordinates for map area).
+; Output:  Clears the map area directly on screen.
+; Corrupts: AF, BC, DE, HL
+; Note:    Depends on loc_A228 (block draw) and charset_addr.
+;----------------------------------------------------------
+clear_minimap:
+        ld      hl, panel_chars
+        ld      (charset_addr), hl
+        
+        ; Map Origin: Coordinates for top-left of the map area
+        ; H = X pixel (200), L = Y pixel (152)
+        ld      hl, &C898           
+        
+        ld      de, blank_map_data  ; Point to the blank tile IDs
+        ld      bc, &0404           ; B=4 columns, C=4 rows
+        call    loc_A228            ; Re-use existing panel draw logic
+        ret
+
+; Data block for the clear operation (assuming tile index 0 is blank)
+blank_map_data:  db 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0
+
 
 
 update_minimap:
@@ -5776,7 +5875,7 @@ update_minimap:
     ; --- 3. Search Table ---
     ld      a, (player_room)     ; Get the new room ID
     ld      b, a                 ; Store it for comparison
-    ld      ix, minimap_gf       ; Point to start of room table
+    ld      ix, (minimap_ptr)    ; Point to relevant floor room table
 .mm_search:
     ld      a, (ix+0)
     cp      &FF                  ; End of table?
@@ -6139,6 +6238,8 @@ erase_center_pixel:
 ; Safe: DE preserved throughout
 ;----------------------------------------------------------
 check_visited:
+        xor     a      ; Force Z=1 (Unvisited)
+        ret            ; This should force EVERY room to be a dot
         ld      c, a
         srl     c
         srl     c

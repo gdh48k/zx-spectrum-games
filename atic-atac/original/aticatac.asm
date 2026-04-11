@@ -5882,7 +5882,10 @@ update_minimap:
     ; Since the floor changed, the entire background is now invalid.
     call    clear_minimap         ; Wipe the 32x32 side panel area
     call    draw_minimap          ; Draw the dots/boxes for the NEW floor
-    ; Note: erase_center_pixel is redundant here but safe to call.
+    
+    pop     af                    ; Balance the stack (get Room ID back)
+    ld      (last_room_saved), a  ; Update the "New" room immediately
+    jr      .mm_done              ; <--- EXIT HERE. Do not pass GO, do not erase.
 
 .no_floor_swap:
     pop     af                    ; Restore new Room ID

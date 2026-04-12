@@ -5652,6 +5652,41 @@ minimap_f1:
 
         db  &FF              ; End of Floor 1
 
+minimap_bm:
+        ; --- ROW 0 ---
+        db  &67,  6,  0      ; col 2
+        db  &68, 18,  0      ; col 6
+
+        ; --- ROW 1 ---
+        db  &69,  3,  3      ; col 1
+        db  &56,  6,  3      ; col 2
+        db  &57,  9,  3      ; col 3
+        db  &58, 15,  3      ; col 5
+        db  &59, 18,  3      ; col 6
+
+        ; --- ROW 2 ---
+        db  &5A,  6,  6      ; col 2
+        db  &5B,  9,  6      ; col 3
+        db  &66, 12,  6      ; col 4 (Central Hub)
+        db  &5C, 15,  6      ; col 5
+        db  &5D, 18,  6      ; col 6
+
+        ; --- ROW 3 ---
+        db  &5E,  6,  9      ; col 2
+        db  &5F,  9,  9      ; col 3
+        db  &60, 15,  9      ; col 5
+        db  &61, 18,  9      ; col 6
+
+        ; --- ROW 4 ---
+        db  &6A,  3, 12      ; col 1
+        db  &62,  6, 12      ; col 2
+        db  &63,  9, 12      ; col 3
+        db  &64, 15, 12      ; col 5
+        db  &65, 18, 12      ; col 6
+        db  &1B, 21, 12      ; col 7
+
+        db  &FF              ; end marker        
+
 room_floor_lookup:
         ; --- Ground Floor Rooms (minimap_gf) ---
         db &00, LOW minimap_gf, HIGH minimap_gf
@@ -5713,6 +5748,30 @@ room_floor_lookup:
         db &23, LOW minimap_f1, HIGH minimap_f1
         db &24, LOW minimap_f1, HIGH minimap_f1
         db &25, LOW minimap_f1, HIGH minimap_f1
+
+        ; --- Basement Rooms (minimap_bm) ---
+        db &1B, LOW minimap_bm, HIGH minimap_bm
+        db &56, LOW minimap_bm, HIGH minimap_bm
+        db &57, LOW minimap_bm, HIGH minimap_bm
+        db &58, LOW minimap_bm, HIGH minimap_bm
+        db &59, LOW minimap_bm, HIGH minimap_bm
+        db &5A, LOW minimap_bm, HIGH minimap_bm
+        db &5B, LOW minimap_bm, HIGH minimap_bm
+        db &5C, LOW minimap_bm, HIGH minimap_bm
+        db &5D, LOW minimap_bm, HIGH minimap_bm
+        db &5E, LOW minimap_bm, HIGH minimap_bm
+        db &5F, LOW minimap_bm, HIGH minimap_bm
+        db &60, LOW minimap_bm, HIGH minimap_bm
+        db &61, LOW minimap_bm, HIGH minimap_bm
+        db &62, LOW minimap_bm, HIGH minimap_bm
+        db &63, LOW minimap_bm, HIGH minimap_bm
+        db &64, LOW minimap_bm, HIGH minimap_bm
+        db &65, LOW minimap_bm, HIGH minimap_bm
+        db &66, LOW minimap_bm, HIGH minimap_bm
+        db &67, LOW minimap_bm, HIGH minimap_bm
+        db &68, LOW minimap_bm, HIGH minimap_bm
+        db &69, LOW minimap_bm, HIGH minimap_bm
+        db &6A, LOW minimap_bm, HIGH minimap_bm
 
         db &FF ; Terminator
 

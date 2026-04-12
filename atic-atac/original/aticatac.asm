@@ -5861,12 +5861,14 @@ clear_minimap:
 ; 5. Search the current floor table (minimap_ptr) for room coordinates.
 ; 6. Draw the visited room box and set up the new pixel for the flasher.
 ;------------------------------------------------------------------------------
+
+um_marker db '999'
 update_minimap:
     ; --- 1. The Gatekeeper ---
     ld      a, (player_room)
     ld      hl, last_room_saved
     cp      (hl)
-    jr      z, .mm_done           ; If room hasn't changed, exit immediately
+    jr      z, .exit           ; If room hasn't changed, exit immediately
 
     ; ==========================================================
     ; ROOM HAS CHANGED - RUN TRANSITION LOGIC
@@ -5878,14 +5880,25 @@ update_minimap:
     call    check_floor           ; Updates (minimap_ptr), returns Carry if changed
     jr      nc, .no_floor_swap    ; If NC, we are still on the same floor
 
+    ; ==========================================================
+    ; FLOOR HAS CHANGED 
+    ; ==========================================================
+
     ; --- 3. Floor Change Actions ---
     ; Since the floor changed, the entire background is now invalid.
     call    clear_minimap         ; Wipe the 32x32 side panel area
     call    draw_minimap          ; Draw the dots/boxes for the NEW floor
     
     pop     af                    ; Balance the stack (get Room ID back)
-    ld      (last_room_saved), a  ; Update the "New" room immediately
-    jr      .mm_done              ; <--- EXIT HERE. Do not pass GO, do not erase.
+    ld      b, a  
+    ld      ix, (minimap_ptr)
+
+    call update_flasher_coords
+
+    ld      a, b   
+    ;ld      (last_room_saved), a  ; Update the "New" room immediately
+    jr .exit                      ; 24 correctly flashed but 1F erased
+    ;jr      .room_search         ; 1F is drawn but is wrongly flashed         
 
 .no_floor_swap:
     pop     af                    ; Restore new Room ID
@@ -5893,28 +5906,28 @@ update_minimap:
     ; --- 4. Erase Old (The Janitor) ---
     ; Clears the flashing pixel from the previous room location.
     call    erase_center_pixel   
-
+  
     ; --- 5. Search Table ---
     ; (minimap_ptr) was updated by check_floor if a swap occurred.
     ld      a, (player_room)     
     ld      b, a                 
     ld      ix, (minimap_ptr)    
-.mm_search:
+.room_search:
     ld      a, (ix+0)
     cp      &FF                  ; End of table?
-    jr      z, .mm_done
+    jr      z, .exit
     cp      b
-    jr      z, .mm_found         ; Found our new room!
+    jr      z, .room_found         ; Found our new room!
     ld      de, 3                
     add     ix, de
-    jr      .mm_search
+    jr      .room_search
 
-.mm_found:
+.room_found:
     ; --- 6. Draw the Permanent Room Box ---
     ld      d, (ix+1)            ; D = rel_x
     ld      e, (ix+2)            ; E = rel_y
 
-    push    de                   ; Protect coords for drawing
+    push    de                   ; Save coords
     call    draw_visited_room    ; Draw the 3x3 hollow square
     pop     de                   ; Restore coords
 
@@ -5958,7 +5971,7 @@ update_minimap:
     inc     a                    ; A = 1
     ld      (flash_state), a     ; Set state to ON
 
-.mm_done:
+.exit:
     ret
 
 ;----------------------------------------------------------
@@ -6205,6 +6218,41 @@ flash_center_pixel:
         xor     (hl)                 ; Toggle the pixel
         ld      (hl), a
         ret
+
+update_flasher_coords:
+    ld      a, (ix+0)
+    cp      &FF
+    ret     z                     ; Safety exit
+    cp      b
+    jr      z, .found_it
+    ld      de, 3
+    add     ix, de
+    jr      update_flasher_coords
+
+.found_it:
+    ld      d, (ix+1)             ; rel_x
+    ld      e, (ix+2)             ; rel_y
+    
+    ; Re-use your Architect logic (Step 7)
+    ld      a, e
+    inc     a
+    ld      h, a
+    ld      a, d
+    inc     a
+    ld      l, a
+    ld      a, MINIMAP_Y
+    add     a, h
+    ld      h, a
+    ld      a, MINIMAP_X
+    add     a, l
+    ld      l, a
+    
+    call    pixel_address         ; Returns HL=Addr, B=Shift
+    ld      (pixel_addr_save), hl
+    ld      a, b
+    ld      (pixel_shift_save), a
+    ret
+
 
 ;----------------------------------------------------------
 ; erase_center_pixel

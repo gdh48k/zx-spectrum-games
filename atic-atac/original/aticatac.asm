@@ -5896,7 +5896,7 @@ update_minimap:
     call update_flasher_coords
 
     ld      a, b   
-    ;ld      (last_room_saved), a  ; Update the "New" room immediately
+    ld      (last_room_saved), a  ; Update the "New" room immediately
     jr .exit                      ; 24 correctly flashed but 1F erased
     ;jr      .room_search         ; 1F is drawn but is wrongly flashed         
 
@@ -6308,8 +6308,8 @@ erase_center_pixel:
 ; Safe: DE preserved throughout
 ;----------------------------------------------------------
 check_visited:
-        xor     a      ; Force Z=1 (Unvisited)
-        ret            ; This should force EVERY room to be a dot
+        ;xor     a      ; Force Z=1 (Unvisited)
+        ;ret            ; This should force EVERY room to be a dot
         ld      c, a
         srl     c
         srl     c

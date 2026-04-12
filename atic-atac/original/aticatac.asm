@@ -5685,6 +5685,8 @@ minimap_bm:
         db  &65, 18, 12      ; col 6
         db  &1B, 21, 12      ; col 7
 
+        db  &FF 
+
 minimap_cv:
         ; --- ROW 0 ---
         db  &4E, 18,  0      ; col 6
@@ -5744,6 +5746,8 @@ minimap_cv:
         db  &3C, 15, 18      ; col 5
         db  &3E, 18, 18      ; col 6
         db  &8F, 24, 18      ; col 8
+
+        db  &FF 
 
 minimap_at:
         ; --- ROW 0 ---

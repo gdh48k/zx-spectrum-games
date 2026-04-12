@@ -5745,6 +5745,33 @@ minimap_cv:
         db  &3E, 18, 18      ; col 6
         db  &8F, 24, 18      ; col 8
 
+minimap_at:
+        ; --- ROW 0 ---
+        db  &75,  0,  0      ; col 0
+        db  &2D,  9,  0      ; col 3
+        db  &2E, 12,  0      ; col 4
+        db  &27, 15,  0      ; col 5
+
+        ; --- ROW 1 ---
+        db  &76,  0,  3      ; col 0
+        db  &77,  3,  3      ; col 1
+        db  &78,  6,  3      ; col 2
+        db  &2C,  9,  3      ; col 3
+        db  &28, 15,  3      ; col 5
+
+        ; --- ROW 2 ---
+        db  &7D,  0,  6      ; col 0
+        db  &79,  6,  6      ; col 2
+        db  &2B,  9,  6      ; col 3
+        db  &2A, 12,  6      ; col 4
+        db  &29, 15,  6      ; col 5
+
+        ; --- ROW 3 (Swapped IDs) ---
+        db  &7C,  0,  9      ; col 0
+        db  &7B,  3,  9      ; col 1
+        db  &7A,  6,  9      ; col 2
+        db  &7E, 15,  9      ; col 5
+
         db  &FF              ; end marker        
 
 room_floor_lookup:
@@ -5879,6 +5906,26 @@ room_floor_lookup:
         db &92, LOW minimap_cv, HIGH minimap_cv
         db &93, LOW minimap_cv, HIGH minimap_cv
         db &94, LOW minimap_cv, HIGH minimap_cv
+
+        ; --- Attic Rooms (minimap_at) ---
+        db &27, LOW minimap_at, HIGH minimap_at
+        db &28, LOW minimap_at, HIGH minimap_at
+        db &29, LOW minimap_at, HIGH minimap_at
+        db &2A, LOW minimap_at, HIGH minimap_at
+        db &2B, LOW minimap_at, HIGH minimap_at
+        db &2C, LOW minimap_at, HIGH minimap_at
+        db &2D, LOW minimap_at, HIGH minimap_at
+        db &2E, LOW minimap_at, HIGH minimap_at
+        db &75, LOW minimap_at, HIGH minimap_at
+        db &76, LOW minimap_at, HIGH minimap_at
+        db &77, LOW minimap_at, HIGH minimap_at
+        db &78, LOW minimap_at, HIGH minimap_at
+        db &79, LOW minimap_at, HIGH minimap_at
+        db &7A, LOW minimap_at, HIGH minimap_at
+        db &7B, LOW minimap_at, HIGH minimap_at
+        db &7C, LOW minimap_at, HIGH minimap_at
+        db &7D, LOW minimap_at, HIGH minimap_at
+        db &7E, LOW minimap_at, HIGH minimap_at
 
         db &FF ; Terminator
 

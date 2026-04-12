@@ -5685,6 +5685,66 @@ minimap_bm:
         db  &65, 18, 12      ; col 6
         db  &1B, 21, 12      ; col 7
 
+minimap_cv:
+        ; --- ROW 0 ---
+        db  &4E, 18,  0      ; col 6
+        db  &4F, 21,  0      ; col 7
+        db  &50, 24,  0      ; col 8
+        db  &52, 27,  0      ; col 9
+        db  &53, 30,  0      ; col 10
+
+        ; --- ROW 1 ---
+        db  &74,  0,  3      ; col 0
+        db  &30,  3,  3      ; col 1
+        db  &54,  6,  3      ; col 2
+        db  &55,  9,  3      ; col 3
+        db  &4C, 12,  3      ; col 4
+        db  &4D, 18,  3      ; col 6
+        db  &51, 24,  3      ; col 8
+
+        ; --- ROW 2 ---
+        db  &31,  3,  6      ; col 1
+        db  &90,  6,  6      ; col 2
+        db  &4B, 12,  6      ; col 4
+        db  &4A, 15,  6      ; col 5
+        db  &48, 18,  6      ; col 6
+        db  &47, 21,  6      ; col 7
+        db  &46, 24,  6      ; col 8
+
+        ; --- ROW 3 ---
+        db  &32,  3,  9      ; col 1
+        db  &91,  6,  9      ; col 2
+        db  &92,  9,  9      ; col 3
+        db  &93, 12,  9      ; col 4
+        db  &94, 15,  9      ; col 5
+        db  &1D, 21,  9      ; col 7
+        db  &43, 24,  9      ; col 8
+        db  &44, 27,  9      ; col 9
+        db  &45, 30,  9      ; col 10
+
+        ; --- ROW 4 ---
+        db  &33,  3, 12      ; col 1
+        db  &36,  6, 12      ; col 2
+        db  &37,  9, 12      ; col 3
+        db  &38, 12, 12      ; col 4 (Anchor)
+        db  &3A, 15, 12      ; col 5
+        db  &42, 24, 12      ; col 8
+
+        ; --- ROW 5 ---
+        db  &34,  3, 15      ; col 1
+        db  &39, 12, 15      ; col 4
+        db  &3B, 15, 15      ; col 5
+        db  &3D, 18, 15      ; col 6
+        db  &3F, 21, 15      ; col 7
+        db  &40, 24, 15      ; col 8
+        db  &41, 27, 15      ; col 9
+
+        ; --- ROW 6 ---
+        db  &35,  3, 18      ; col 1
+        db  &3C, 15, 18      ; col 5
+        db  &3E, 18, 18      ; col 6
+        db  &8F, 24, 18      ; col 8
+
         db  &FF              ; end marker        
 
 room_floor_lookup:
@@ -5772,6 +5832,53 @@ room_floor_lookup:
         db &68, LOW minimap_bm, HIGH minimap_bm
         db &69, LOW minimap_bm, HIGH minimap_bm
         db &6A, LOW minimap_bm, HIGH minimap_bm
+
+        ; --- Cavern Rooms (minimap_cv) ---
+        db &1D, LOW minimap_cv, HIGH minimap_cv
+        db &30, LOW minimap_cv, HIGH minimap_cv
+        db &31, LOW minimap_cv, HIGH minimap_cv
+        db &32, LOW minimap_cv, HIGH minimap_cv
+        db &33, LOW minimap_cv, HIGH minimap_cv
+        db &34, LOW minimap_cv, HIGH minimap_cv
+        db &35, LOW minimap_cv, HIGH minimap_cv
+        db &36, LOW minimap_cv, HIGH minimap_cv
+        db &37, LOW minimap_cv, HIGH minimap_cv
+        db &38, LOW minimap_cv, HIGH minimap_cv
+        db &39, LOW minimap_cv, HIGH minimap_cv
+        db &3A, LOW minimap_cv, HIGH minimap_cv
+        db &3B, LOW minimap_cv, HIGH minimap_cv
+        db &3C, LOW minimap_cv, HIGH minimap_cv
+        db &3D, LOW minimap_cv, HIGH minimap_cv
+        db &3E, LOW minimap_cv, HIGH minimap_cv
+        db &3F, LOW minimap_cv, HIGH minimap_cv
+        db &40, LOW minimap_cv, HIGH minimap_cv
+        db &41, LOW minimap_cv, HIGH minimap_cv
+        db &42, LOW minimap_cv, HIGH minimap_cv
+        db &43, LOW minimap_cv, HIGH minimap_cv
+        db &44, LOW minimap_cv, HIGH minimap_cv
+        db &45, LOW minimap_cv, HIGH minimap_cv
+        db &46, LOW minimap_cv, HIGH minimap_cv
+        db &47, LOW minimap_cv, HIGH minimap_cv
+        db &48, LOW minimap_cv, HIGH minimap_cv
+        db &4A, LOW minimap_cv, HIGH minimap_cv
+        db &4B, LOW minimap_cv, HIGH minimap_cv
+        db &4C, LOW minimap_cv, HIGH minimap_cv
+        db &4D, LOW minimap_cv, HIGH minimap_cv
+        db &4E, LOW minimap_cv, HIGH minimap_cv
+        db &4F, LOW minimap_cv, HIGH minimap_cv
+        db &50, LOW minimap_cv, HIGH minimap_cv
+        db &51, LOW minimap_cv, HIGH minimap_cv
+        db &52, LOW minimap_cv, HIGH minimap_cv
+        db &53, LOW minimap_cv, HIGH minimap_cv
+        db &54, LOW minimap_cv, HIGH minimap_cv
+        db &55, LOW minimap_cv, HIGH minimap_cv
+        db &74, LOW minimap_cv, HIGH minimap_cv
+        db &8F, LOW minimap_cv, HIGH minimap_cv
+        db &90, LOW minimap_cv, HIGH minimap_cv
+        db &91, LOW minimap_cv, HIGH minimap_cv
+        db &92, LOW minimap_cv, HIGH minimap_cv
+        db &93, LOW minimap_cv, HIGH minimap_cv
+        db &94, LOW minimap_cv, HIGH minimap_cv
 
         db &FF ; Terminator
 

@@ -1823,7 +1823,7 @@ loop2_return:
 
 
 draw_room:
-                ;call    check_floor
+                
                 call    update_minimap
 
                 ld      a, (player_room)
@@ -5539,11 +5539,25 @@ percent_msg:    db  &45                       ; bright cyan
 ;----------------------------------------------------------
 ; Minimap variables — co-located with minimap code
 ;----------------------------------------------------------
-current_floor:  db  0                         ; 0=ground, 1=first &FF=transition
-flash_state:    db  1                         ; 1=centre pixel on, 0=off
-flash_counter:  db  0                         ; frame counter for flash timing
-minimap_ptr:    dw  minimap_gf                ; 2-byte pointer to the current floor table
-                                              ; (defaults to GF on startup)
+current_floor:    db  &ff             ; 0=ground, 1=first &FF=transition
+current_floor_x:  db  0             ; pre-calculated x (minimap_x + offset)
+current_floor_y:  db  0             ; pre-calculated y (minimap_y + offset)
+
+
+flash_state:      db  1             ; 1=centre pixel on, 0=off
+flash_counter:    db  0             ; frame counter for flash timing
+
+minimap_ptr:      dw  minimap_gf    ; 2-byte pointer to current floor table
+
+minimap_x         equ     &d0  ; abs x = 200px (panel left edge)
+minimap_y         equ     &9D  ; abs y = 157px — adjust to reposition
+gf_offset_x       equ     2
+gf_offset_y       equ     1
+
+pixel_addr_save:  dw  0    ; Stores the 16-bit Screen Address (HL)
+pixel_shift_save: db  0    ; Stores the bit-shift value (B)
+last_room_saved:  db &FF
+;minimap_yx:       dw &b5c8 ; Y=B5 (181), X=C8 (200)
 
 
 FLOOR_GF        equ 0
@@ -5552,7 +5566,7 @@ FLOOR_F1        equ 1
 ;----------------------------------------------------------
 ; Ground floor minimap table
 ; Format: db room_id, rel_x, rel_y
-; rel coords = pixel offsets from MINIMAP_X, MINIMAP_Y
+; rel coords = pixel offsets from minimap_x, minimap_y
 ; Each cell = 3px, no gaps
 ; Terminated by &FF
 ;----------------------------------------------------------
@@ -5958,37 +5972,64 @@ check_floor:
         jr      .cfloop
 
 .found:
-        inc     hl                  ; Point to the stored Map Address
+        inc     hl                  ; Move to Map Address Low
         ld      e, (hl)
         inc     hl
-        ld      d, (hl)             ; DE = address (e.g., minimap_f1)
+        ld      d, (hl)             ; DE now holds the Map Address (e.g., minimap_gf)
 
-        ; --- Change Detection Logic ---
-        ld      hl, (minimap_ptr)   ; What was the old floor?
-        xor     a                   ; Clear carry
-        push    de                  ; Save new address
-        sbc     hl, de              ; Compare HL (old) and DE (new)
-        pop     de                  ; Restore new address
+
+        ; ==========================================================
+        ; --- IDENTIFICATION STEP (FIXED) ---
+        ; ==========================================================
         
-        ld      (minimap_ptr), de   ; Update the pointer
+        ; Test for Ground Floor
+        ld      hl, minimap_gf
+        or      a                   ; <--- CHANGE: Clear Carry without wiping A
+        sbc     hl, de              ; Compare map address to DE
+        jr      nz, .not_gf         ; If no match, move to next check
         
-        ret     z                   ; If HL=DE, Z flag is set (Floor same)
-        scf                         ; If HL!=DE, set Carry Flag (Floor changed!)
+        ld      a, FLOOR_GF         ; <--- CHANGE: Load ID ONLY if it's a match
+        jr      .id_done
+
+.not_gf:
+        ; Test for Floor 1 (Disabled for now per your GF-only test)
+        ; ld    a, FLOOR_F1
+        ; ... same logic ...
+        
+        ld      a, FLOOR_GF         ; Default fallback for your test
+        
+.id_done:
+        ; --- Change Detection ---
+        ld      hl, current_floor
+        cp      (hl)                
+        ret     z                   
+
+        ; --- Floor Changed! ---
+        ld      (current_floor), a  
+        ld      (minimap_ptr), de   
+        
+        call    update_floor_offsets 
+        scf                         
+        ret
+
+update_floor_offsets:
+        ; register A already contains the floor ID from .found
+        cp      FLOOR_GF
+        jr      z, .set_gf
+        ;cp      FLOOR_F1
+        ;jr      z, .set_f1
+        ret
+
+.set_gf:
+        ld      a, gf_offset_x
+        ld      (current_floor_x), a
+        ld      a, gf_offset_y
+        ld      (current_floor_y), a
         ret
 
 
 
-;----------------------------------------------------------
-; MINIMAP_X, MINIMAP_Y — minimap origin in panel
-; Change MINIMAP_Y to reposition vertically in panel
-;----------------------------------------------------------
-MINIMAP_X       equ     &d0  ; abs x = 200px (panel left edge)
-MINIMAP_Y       equ     &9D  ; abs y = 157px — adjust to reposition
 
-pixel_addr_save:  dw  0    ; Stores the 16-bit Screen Address (HL)
-pixel_shift_save: db  0    ; Stores the bit-shift value (B)
-last_room_saved:  db &FF
-minimap_yx:       dw &b5c8 ; Y=B5 (181), X=C8 (200)
 
 
 ;----------------------------------------------------------
@@ -6014,20 +6055,35 @@ draw_minimap:
         
         pop     ix                   ; IX is back (Flags untouched)
         
-        ; --- MOVE THE JUMP HERE ---
-        ; Decide NOW while the Zero flag is guaranteed fresh
-        jr      z, .skip_to_unvisited
+; 1. Decide which box type to draw based on the fresh flag
+        jr      z, .skip_to_unvisited 
 
-        ; CASE: VISITED
-        ld      d, (ix+1)
-        ld      e, (ix+2)
+        ; 2. If we are here, it's VISITED. Do the math now.
+        ld      a, (ix+1)
+        ld      hl, current_floor_x
+        add     a, (hl)              ; Flags destroyed here, but we don't care anymore
+        ld      d, a
+        
+        ld      a, (ix+2)
+        ld      hl, current_floor_y
+        add     a, (hl)
+        ld      e, a
+        
         call    draw_visited_room
         jr      .next
 
 .skip_to_unvisited:
-        ; CASE: UNVISITED
-        ld      d, (ix+1)
-        ld      e, (ix+2)
+        ; 3. If we are here, it's UNVISITED. Do the same math.
+        ld      a, (ix+1)
+        ld      hl, current_floor_x
+        add     a, (hl)
+        ld      d, a
+        
+        ld      a, (ix+2)
+        ld      hl, current_floor_y
+        add     a, (hl)
+        ld      e, a
+        
         call    draw_unvisited_room
 
 .next:
@@ -6102,20 +6158,19 @@ update_minimap:
     ; ==========================================================
 
     ; --- 3. Floor Change Actions ---
-    ; Since the floor changed, the entire background is now invalid.
-    call    clear_minimap         ; Wipe the 32x32 side panel area
-    call    draw_minimap          ; Draw the dots/boxes for the NEW floor
+    call    clear_minimap         
+    call    draw_minimap          
     
-    pop     af                    ; Balance the stack (get Room ID back)
-    ld      b, a  
-    ld      ix, (minimap_ptr)
-
-    call update_flasher_coords
-
-    ld      a, b   
-    ld      (last_room_saved), a  ; Update the "New" room immediately
-    jr .exit                      ; 24 correctly flashed but 1F erased
-    ;jr      .room_search         ; 1F is drawn but is wrongly flashed         
+    pop     af                    ; Get Room ID back
+    ld      (last_room_saved), a  
+    
+    ld      ix, (minimap_ptr)     ; Point to the NEW floor table
+    
+    ; REMOVED: jr .exit 
+    ; REMOVED: call update_flasher_coords (Let the search below handle it!)
+    
+    jp      .room_search          ; Jump straight to the search to find the new pixel
+             
 
 .no_floor_swap:
     pop     af                    ; Restore new Room ID
@@ -6126,7 +6181,7 @@ update_minimap:
   
     ; --- 5. Search Table ---
     ; (minimap_ptr) was updated by check_floor if a swap occurred.
-    ld      a, (player_room)     
+    ld      a, (player_room)      
     ld      b, a                 
     ld      ix, (minimap_ptr)    
 .room_search:
@@ -6140,44 +6195,47 @@ update_minimap:
     jr      .room_search
 
 .room_found:
-    ; --- 6. Draw the Permanent Room Box ---
-    ld      d, (ix+1)            ; D = rel_x
-    ld      e, (ix+2)            ; E = rel_y
+    ; --- 6. Calculate Coordinates Relative to Map Panel ---
+    ld      a, (ix+1)           ; rel_x
+    ld      hl, current_floor_x
+    add     a, (hl)
+    ld      d, a                ; D = Final X
 
-    push    de                   ; Save coords
-    call    draw_visited_room    ; Draw the 3x3 hollow square
-    pop     de                   ; Restore coords
+    ld      a, (ix+2)           ; rel_y
+    ld      hl, current_floor_y
+    add     a, (hl)
+    ld      e, a                ; E = Final Y
 
-    ; --- 7. Calculate New Address (The Architect) ---
+    push    de                  
+    call    draw_visited_room   ; Now draws in the right spot!
+    pop     de                  
+
+; --- 7. Calculate New Address ---
     ld      a, e
-    inc     a                    ; Center Y (rel_y + 1)
+    inc     a                   ; Center Y (Room + Offset + 1)
+    add     a, minimap_y        ; <--- ADD THIS: Move it into the panel!
     ld      h, a
     
     ld      a, d
-    inc     a                    ; Center X (rel_x + 1)
+    inc     a                   ; Center X (Room + Offset + 1)
+    add     a, minimap_x        ; <--- ADD THIS: Move it into the panel!
     ld      l, a
 
-    ld      a, MINIMAP_Y
-    add     a, h
-    ld      h, a                 ; Final Screen Y
+    ; NOW H and L are truly absolute screen coordinates.
+    call    pixel_address
     
-    ld      a, MINIMAP_X
-    add     a, l
-    ld      l, a                 ; Final Screen X
+    ; --- 8. Draw & Save ---
 
-    call    pixel_address        ; Convert to HL=Addr, B=Shift
-
-    ; --- 8. Draw New Pixel (The Builder) ---
+    ld      (pixel_addr_save), hl
+    ld      a, b
+    ld      (pixel_shift_save), a
     push    hl
     push    bc
     call    draw_new_center_pixel 
     pop     bc
     pop     hl
 
-    ; Save for the separate Flasher routine
-    ld      (pixel_addr_save), hl
-    ld      a, b
-    ld      (pixel_shift_save), a
+
 
     ; --- 9. Sync State ---
     ld      a, (player_room)     
@@ -6363,11 +6421,11 @@ pixel_address:
 ; Corrupts: AF, BC, DE, HL
 ;----------------------------------------------------------
 set_pixel_hl:
-        ld      a, MINIMAP_Y
+        ld      a, minimap_y
         add     a, h
         ld      h, a
 
-        ld      a, MINIMAP_X
+        ld      a, minimap_x
         add     a, l
         ld      l, a
 
@@ -6449,20 +6507,23 @@ update_flasher_coords:
 .found_it:
     ld      d, (ix+1)             ; rel_x
     ld      e, (ix+2)             ; rel_y
+
     
-    ; Re-use your Architect logic (Step 7)
+    ; --- Calculate Y ---
     ld      a, e
-    inc     a
-    ld      h, a
+    inc     a                     ; center it (+1)
+    ld      hl, current_floor_y
+    add     a, (hl)               ; <--- MUST HAVE (hl) to get the offset value
+    ld      c, a                  ; H = Final Screen Y
+    
+    ; --- Calculate X ---
     ld      a, d
-    inc     a
-    ld      l, a
-    ld      a, MINIMAP_Y
-    add     a, h
-    ld      h, a
-    ld      a, MINIMAP_X
-    add     a, l
-    ld      l, a
+    inc     a                     ; center it (+1)
+    ld      hl, current_floor_x
+    add     a, (hl)               ; <--- MUST HAVE (hl) to get the offset value
+    ld      l, a                  ; L = Final Screen X
+
+    ld      h, c
     
     call    pixel_address         ; Returns HL=Addr, B=Shift
     ld      (pixel_addr_save), hl

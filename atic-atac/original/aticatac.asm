@@ -5543,25 +5543,36 @@ current_floor:    db  &ff             ; 0=ground, 1=first &FF=transition
 current_floor_x:  db  0             ; pre-calculated x (minimap_x + offset)
 current_floor_y:  db  0             ; pre-calculated y (minimap_y + offset)
 
-
-flash_state:      db  1             ; 1=centre pixel on, 0=off
-flash_counter:    db  0             ; frame counter for flash timing
-
-minimap_ptr:      dw  minimap_gf    ; 2-byte pointer to current floor table
-
-minimap_x         equ     &d0  ; abs x = 200px (panel left edge)
-minimap_y         equ     &9D  ; abs y = 157px — adjust to reposition
-gf_offset_x       equ     2
-gf_offset_y       equ     1
-
 pixel_addr_save:  dw  0    ; Stores the 16-bit Screen Address (HL)
 pixel_shift_save: db  0    ; Stores the bit-shift value (B)
 last_room_saved:  db &FF
 ;minimap_yx:       dw &b5c8 ; Y=B5 (181), X=C8 (200)
 
 
-FLOOR_GF        equ 0
-FLOOR_F1        equ 1
+flash_state:      db  1             ; 1=centre pixel on, 0=off
+flash_counter:    db  0             ; frame counter for flash timing
+
+minimap_ptr:      dw  minimap_gf    ; 2-byte pointer to current floor table
+
+minimap_x         equ     &c8  ; abs x = 200px (panel left edge)
+minimap_y         equ     &97  ; abs y = 157px — adjust to reposition
+gf_offset_x       equ     0
+gf_offset_y       equ     1
+f1_offset_x       equ     0
+f1_offset_y       equ     1
+at_offset_x       equ     0
+at_offset_y       equ     1
+bm_offset_x       equ     0
+bm_offset_y       equ     0
+cv_offset_x       equ     0
+cv_offset_y       equ     0
+
+floor_gf        equ 0
+floor_f1        equ 1
+floor_at        equ 2
+floor_bm        equ 3
+floor_cv        equ 4
+
 
 ;----------------------------------------------------------
 ; Ground floor minimap table
@@ -5626,7 +5637,6 @@ minimap_gf:
         db  &FF              ; end marker
 
 minimap_f1:
-        ;db  &1f, 15,  6      ; col 5 (The Far-Right Room)
         ; --- ROW 0 (Y=0) ---
         db  &7F,  0,  0      ; col 0
         db  &80,  3,  0      ; col 1
@@ -5977,26 +5987,53 @@ check_floor:
         inc     hl
         ld      d, (hl)             ; DE now holds the Map Address (e.g., minimap_gf)
 
-
-        ; ==========================================================
-        ; --- IDENTIFICATION STEP (FIXED) ---
-        ; ==========================================================
         
         ; Test for Ground Floor
         ld      hl, minimap_gf
         or      a                   ; <--- CHANGE: Clear Carry without wiping A
         sbc     hl, de              ; Compare map address to DE
-        jr      nz, .not_gf         ; If no match, move to next check
+        jr      nz, .f1_chk        ; If no match, move to next check
         
-        ld      a, FLOOR_GF         ; <--- CHANGE: Load ID ONLY if it's a match
+        ld      a, floor_gf         ; <--- CHANGE: Load ID ONLY if it's a match
         jr      .id_done
 
-.not_gf:
-        ; Test for Floor 1 (Disabled for now per your GF-only test)
-        ; ld    a, FLOOR_F1
-        ; ... same logic ...
-        
-        ld      a, FLOOR_GF         ; Default fallback for your test
+.f1_chk:
+        ; Test for Floor 1 
+        ld      hl, minimap_f1
+        or      a                   ; <--- CHANGE: Clear Carry without wiping A
+        sbc     hl, de              ; Compare map address to DE
+        jr      nz, .at_chk         ; If no match, move to next check
+        ld      a, floor_f1         
+        jr      .id_done
+
+.at_chk:
+        ld      hl, minimap_at      ; Comparison for Attic
+        or      a
+        sbc     hl, de
+        jr      nz, .bm_chk
+        ld      a, floor_at
+        jr      .id_done
+
+.bm_chk:
+        ld      hl, minimap_bm      ; Comparison for Basement
+        or      a
+        sbc     hl, de
+        jr      nz, .cv_chk
+        ld      a, floor_bm
+        jr      .id_done
+
+.cv_chk:
+        ld      hl, minimap_cv      ; Comparison for Caverns
+        or      a
+        sbc     hl, de
+        jr      nz, .unknown        ; Safety fall-through
+        ld      a, floor_cv
+        jr      .id_done
+
+.unknown:
+        ld      a, &FF              ; If we can't identify the floor, 
+        jr      .id_done            ; use &FF to force a redraw/fail-safe
+
         
 .id_done:
         ; --- Change Detection ---
@@ -6013,17 +6050,50 @@ check_floor:
         ret
 
 update_floor_offsets:
-        ; register A already contains the floor ID from .found
-        cp      FLOOR_GF
+        cp      floor_gf
         jr      z, .set_gf
-        ;cp      FLOOR_F1
-        ;jr      z, .set_f1
+        cp      floor_f1
+        jr      z, .set_f1
+        cp      floor_at
+        jr      z, .set_at
+        cp      floor_bm
+        jr      z, .set_bm
+        cp      floor_cv
+        jr      z, .set_cv
         ret
 
 .set_gf:
         ld      a, gf_offset_x
         ld      (current_floor_x), a
         ld      a, gf_offset_y
+        ld      (current_floor_y), a
+        ret
+
+.set_f1:
+        ld      a, f1_offset_x
+        ld      (current_floor_x), a
+        ld      a, f1_offset_y
+        ld      (current_floor_y), a
+        ret
+
+.set_at:
+        ld      a, at_offset_x
+        ld      (current_floor_x), a
+        ld      a, at_offset_y
+        ld      (current_floor_y), a
+        ret
+
+.set_bm:
+        ld      a, bm_offset_x
+        ld      (current_floor_x), a
+        ld      a, bm_offset_y
+        ld      (current_floor_y), a
+        ret
+
+.set_cv:
+        ld      a, cv_offset_x
+        ld      (current_floor_x), a
+        ld      a, cv_offset_y
         ld      (current_floor_y), a
         ret
 
@@ -6165,10 +6235,6 @@ update_minimap:
     ld      (last_room_saved), a  
     
     ld      ix, (minimap_ptr)     ; Point to the NEW floor table
-    
-    ; REMOVED: jr .exit 
-    ; REMOVED: call update_flasher_coords (Let the search below handle it!)
-    
     jp      .room_search          ; Jump straight to the search to find the new pixel
              
 
@@ -6185,24 +6251,29 @@ update_minimap:
     ld      b, a                 
     ld      ix, (minimap_ptr)    
 .room_search:
-    ld      a, (ix+0)
-    cp      &FF                  ; End of table?
-    jr      z, .exit
-    cp      b
-    jr      z, .room_found         ; Found our new room!
-    ld      de, 3                
+    ld      a, (ix+0)             ; 1. Get Room ID from the table entry
+    cp      &FF                   ; 2. Is it the end of the table?
+    jr      z, .exit              ;    If yes, we failed to find the room.
+    
+    ld      hl, player_room       ; 3. Compare table ID (A) against 
+    cp      (hl)                  ;    the actual player_room in RAM
+    jr      z, .room_found        ;    Found it!
+    
+    ld      de, 3                 ; 4. Not a match? Move to next 3-byte entry
     add     ix, de
-    jr      .room_search
+    jr      .room_search          ; 5. Loop back to check next entry
 
 .room_found:
     ; --- 6. Calculate Coordinates Relative to Map Panel ---
     ld      a, (ix+1)           ; rel_x
     ld      hl, current_floor_x
+    or      a
     add     a, (hl)
     ld      d, a                ; D = Final X
 
     ld      a, (ix+2)           ; rel_y
     ld      hl, current_floor_y
+    or      a
     add     a, (hl)
     ld      e, a                ; E = Final Y
 

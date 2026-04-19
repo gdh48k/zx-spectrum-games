@@ -5554,8 +5554,10 @@ flash_counter:    db  0             ; frame counter for flash timing
 
 minimap_ptr:      dw  minimap_gf    ; 2-byte pointer to current floor table
 
-minimap_x         equ     &c8  ; abs x = 200px (panel left edge)
-minimap_y         equ     &97  ; abs y = 157px — adjust to reposition
+;minimap_x         equ     &c8  ; abs x = 200px (panel left edge)
+;minimap_y         equ     &97  ; abs y = 157px — adjust to reposition
+minimap_x         equ     200  
+minimap_y         equ     46  
 gf_offset_x       equ     0
 gf_offset_y       equ     1
 f1_offset_x       equ     0
@@ -6167,13 +6169,13 @@ draw_minimap:
 ;------------------------------------------------------------------------------
 clear_minimap:
         ld      b, 32                ; Height of wipe (40 pixels)
-        ld      c, 152               ; Start Y (Safe distance below lives)
+        ld      c, minimap_y               ; Start Y (Safe distance below lives)
 
 .line_loop:
         push    bc                   ; Protect our line counter and current Y
         
         ld      h, c                 ; H = current Y
-        ld      l, 200               ; L = X (Side panel start)
+        ld      l, minimap_x               ; L = X (Side panel start)
         call    pixel_address        ; Recalculate address for EVERY line
         
         ; Now we have the perfect HL for this specific scanline
@@ -8982,7 +8984,7 @@ loc_A259:
                 ld      a, (acg_key_flag)
                 bit     0, a                    ; acg_1 collected?
                 jr      nz, acg1_yellow       ; jump if so
-                ld      a, (dark_blue)           ; set to dark blue if not
+                ld      a, (bright_white_bl)           ; set to dark blue if not
                 jr      colour_acg_1
 acg1_yellow:    ld      a, &46                ; set to bright yellow
 colour_acg_1:
@@ -8995,7 +8997,7 @@ colour_acg_1:
                 ld      a, (acg_key_flag)
                 bit     1, a                  ; acg_2 collected?
                 jr      nz, acg2_yellow       ; jump if so
-                ld      a, (dark_blue)               ; set to dark blue if not
+                ld      a, (bright_white_bl)               ; set to dark blue if not
                 jr      colour_acg_2
 acg2_yellow:    ld      a, &46                ; set to bright yellow
 colour_acg_2:
@@ -9009,7 +9011,7 @@ colour_acg_2:
                 ld      a, (acg_key_flag)
                 bit     2, a                  ; acg_3 collected?
                 jr      nz, acg3_yellow       ; jump if so
-                ld      a, (dark_blue)                 ; set to dark blue if not
+                ld      a, (bright_white_bl)                 ; set to dark blue if not
                 jr      colour_acg_3
 acg3_yellow:    ld      a, &46                ; set to bright yellow
 colour_acg_3:
@@ -9100,10 +9102,12 @@ key_part_indices:
 ; --- Coordinate Table (X, Y in pixels) ---
 ; These map to the side panel area (X=240, column 30)
 key_part_coords:
-                db 200, 70                ; Part 0: Char(30, 2)
-                db 216, 70                ; Part 1: Char(30, 6)
-                db 232, 70               ; Part 2: Char(30, 10)
-
+                ;db 200, 70                ; Part 0: Char(30, 2)
+                ;db 216, 70                ; Part 1: Char(30, 6)
+                ;db 232, 70                ; Part 2: Char(30, 10)
+                db 200, 171                
+                db 216, 171               
+                db 232, 171      
 
 
 
@@ -9159,11 +9163,11 @@ draw_key_loop:
                 djnz    draw_key_loop
 
 ; 5 Initialise ACG key to  'dark blue'                
-                ld      hl, acg_attr_yx      ; MOD: NEW ATTR FOR ACG KEG
-                call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ld      bc, &0603            ; 6x3
-                ld      a, &01               ; dark blue (ACG KEY)
-                call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
+                ;ld      hl, acg_attr_yx      ; MOD: NEW ATTR FOR ACG KEG
+                ;call    xy_to_attr           ; convert pixel coords in HL to attribute address
+                ;ld      bc, &0603            ; 6x3
+                ;ld      a, dark_blue   ; dark blue (ACG KEY)
+                ;call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 ret
 
 

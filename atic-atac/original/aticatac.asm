@@ -5557,17 +5557,17 @@ minimap_ptr:      dw  minimap_gf    ; 2-byte pointer to current floor table
 ;minimap_x         equ     &c8  ; abs x = 200px (panel left edge)
 ;minimap_y         equ     &97  ; abs y = 157px — adjust to reposition
 minimap_x         equ     200  
-minimap_y         equ     46  
-gf_offset_x       equ     0
-gf_offset_y       equ     1
+minimap_y         equ     48  
+gf_offset_x       equ     12
+gf_offset_y       equ     4
 f1_offset_x       equ     0
-f1_offset_y       equ     1
+f1_offset_y       equ     2
 at_offset_x       equ     0
-at_offset_y       equ     1
+at_offset_y       equ     2
 bm_offset_x       equ     0
 bm_offset_y       equ     0
-cv_offset_x       equ     0
-cv_offset_y       equ     0
+cv_offset_x       equ     7
+cv_offset_y       equ     7
 
 floor_gf        equ 0
 floor_f1        equ 1
@@ -5680,38 +5680,38 @@ minimap_f1:
 
 minimap_bm:
         ; --- ROW 0 ---
-        db  &67,  6,  0      ; col 2
-        db  &68, 18,  0      ; col 6
+        db  &67,  3,  0      ; col 1 (was 2)
+        db  &68, 15,  0      ; col 5 (was 6)
 
         ; --- ROW 1 ---
-        db  &69,  3,  3      ; col 1
-        db  &56,  6,  3      ; col 2
-        db  &57,  9,  3      ; col 3
-        db  &58, 15,  3      ; col 5
-        db  &59, 18,  3      ; col 6
+        db  &69,  0,  3      ; col 0 (Leftmost Anchor)
+        db  &56,  3,  3      ; col 1
+        db  &57,  6,  3      ; col 2
+        db  &58, 12,  3      ; col 4
+        db  &59, 15,  3      ; col 5
 
         ; --- ROW 2 ---
-        db  &5A,  6,  6      ; col 2
-        db  &5B,  9,  6      ; col 3
-        db  &66, 12,  6      ; col 4 (Central Hub)
-        db  &5C, 15,  6      ; col 5
-        db  &5D, 18,  6      ; col 6
+        db  &5A,  3,  6      ; col 1
+        db  &5B,  6,  6      ; col 2
+        db  &66,  9,  6      ; col 3 (Central Hub)
+        db  &5C, 12,  6      ; col 4
+        db  &5D, 15,  6      ; col 5
 
         ; --- ROW 3 ---
-        db  &5E,  6,  9      ; col 2
-        db  &5F,  9,  9      ; col 3
-        db  &60, 15,  9      ; col 5
-        db  &61, 18,  9      ; col 6
+        db  &5E,  3,  9      ; col 1
+        db  &5F,  6,  9      ; col 2
+        db  &60, 12,  9      ; col 4
+        db  &61, 15,  9      ; col 5
 
         ; --- ROW 4 ---
-        db  &6A,  3, 12      ; col 1
-        db  &62,  6, 12      ; col 2
-        db  &63,  9, 12      ; col 3
-        db  &64, 15, 12      ; col 5
-        db  &65, 18, 12      ; col 6
-        db  &1B, 21, 12      ; col 7
+        db  &6A,  0, 12      ; col 0 (Leftmost Anchor)
+        db  &62,  3, 12      ; col 1
+        db  &63,  6, 12      ; col 2
+        db  &64, 12, 12      ; col 4
+        db  &65, 15, 12      ; col 5
+        db  &1B, 18, 12      ; col 6
 
-        db  &FF 
+        db  &FF              ; End of table
 
 minimap_cv:
         ; --- ROW 0 ---
@@ -8989,7 +8989,7 @@ loc_A259:
 acg1_yellow:    ld      a, &46                ; set to bright yellow
 colour_acg_1:
                 ;and     &7F
-                ld      bc, &0203
+                ld      bc, &0204
                 call    fill_bc_hl_a
 
                 ld      hl, acg_attr_yx+16
@@ -9002,7 +9002,7 @@ colour_acg_1:
 acg2_yellow:    ld      a, &46                ; set to bright yellow
 colour_acg_2:
                 ;and     &7F
-                ld      bc, &0203
+                ld      bc, &0204
                 call    fill_bc_hl_a
 
                 
@@ -9016,7 +9016,7 @@ colour_acg_2:
 acg3_yellow:    ld      a, &46                ; set to bright yellow
 colour_acg_3:
                 ;and     &7F
-                ld      bc, &0203
+                ld      bc, &0204
                 call    fill_bc_hl_a
 
                 

@@ -4388,11 +4388,8 @@ enter_room:
                 call    visit_room           ; mark room A as visited
                 call    clear_play_area      ; clear screen and attrs of play area
                 call    draw_room_frame      ; draw lines that make up outer room frame
-                call    draw_panel_attrs     ; draw side-panel colours, which follow room colour
+                ;call    draw_panel_attrs     ; draw side-panel colours, which follow room colour
                 call    draw_inventory       ; draw any items in player inventory
-                ;call    update_minimap
-                ;ld      a, (player_room)
-                ;call    visit_room           ; mark room A as visited
                 call    entry_sound          ; room entry sound effect
                 jp      main_loop
 
@@ -5558,6 +5555,7 @@ minimap_ptr:      dw  minimap_gf    ; 2-byte pointer to current floor table
 ;minimap_y         equ     &97  ; abs y = 157px — adjust to reposition
 minimap_x         equ     200  
 minimap_y         equ     48  
+
 gf_offset_x       equ     12
 gf_offset_y       equ     2
 f1_offset_x       equ     14
@@ -5569,11 +5567,12 @@ bm_offset_y       equ     8
 cv_offset_x       equ     7
 cv_offset_y       equ     5
 
-floor_gf        equ 0
-floor_f1        equ 1
-floor_at        equ 2
-floor_bm        equ 3
-floor_cv        equ 4
+floor_cv        equ 0
+floor_bm        equ 1
+floor_gf        equ 2
+floor_f1        equ 3
+floor_at        equ 4
+
 
 
 ;----------------------------------------------------------
@@ -6044,8 +6043,17 @@ check_floor:
         ret     z                   
 
         ; --- Floor Changed! ---
+        ;ld      b, (hl)
         ld      (current_floor), a  
-        ld      (minimap_ptr), de   
+        ld      (minimap_ptr), de 
+
+        ;push    af                  ; Save New ID (A)
+        ;push    bc                  ; Save Old ID (B)
+        ;push    de                  ; Save Map Pointer
+        ;call    update_ui_attributes 
+        ;pop     de
+        ;pop     bc
+        ;pop     af
         
         call    update_floor_offsets 
         scf                         
@@ -6100,8 +6108,33 @@ update_floor_offsets:
         ret
 
 
-
-
+; -----------------------------------------------------------
+; update_ui_attributes
+; A = New Floor ID (0-4), B = Old Floor ID (0-4 or &FF)
+; -----------------------------------------------------------
+update_ui_attributes:
+        ; --- Step 1: Find the Base Attribute Address ---
+        ld      hl, score_yx         ; The XY coords for letter 'C'
+        call    xy_to_attr          ; Returns HL = Attribute Address
+        push    hl                  ; Save base address for the second floor
+        
+        ; --- Step 2: Highlight NEW floor ---
+        ; A = New Floor ID (0-4)
+        add     a, l                ; Offset HL by the Floor ID
+        ld      l, a
+        ; (Note: Base &5A10 + 4 won't cross a page boundary, so H is safe)
+        ld      (hl), &46           ; Bright Yellow
+        
+        ; --- Step 3: Revert OLD floor ---
+        pop     hl                  ; Restore the original base address
+        ld      a, b                ; B = Previous Floor ID
+        cp      &FF                 ; Initial state check
+        ret     z                   
+        
+        add     a, l                ; Offset HL by the Old ID
+        ld      l, a
+        ld      (hl), &01           ; Dark Blue
+        ret
 
 
 ;----------------------------------------------------------
@@ -6319,6 +6352,8 @@ update_minimap:
     inc     a                    ; A = 1
     ld      (flash_state), a     ; Set state to ON
 
+    call    draw_panel_attrs
+    
 .exit:
     ret
 
@@ -9039,15 +9074,46 @@ colour_acg_3:
                 ld      a, &45               ; bright cyan (score caption)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
-                ld      hl, score_yx     
-                call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ld      bc, &0501            ; 6x1
-                ld      a, (bright_white)     ; bright white (score)
-                call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
+                ;ld      hl, score_yx     
+                ;call    xy_to_attr           ; convert pixel coords in HL to attribute address
+                ;ld      bc, &0501            ; 6x1
+                ;ld      a, (bright_white)    ; bright white (score)
+                ;call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
+
+                ; --- NEW: HIGHLIGHT CURRENT FLOOR LETTER ---
+                ; 1. Reset all 5 letters to Dark Blue first
+                ld      hl, score_yx            ; Your 'C' letter pixel coords
+                call    xy_to_attr            ; HL = Attribute address of 'C'
+                push    hl                    ; Save for step 2
+                ld      a, &01                ; Dark Blue
+                ld      (hl), a               ; 'C'
+                inc     l
+                ld      (hl), a               ; 'B'
+                inc     l
+                ld      (hl), a               ; 'G'
+                inc     l
+                ld      (hl), a               ; '1'
+                inc     l
+                ld      (hl), a               ; 'A'
+
+                ; 2. Highlight the current floor Yellow
+                pop     hl                    ; Get 'C' address back
+                ld      a, (current_floor)    ; Get Floor ID (0-4)
+                cp      &FF                   ; Safety check
+                jr      z, .done_floors       ; Skip if no floor set
                 
-                ld      hl, time_cap_yx            ; MOD: Change &38c8 to &48c8 y,x coords
+                add     a, l                  ; Offset to current floor
+                ld      l, a
+                ld      (hl), &46             ; Bright Yellow
+.done_floors:
+
+
+
+
+                
+                ld      hl, time_cap_yx      ; MOD: Change &38c8 to &48c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ld      bc, &0101             ; 6x1
+                ld      bc, &0101            ; 6x1
                 ld      a, &43               ; bright magenta (time caption)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 

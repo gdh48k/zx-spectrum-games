@@ -3665,9 +3665,9 @@ loc_8CAF:
 
 ; player appear handler for game start
 h_player_appear:
-                ld      a, (flash_timer)     ; score flash timer
-                and     a                    ; score flash timer active?
-                jr      nz, flash_score      ; jump if so
+                ;ld      a, (flash_timer)     ; score flash timer
+                ;and     a                    ; score flash timer active?
+                ;jr      nz, flash_score      ; jump if so
                 ld      a, (sysvar_FRAMES)
                 and     3                    ; 0 in range 0-3?
                 jp      nz, loc_8D12         ; jump if not
@@ -8776,6 +8776,7 @@ loc_A1AE:
                 ld      (charset_addr), hl
                 ;ld      hl,  display+&10c8
                 ld      hl, score_yx
+                ret  
 
 score_yx equ     &50d0
 ; print player score at position HL
@@ -10727,7 +10728,7 @@ panel_body:     db  &0f, 0, 0, 0, 0, 0, 0, &3a; 24
                 db  &12, 0, 0, 0, 0, 0, 0, &3e; 48
                 ;db  &13, 0, &59, &5a, &5b, &5c, 0, &3f; 56 "TIME"
                 db  &13, 0, 0, 0, 0, 0, 0, &3f; 56
-                db  &14, &5a, 0, 0, 0, 0, 0, &40; 64
+                db  &14, &5a, &5c, &5c, &5c, &5c, &5c, &40; 64
                 db  &15, &59, 0, 0, &5d, 0, 0, &41; PLACEHOLDER ":"  *** Add &59 for T after &15
                 ;db  &15, &49, &4a, &4b, &4c, &4d, &4e, &40; 72 "SCORE"
                 db  &16, 0, 0, 0, 0, 0, 0, &41; 80  ****11th row

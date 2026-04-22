@@ -8954,16 +8954,27 @@ loc_A22D:
 
 ; side panel layout (H=Y, L=X) for attribute routines
 panel_attr_yx    equ     &00c0           ; y=0,   x=192 (&c0)
-acg_attr_yx      equ     &30c8           ; y=48,  x=200
+
+
+
+
+; --- UPDATED SIDE PANEL LAYOUT (H=Y, L=X) ---
+
+; 1. ACG Key (Now in the middle slot)
+acg_attr_yx     equ     &5ec8           ; Y=94  (Was &58)
+acg_key_yx      equ     &75c8           ; Y=117 (Was &6f)
+
+; 2. Chicken (Now below ACG Key)
+chicken_attr_yx equ     &7ec8           ; Y=126 (Attribute Top)
+chicken_yx      equ     &97c8           ; Y=151 (Graphic Bottom)
+
+; 3. Lives (Now at the bottom)
+lives_attr_yx   equ     &98c8           ; Y=152 (Was &a0)
+lives_yx        equ     &afc8           ; Y=175 (Graphic Bottom)
+
+
 floor_cap_yx     equ     &56c8
 floor_yx         equ     &56d0 
-
-chicken_yx       equ     &7fc8
-chicken_attr_yx  equ     &66c8 
-
-lives_attr_yx    equ     &86c8
-lives_yx         equ     &95c8  
-
 
 time_cap_yx     equ     &5ec8
 time_yx         equ     &5ed0
@@ -8981,6 +8992,19 @@ bright_white_bl db      &4f
 bright_yellow   db      &46
 bright_yellow_gr db     &66 
 bright_cyan     db      &45       
+
+
+; -----------------------------------------------------------------------------
+; Purpose:  Initializes and updates all side-panel attributes (colors).
+;           Handles dynamic contrast for the background and checks game flags
+;           to highlight collected ACG parts and the current floor.
+; Inputs:   (room_attr)      - For contrast calculation.
+;           (acg_key_flag)   - Bits 0-2 for key collection status.
+;           (current_floor)  - ID (0-4) to highlight floor letters.
+; Outputs:  Full attribute refresh of the right-hand side panel (X=24).
+; Corrupts: AF, BC, DE, HL
+; -----------------------------------------------------------------------------
+
 
 draw_panel_attrs:
                                              ; COLOUR BACKGROUND
@@ -9030,7 +9054,7 @@ loc_A259:
                 ld      a, (acg_key_flag)
                 bit     0, a                    ; acg_1 collected?
                 jr      nz, acg1_yellow       ; jump if so
-                ld      a, (bright_white_bl)           ; set to dark blue if not
+                ld      a, (dark_blue)           ; set to dark blue if not
                 jr      colour_acg_1
 acg1_yellow:    ld      a, &46                ; set to bright yellow
 colour_acg_1:
@@ -9043,7 +9067,7 @@ colour_acg_1:
                 ld      a, (acg_key_flag)
                 bit     1, a                  ; acg_2 collected?
                 jr      nz, acg2_yellow       ; jump if so
-                ld      a, (bright_white_bl)               ; set to dark blue if not
+                ld      a, (dark_blue)               ; set to dark blue if not
                 jr      colour_acg_2
 acg2_yellow:    ld      a, &46                ; set to bright yellow
 colour_acg_2:
@@ -9057,7 +9081,7 @@ colour_acg_2:
                 ld      a, (acg_key_flag)
                 bit     2, a                  ; acg_3 collected?
                 jr      nz, acg3_yellow       ; jump if so
-                ld      a, (bright_white_bl)                 ; set to dark blue if not
+                ld      a, (dark_blue)                 ; set to dark blue if not
                 jr      colour_acg_3
 acg3_yellow:    ld      a, &46                ; set to bright yellow
 colour_acg_3:
@@ -9187,103 +9211,57 @@ key_part_coords:
                 db 232, 171      
 
 
+; -----------------------------------------------------------------------------
+; Block:    draw_acg_key
+; Purpose:  Renders the three components of the ACG key side-by-side.
+; Inputs:   acg_key_yx (EQU) - Base Y,X anchor for the first part.
+;           key_part_indices - Table of 3 graphic IDs for the key parts.
+; Outputs:  Renders 3 sprites horizontally spaced by 16 pixels.
+; Corrupts: AF, BC, DE, HL, IX
+; -----------------------------------------------------------------------
 
 
+draw_acg_key:
+                ld      ix, entity_to_draw 
+                ld      hl, key_part_indices 
+                ld      de, acg_key_yx       
 
-draw_acg_key:                              ; No Attrs
-
-                ld      ix, entity_to_draw ; Standard entity buffer
-                ld      hl, key_part_indices ; Point to table of 3 graphic IDs
-
-                ld      de, key_part_coords ; Point to table of 3 (X,Y) pairs
-
-                ld      b, 3 ; 3 parts to draw
-
+                ld      b, 3 
 
 draw_key_loop:
+                push    bc 
+                push    hl
+                push    de      ; We push DE to keep our current Y,X safe
 
-                push bc ; Save loop counter
-                push hl
-                push de
-
-
-; 1. Load graphic index
-
+                ; 1. Load graphic index
                 ld      a, (hl) 
                 ld      (ix+0), a
 
-; 2. Load coordinates/colour
+                ; 2. Assign coordinates/colour
+                ld      (ix+3), e    ; X coordinate (from E)
+                ld      (ix+4), d    ; Y coordinate (from D)
+                ;ld      (ix+5), &47  ; Bright white
 
-                ld      a, (de) ; X coordinate
-                ld      (ix+3), a
-                inc     de
-                ld      a, (de) ; Y coordinate
-                ld      (ix+4), a
-                ld      (ix+5), &47 ; colour
-                inc     de ; Prepare for next X,Y pair
+                ; 3. Render
+                call    clear_sprite
+                call    draw_entity 
 
+                pop     de      ; Restore current Y,X
+                pop     hl
 
+                ; 4. Advance data pointers
+                inc     hl      ; Next graphic ID
+                
+                ; Move X 16 pixels right for next iteration
+                ld      a, e
+                add     a, 16
+                ld      e, a
 
-; 3. Render
-                call clear_sprite
-                call draw_entity ; Use existing 
-                pop de 
-                pop hl
-
-
-; 4. Advance data pointers
-
-                inc     hl ; Next graphic ID
-                inc     de  
-                inc     de
-                pop bc ; Restore loop counter
+                pop     bc 
                 djnz    draw_key_loop
-
-; 5 Initialise ACG key to  'dark blue'                
-                ;ld      hl, acg_attr_yx      ; MOD: NEW ATTR FOR ACG KEG
-                ;call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ;ld      bc, &0603            ; 6x3
-                ;ld      a, dark_blue   ; dark blue (ACG KEY)
-                ;call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 ret
 
-
-; Input: A = Piece Offset (0, 1, or 2)
-update_acg_color:
-                push    hl
-                push    de
-                push    bc
-
-                                            ; 1a. Load the base coordinates from the EQU
-                ld      hl, acg_attr_yx     ; H = &30, L = &C8
-
-                                            ; 1b. Calculate the offset for the X coordinate
-                                            ; A starts as index 0, 1, or 2
-                add     a, a
-                add     a, a
-                add     a, a
-                add     a, a                ; Offset * 16 pixels
-                
-                                            ; 1c. Add the offset to the base X already in L
-                add     a, l                ; Add the base X (&C8) to the offset
-                ld      l, a                ; Update L with the new X
-                
-                                            ; Result: H remains &30, L is now &C8, &D8, or &E8
-
-                                            ; 2. Convert pixel coords to attribute address
-                call    xy_to_attr          ; Returns attr address in HL
-
-                                            ; 3. Setup parameters for building block
-                ld      bc, &0203           ; B=2 (cols), C=3 (rows)
-                ld      a, &46              ; Bright Yellow (Ink 6, Paper 0, Bright 1)
-                
-                                            ; 4. Execute fill
-                call    fill_bc_hl_a
-
-                pop     bc
-                pop     de
-                pop     hl
-                ret                
+            
 
 
 ; draw menu icons for controls and player acharacters

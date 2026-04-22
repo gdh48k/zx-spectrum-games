@@ -6347,6 +6347,8 @@ update_minimap:
     ld      (flash_state), a     ; Set state to ON
 
     call    draw_panel_attrs
+    call    draw_inventory
+
 
 .exit:
     ret

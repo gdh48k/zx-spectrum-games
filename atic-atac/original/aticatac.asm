@@ -1559,11 +1559,6 @@ room_94:        dw  door_93_94
 room_none:      dw  0
 
 reset_menu:
-;                ld      hl, main_selection
-;                ld      b, width_bytes - main_selection
-;                ld      (hl), 0              ; clear menu data
-;                inc     hl
-;                djnz    reset_menu
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
                 ld      hl, main_menu_data
@@ -5536,9 +5531,15 @@ percent_msg:    db  &45                       ; bright cyan
 ;----------------------------------------------------------
 ; Minimap variables — co-located with minimap code
 ;----------------------------------------------------------
-current_floor:    db  &ff             ; 0=ground, 1=first &FF=transition
-current_floor_x:  db  0             ; pre-calculated x (minimap_x + offset)
-current_floor_y:  db  0             ; pre-calculated y (minimap_y + offset)
+current_floor:  db  &ff             
+floor_cv        equ 0
+floor_bm        equ 1
+floor_gf        equ 2
+floor_f1        equ 3
+floor_at        equ 4
+
+current_floor_x:  db  0               ; pre-calculated x (minimap_x + offset)
+current_floor_y:  db  0               ; pre-calculated y (minimap_y + offset)
 
 pixel_addr_save:  dw  0    ; Stores the 16-bit Screen Address (HL)
 pixel_shift_save: db  0    ; Stores the bit-shift value (B)
@@ -5566,13 +5567,6 @@ bm_offset_x       equ     14
 bm_offset_y       equ     8
 cv_offset_x       equ     7
 cv_offset_y       equ     5
-
-floor_cv        equ 0
-floor_bm        equ 1
-floor_gf        equ 2
-floor_f1        equ 3
-floor_at        equ 4
-
 
 
 ;----------------------------------------------------------
@@ -6353,7 +6347,7 @@ update_minimap:
     ld      (flash_state), a     ; Set state to ON
 
     call    draw_panel_attrs
-    
+
 .exit:
     ret
 
@@ -8970,7 +8964,8 @@ dark_blue       db      01
 bright_white    db      &47
 bright_white_bl db      &4f  
 bright_yellow   db      &46
-bright_yellow_gr db     &66        
+bright_yellow_gr db     &66 
+bright_cyan     db      &45       
 
 draw_panel_attrs:
                                              ; COLOUR BACKGROUND
@@ -9071,7 +9066,7 @@ colour_acg_3:
                 ld      hl, score_cap_yx     ; 58c8 to 5ec8
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0101             ; 6x1
-                ld      a, &45               ; bright cyan (score caption)
+                ld      a, (bright_cyan)      ; bright cyan (score caption)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ;ld      hl, score_yx     
@@ -9104,7 +9099,7 @@ colour_acg_3:
                 
                 add     a, l                  ; Offset to current floor
                 ld      l, a
-                ld      (hl), &46             ; Bright Yellow
+                ld      (hl), &45             ; Bright Yellow
 .done_floors:
 
 
@@ -10730,12 +10725,12 @@ panel_chars:    db  0, 0, 0, 0, 0, 0, 0, 0    ; 0
                 db  6, 6, 6, 6, 6, &0c, &0c, &0c; &0230
                 db  &0c, &18, &18, &18, &18, &30, &30, &30; &0238
                 db  &60, &60, &60, &c0, &c0, &c0, &80, &80; &0240
-                db  7, &0f, &0f, 7, 1, &0f, 7, 0; &0248
-                db  &c3, &e7, &0f, &ce, &ef, &e7, &c3, 0; &0250
-                db  &c3, &e7, &8f, &0e, &1f, &e7, &c3, 0; &0258
-                db  &8f, &cf, &ee, &ef, &ef, &ce, &8e, 0; &0260
-                db  &cf, &ef, &6e, &ef, &ce, &cf, &ef, 0; &0268
-                db  &80, &80, 0, &c0, 0, &e0, &e0, 0; &0270
+                db  &fe, &fe, &e0, &fc, &e0, &e0, &e0, 0 ; &0248 F
+                db  &3c, &7e, &f8, &e0, &f8, &7e, &3c, 0 ; &0250 C
+                db  &fc, &fe, &e6, &fc, &e6, &fe, &fc, 0; &0258 B
+                db  &3c, &7e, &f8, &e0, &fe, &7e, &3a, 0; &0260 G
+                db  &18, &38, &58, &18, &18, &18, &3c, 0; &0268 1
+                db  &38, &38, &6c, &7c, &ee, &ee, &c6, 0; &0270 A
 knight_chars:   db  0,  0,  &60,  &E2,  &A7,  &3B,  &71,  &F2; &0278 START OF LETTERING
                 db  &0,  &0,  &0,  &0,  &0,  &80,  &0,  &0; &0280
                 db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0288
@@ -10746,12 +10741,12 @@ knight_chars:   db  0,  0,  &60,  &E2,  &A7,  &3B,  &71,  &F2; &0278 START OF LE
                 db  &18,  &80,  &D9,  &DB,  &DB,  &D8,  &99,  &23; &02b0
                 db  &6B,  &FB,  &B3,  &33,  &73,  &B3,  &1B,  &F0; &02b8
                 db  &6,  &66,  &B6,  &36,  &36,  &35,  &26,  &44; &02c0 END OF LETTERING
-                db  &fe, &fe, &fe, &38, &38, &38, &38, 0; &02c8 
-                db  &7C,  &FE,  &F0,  &7C,  &1E,  &FE,  &7C,  &0
-                ;db  &7c, &7c, &38, &38, &38, &7c, &7c, 0; &02d0 TIME 
-                db  &82, &ee, &fe, &fe, &d6, &d6, &d6, 0; &02d8 
-                db  &f8, &f8, &e0, &fc, &e0, &fe, &fe, 0; &02e0 
-                db  0, &18, &18, 0, 0, &18, &18, 0; &02e8
+                db  &fe, &fe, &fe, &38, &38, &38, &38, 0; &02c8; T (5A)
+                db  &7C,  &FE,  &F0,  &7C,  &1E,  &FE,  &7C ;S  (5B)
+                ;db  &7c, &7c, &38, &38, &38, &7c, &7c, 0; &02d0 M 
+                db  &82, &ee, &fe, &fe, &d6, &d6, &d6, 0; &02d8 E 
+                db  &f8, &f8, &e0, &fc, &e0, &fe, &fe, 0; &02e0 :  
+                db  0, &18, &18, 0, 0, &18, &18, 0; &02e8 :
 wizard_chars:   db  &0,  &0,  &6D,  &ED,  &36,  &36,  &36,  &36; &0278 
                 db  &0,  &0,  &80,  &80,  &C0,  &C0,  &C0,  &C0; &0280
                 db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0288
@@ -10794,8 +10789,8 @@ panel_body:     db  &0f, 0, 0, 0, 0, 0, 0, &3a; 24
                 db  &12, 0, 0, 0, 0, 0, 0, &3e; 48
                 ;db  &13, 0, &59, &5a, &5b, &5c, 0, &3f; 56 "TIME"
                 db  &13, 0, 0, 0, 0, 0, 0, &3f; 56
-                db  &14, &5a, &5c, &5c, &5c, &5c, &5c, &40; 64
-                db  &15, &59, 0, 0, &5d, 0, 0, &41; PLACEHOLDER ":"  *** Add &59 for T after &15
+                db  &14, &49, &4a, &4b, &4c, &49, &4e, &40; 64; "FCBGFA"
+                db  &15, &59, 0, 0, &5d, 0, 0, &41; "T"
                 ;db  &15, &49, &4a, &4b, &4c, &4d, &4e, &40; 72 "SCORE"
                 db  &16, 0, 0, 0, 0, 0, 0, &41; 80  ****11th row
                 db  &17, 0, 0, 0, 0, 0, 0, &42; 88

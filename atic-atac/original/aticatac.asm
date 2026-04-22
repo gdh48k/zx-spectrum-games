@@ -3488,7 +3488,7 @@ creatures:      db  &5c                       ; spider
 
 ; draw chicken energy bar
 
-chicken_yx equ     &7fc8
+
 draw_chicken:
                 ld      a, (player_energy)
                 srl     a
@@ -8925,7 +8925,7 @@ draw_hdr        ld      hl, panel_chars       ; HL = panel graphics
                 call    loc_A228                  
 draw_bod:       ld      hl, panel_chars
                 ld      (charset_addr), hl
-                ld      hl, &18c0             ; Body coords H (x) = 24 L (y) = 192
+                ld      hl, &18c0             ; Body coords H (y) = 24 L (x) = 192
                 ld      de, panel_body
                 ld      bc, &0815             ; Cols/Rows -changed from 0815 to 0818
                 call    loc_A228                 
@@ -8951,13 +8951,28 @@ loc_A22D:
 
 ; draw side-panel colours, which follow room colour
 
-acg_attr_yx     equ     &30c8
-score_cap_yx    equ     &56c8
-;score_yx        equ     &56d0
+
+; side panel layout (H=Y, L=X) for attribute routines
+panel_attr_yx    equ     &00c0           ; y=0,   x=192 (&c0)
+acg_attr_yx      equ     &30c8           ; y=48,  x=200
+floor_cap_yx     equ     &56c8
+floor_yx         equ     &56d0 
+
+chicken_yx       equ     &7fc8
+chicken_attr_yx  equ     &66c8 
+
+lives_attr_yx    equ     &86c8
+lives_yx         equ     &95c8  
+
+
 time_cap_yx     equ     &5ec8
 time_yx         equ     &5ed0
-chicken_attr_yx equ     &66c8  
-lives_attr_yx   equ     &86c8 
+
+
+
+;score_cap_yx    equ     &56c8
+;score_yx        equ     &56d0 
+
 
 
 dark_blue       db      01
@@ -8969,7 +8984,7 @@ bright_cyan     db      &45
 
 draw_panel_attrs:
                                              ; COLOUR BACKGROUND
-                ld      hl, &c0
+                ld      hl, panel_attr_yx
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0818            ; 8x24
                 ld      a, (room_attr)
@@ -9063,7 +9078,7 @@ colour_acg_3:
                 ld      a, (bright_yellow)   ; bright yellow (CHICKEN)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
-                ld      hl, score_cap_yx     ; 58c8 to 5ec8
+                ld      hl, floor_cap_yx     ; 58c8 to 5ec8
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0101             ; 6x1
                 ld      a, (bright_cyan)      ; bright cyan (score caption)
@@ -9077,7 +9092,7 @@ colour_acg_3:
 
                 ; --- NEW: HIGHLIGHT CURRENT FLOOR LETTER ---
                 ; 1. Reset all 5 letters to Dark Blue first
-                ld      hl, score_yx            ; Your 'C' letter pixel coords
+                ld      hl, floor_yx            ; Your 'C' letter pixel coords
                 call    xy_to_attr            ; HL = Attribute address of 'C'
                 push    hl                    ; Save for step 2
                 ld      a, &01                ; Dark Blue
@@ -9120,7 +9135,7 @@ colour_acg_3:
 
 ; draw lives sprites in side panel
 
-lives_yx        dw      &95c8  
+ 
 
 draw_lives:
                 push    ix
@@ -9131,7 +9146,7 @@ draw_lives:
                 or      1                    ; offset to first graphic
                 ld      (ix+0), a            ; character type
                 ld      (ix+5), &47          ; bright white
-                ld      hl, (lives_yx)            ; coords H=Y, L=X (CHANGED FROM 8dc8 to 95c8)
+                ld      hl, lives_yx         ; coords H=Y, L=X (CHANGED FROM 8dc8 to 95c8)
                 ld      (ix+3), l
                 ld      (ix+4), h
                 ld      a, (lives)

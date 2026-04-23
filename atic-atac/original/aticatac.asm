@@ -5557,8 +5557,8 @@ minimap_ptr:      dw  minimap_gf    ; 2-byte pointer to current floor table
 ;minimap_x         equ     200  ; *** Top half #2 ***
 ;minimap_y         equ     48  
 
-gf_offset_x       equ     12
-gf_offset_y       equ     2
+gf_offset_x       equ     8
+gf_offset_y       equ     4
 f1_offset_x       equ     14
 f1_offset_y       equ     5
 at_offset_x       equ     14
@@ -5577,59 +5577,100 @@ cv_offset_y       equ     5
 ; Terminated by &FF
 ;----------------------------------------------------------
 minimap_gf:
-        ; --- ROW 0 ---
-        db  &73,  0,  0      ; col 0
-        db  &13,  3,  0      ; col 1
-        db  &14,  6,  0      ; col 2
-        db  &15,  9,  0      ; col 3
-        db  &16, 12,  0      ; col 4
-        db  &17, 15,  0      ; col 5
+        ; --- MAP DATA (Shifted X+4 to clear space for label) ---
+        db  &73,  4,  0      ; Row 0
+        db  &13,  7,  0
+        db  &14, 10,  0
+        db  &15, 13,  0
+        db  &16, 16,  0
+        db  &17, 19,  0
+        db  &12,  7,  3      ; Row 1
+        db  &18, 19,  3
+        db  &11,  7,  6      ; Row 2
+        db  &6B, 10,  6
+        db  &6C, 13,  6
+        db  &03, 16,  6
+        db  &02, 19,  6
+        db  &01, 22,  6
+        db  &10,  7,  9      ; Row 3
+        db  &04, 16,  9
+        db  &19, 19,  9
+        db  &00, 22,  9
+        db  &8E, 25,  9
+        db  &0F,  7, 12      ; Row 4
+        db  &6D, 10, 12
+        db  &6E, 13, 12
+        db  &05, 16, 12
+        db  &06, 19, 12
+        db  &07, 22, 12
+        db  &0E,  7, 15      ; Row 5
+        db  &08, 19, 15
+        db  &0D,  7, 18      ; Row 6
+        db  &0C, 10, 18
+        db  &0B, 13, 18
+        db  &0A, 16, 18
+        db  &09, 19, 18
+        db  &6F,  7, 21      ; Row 7
+        db  &70,  7, 24      ; Row 8
 
-        ; --- ROW 1 ---
-        db  &12,  3,  3      ; col 1
-        db  &18, 15,  3      ; col 5
+        ; --- IRREGULAR MEDIEVAL BORDER (Offset Adjusted) ---
+        
+        ; Top-Left (Longer Vertical Flourish)
+        ;db  &00, 254, 254    ; Vertex
+        ;db  &00,   0, 254    ; Horiz (2px)
+        ;db  &00,   1, 254
+        ;db  &00, 254,   0    ; Vertical (5px)
+        ;db  &00, 254,   1
+        ;db  &00, 254,   2
+        ;db  &00, 254,   3
+        ;db  &00, 254,   4
+        
+        ; Top-Right (Short & Tight)
+        ;db  &00,  29, 254    ; Vertex
+        ;db  &00,  27, 254    ; Horiz (2px)
+        ;db  &00,  26, 254
+        ;db  &00,  29,   0    ; Vertical (2px)
+        ;db  &00,  29,   1
 
-        ; --- ROW 2 ---
-        db  &11,  3,  6      ; col 1
-        db  &6B,  6,  6      ; col 2
-        db  &6C,  9,  6      ; col 3
-        db  &03, 12,  6      ; col 3 (Room ID &03)
-        db  &02, 15,  6      ; col 4 (Stairs Up to F1)
-        db  &01, 18,  6      ; col 5 (Room ID &01)
+        ; Bottom-Left (Wide Horizontal Base)
+        ;db  &00, 254,  28    ; Vertex
+        ;db  &00,   0,  28    ; Horiz (4px)
+        ;db  &00,   1,  28
+        ;db  &00,   2,  28
+        ;db  &00,   3,  28
+        ;db  &00, 254,  26    ; Vertical (3px)
+        ;db  &00, 254,  25
+        ;db  &00, 254,  24
 
-        ; --- ROW 3 ---
-        db  &10,  3,  9      ; col 1
-        db  &04, 12,  9      ; col 4
-        db  &19, 15,  9      ; col 5
-        db  &00, 18,  9      ; col 6
-        db  &8E, 21,  9      ; col 7
+        ; Bottom-Right (Elegant Drop)
+        ;db  &00,  29,  28    ; Vertex
+        ;db  &00,  27,  28    ; Horiz (2px)
+        ;db  &00,  26,  28
+        ;db  &00,  29,  26    ; Vertical (4px)
+        ;db  &00,  29,  25
+        ;db  &00,  29,  24
+        ;db  &00,  29,  23
 
-        ; --- ROW 4 ---
-        db  &0F,  3, 12      ; col 1
-        db  &6D,  6, 12      ; col 2
-        db  &6E,  9, 12      ; col 3
-        db  &05, 12, 12      ; col 4
-        db  &06, 15, 12      ; col 5
-        db  &07, 18, 12      ; col 6
+        ;; Top bar
+        ;db  &00,  1, 24      ; . # #
+        ;db  &00,  2, 24
+        
+        ; Left side
+        ;db  &00,  0, 24      ; # . .
+        ;db  &00,  0, 25      ; # . .
+        ;db  &00,  0, 26      ; # . #
+        ;db  &00,  0, 27      ; # . .
+        
+        ; Middle notch
+        ;db  &00,  2, 26      ; . . #
+        
+        ; Bottom bar
+        ;db  &00,  1, 27      ; . # #
+        ;db  &00,  2, 27
 
-        ; --- ROW 5 ---
-        db  &0E,  3, 15      ; col 1
-        db  &08, 15, 15      ; col 5
+        db  &FF              ; End of ground floor 
 
-        ; --- ROW 6 ---
-        db  &0D,  3, 18      ; col 1
-        db  &0C,  6, 18      ; col 2
-        db  &0B,  9, 18      ; col 3
-        db  &0A, 12, 18      ; col 4
-        db  &09, 15, 18      ; col 5
 
-        ; --- ROW 7 ---
-        db  &6F,  3, 21      ; col 1
-
-        ; --- ROW 8 ---
-        db  &70,  3, 24      ; col 1
-
-        db  &FF              ; end marker
 
 minimap_f1:
         ; --- ROW 0 (Y=0) ---
@@ -9006,9 +9047,9 @@ minimap_x       equ     200             ; X=200 (&C8)
 
 dark_blue       db      01
 bright_white    equ      &47
-bright_white_bl db      &4f  
+bright_white_bl equ      &4f  
 bright_yellow   equ     &46
-bright_yellow_gr db     &66 
+bright_yellow_gr equ     &66 
 bright_cyan     equ      &45
 bright_magenta  equ      &43       
 
@@ -9070,12 +9111,15 @@ loc_A259:
 
 
 ; --- TURN MAP AREA BRIGHT WHITE ---
-                ld      hl, minimap_attr_yx ; H=48 (Y), L=200 (X)
-                call    xy_to_attr          ; Convert to Attribute Address
-                ld      bc, &0505           ; 5 columns wide, 5 rows high
-                ld      a, bright_white             
-                call    fill_bc_hl_a        ; Fill the area
+                ;ld      hl, minimap_attr_yx ; H=48 (Y), L=200 (X)
+                ;call    xy_to_attr          ; Convert to Attribute Address
+                ;ld      bc, &0504           ; 5 columns wide, 5 rows high
+                ;ld      a, bright_white              
+                ;call    fill_bc_hl_a        ; Fill the area
                 
+
+
+
                 ld      hl, acg_attr_yx
                 call    xy_to_attr
                 ld      a, (acg_key_flag)
@@ -9120,7 +9164,7 @@ colour_acg_3:
                 ld      hl, lives_attr_yx    ; MOD: Change &7fc8 to &86c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0603            ; 6x3
-                ld      a, bright_white   ; bright white (LIVES)
+                ld      a, bright_white     ; bright white (LIVES)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ld      hl, chicken_attr_yx  ; MOD: Change &5fc8 to &66c8 y,x coords
@@ -9168,7 +9212,7 @@ colour_acg_3:
                 
                 add     a, l                  ; Offset to current floor
                 ld      l, a
-                ld      (hl), bright_white
+                ld      (hl), bright_yellow
 .done_floors:
 
                 

@@ -5554,8 +5554,8 @@ minimap_ptr:      dw  minimap_gf    ; 2-byte pointer to current floor table
 
 ;minimap_x         equ     &c8  ; abs x = 200px (panel left edge)
 ;minimap_y         equ     &97  ; abs y = 157px — adjust to reposition
-minimap_x         equ     200  
-minimap_y         equ     48  
+;minimap_x         equ     200  ; *** Top half #2 ***
+;minimap_y         equ     48  
 
 gf_offset_x       equ     12
 gf_offset_y       equ     2
@@ -8963,16 +8963,27 @@ panel_attr_yx    equ     &00c0           ; y=0,   x=192 (&c0)
 ; --- UPDATED SIDE PANEL LAYOUT (H=Y, L=X) ---
 
 ; 1. ACG Key (Now in the middle slot)
-acg_attr_yx     equ     &5ec8           ; Y=94  (Was &58)
-acg_key_yx      equ     &75c8           ; Y=117 (Was &6f)
+;acg_attr_yx     equ     &5ec8           ; Y=94  (Was &58)  ***Bottom half #1***
+;acg_key_yx      equ     &75c8           ; Y=117 (Was &6f)
+
+acg_attr_yx     equ     &30c8           ; Y=48
+acg_key_yx      equ     &47c8           ; Y=71
 
 ; 2. Chicken (Now below ACG Key)
-chicken_attr_yx equ     &7ec8           ; Y=126 (Attribute Top)
-chicken_yx      equ     &97c8           ; Y=151 (Graphic Bottom)
+;chicken_attr_yx equ     &7ec8           ; Y=126 (Attribute Top) ***Bottom half #2***
+;chicken_yx      equ     &97c8           ; Y=151 (Graphic Bottom)
+
+chicken_attr_yx equ     &60c8           ; Y=96  (Was &48)
+chicken_yx      equ     &7fc8           ; Y=127 (Was &67)
+
+
 
 ; 3. Lives (Now at the bottom)
-lives_attr_yx   equ     &98c8           ; Y=152 (Was &a0)
-lives_yx        equ     &afc8           ; Y=175 (Graphic Bottom)
+;lives_attr_yx   equ     &98c8           ; Y=152 (Was &a0)  ***Bottom half #3***
+;lives_yx        equ     &afc8           ; Y=175 (Graphic Bottom)
+
+lives_attr_yx   equ     &80c8           ; Y=128
+lives_yx        equ     &97c8           ; Y=151
 
 
 floor_cap_yx     equ     &56c8
@@ -8981,7 +8992,10 @@ floor_yx         equ     &56d0
 time_cap_yx     equ     &5ec8
 time_yx         equ     &5ed0
 
-minimap_attr_yx equ     &30c8
+minimap_attr_yx equ     &98c8
+
+minimap_y       equ     152             ; Y=152 (&98)
+minimap_x       equ     200             ; X=200 (&C8)
 
 
 

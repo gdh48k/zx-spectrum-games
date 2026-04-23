@@ -8981,6 +8981,8 @@ floor_yx         equ     &56d0
 time_cap_yx     equ     &5ec8
 time_yx         equ     &5ed0
 
+minimap_attr_yx equ     &30c8
+
 
 
 ;score_cap_yx    equ     &56c8
@@ -8989,11 +8991,12 @@ time_yx         equ     &5ed0
 
 
 dark_blue       db      01
-bright_white    db      &47
+bright_white    equ      &47
 bright_white_bl db      &4f  
-bright_yellow   db      &46
+bright_yellow   equ     &46
 bright_yellow_gr db     &66 
-bright_cyan     db      &45       
+bright_cyan     equ      &45
+bright_magenta  equ      &43       
 
 
 ; -----------------------------------------------------------------------------
@@ -9050,6 +9053,14 @@ loc_A259:
                 ;call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ;pop     de
                 ;ld      (hl), e              ; rosette centre
+
+
+; --- TURN MAP AREA BRIGHT WHITE ---
+                ld      hl, minimap_attr_yx ; H=48 (Y), L=200 (X)
+                call    xy_to_attr          ; Convert to Attribute Address
+                ld      bc, &0505           ; 5 columns wide, 5 rows high
+                ld      a, bright_white             
+                call    fill_bc_hl_a        ; Fill the area
                 
                 ld      hl, acg_attr_yx
                 call    xy_to_attr
@@ -9095,26 +9106,29 @@ colour_acg_3:
                 ld      hl, lives_attr_yx    ; MOD: Change &7fc8 to &86c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0603            ; 6x3
-                ld      a, (bright_white)   ; bright white (LIVES)
+                ld      a, bright_white   ; bright white (LIVES)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ld      hl, chicken_attr_yx  ; MOD: Change &5fc8 to &66c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0604            ; 6x4
-                ld      a, (bright_yellow)   ; bright yellow (CHICKEN)
+                ld      a, bright_yellow   ; bright yellow (CHICKEN)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
-                ld      hl, floor_cap_yx     ; 58c8 to 5ec8
-                call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ld      bc, &0101             ; 6x1
-                ld      a, (bright_cyan)      ; bright cyan (score caption)
-                call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
-                
+                        
                 ;ld      hl, score_yx     
                 ;call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ;ld      bc, &0501            ; 6x1
                 ;ld      a, (bright_white)    ; bright white (score)
                 ;call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
+
+
+
+                ld      hl, floor_cap_yx     ; 58c8 to 5ec8
+                call    xy_to_attr           ; convert pixel coords in HL to attribute address
+                ld      bc, &0101             ; 6x1
+                ld      a, bright_magenta      ; bright cyan (score caption)
+                call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
 
                 ; --- NEW: HIGHLIGHT CURRENT FLOOR LETTER ---
                 ; 1. Reset all 5 letters to Dark Blue first
@@ -9132,7 +9146,7 @@ colour_acg_3:
                 inc     l
                 ld      (hl), a               ; 'A'
 
-                ; 2. Highlight the current floor Yellow
+                ; 2. Highlight the current floor 
                 pop     hl                    ; Get 'C' address back
                 ld      a, (current_floor)    ; Get Floor ID (0-4)
                 cp      &FF                   ; Safety check
@@ -9140,23 +9154,20 @@ colour_acg_3:
                 
                 add     a, l                  ; Offset to current floor
                 ld      l, a
-                ld      (hl), &45             ; Bright Yellow
+                ld      (hl), bright_white
 .done_floors:
-
-
-
 
                 
                 ld      hl, time_cap_yx      ; MOD: Change &38c8 to &48c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0101            ; 6x1
-                ld      a, &43               ; bright magenta (time caption)
+                ld      a, bright_magenta    ; bright magenta (time caption)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                 ld      hl, time_yx          
                 call    xy_to_attr 
                 ld      bc, &0501
-                ld      a, &47               ; bright white (time)
+                ld      a, bright_white      
                 jp      fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
 
 ; draw lives sprites in side panel

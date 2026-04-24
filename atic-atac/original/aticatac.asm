@@ -3636,7 +3636,7 @@ flash_score:
                 jr      z, loc_8CA7          ; jump if so (stop flash)
                 and     &0f                  ; 16th frame?
                 call    z, start_beep        ; call if so (beep)
-                ld      hl,  display+&10d0   ; MOD: Offset changed from &10c8 to &10d0 (moved one char to right)
+                ld      hl,  timer_attr_yx   ; MOD: Offset changed from &10c8 to &10d0 (moved one char to right)
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      b, 5                 ; MOD: No of chars to flash changed from 6 to 5 (first digit removed)
 loc_8C9F:
@@ -3647,9 +3647,9 @@ loc_8C9F:
                 djnz    loc_8C9F
                 ret
 loc_8CA7:
-                ld      hl,  display+&10c8
+                ld      hl,  timer_attr_yx
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ld      b, 6
+                ld      b, 5
 loc_8CAF:
                 ld      a, (hl)
                 and     &7f                  ; disable flash attribute
@@ -3660,9 +3660,9 @@ loc_8CAF:
 
 ; player appear handler for game start
 h_player_appear:
-                ;ld      a, (flash_timer)     ; score flash timer
-                ;and     a                    ; score flash timer active?
-                ;jr      nz, flash_score      ; jump if so
+                ld      a, (flash_timer)     ; score flash timer
+                and     a                    ; score flash timer active?
+                jr      nz, flash_score      ; jump if so
                 ld      a, (sysvar_FRAMES)
                 and     3                    ; 0 in range 0-3?
                 jp      nz, loc_8D12         ; jump if not
@@ -8850,7 +8850,7 @@ loc_A1AE:
                 ld      hl, score_yx
                 ret  
 
-score_yx equ     &50d0
+
 ; print player score at position HL
 print_score:
                 call    xy_to_display        ; convert coords in HL to display address in HL
@@ -9041,11 +9041,12 @@ minimap_x       equ     200             ; X=200 (&C8)
 
 
 ;score_cap_yx    equ     &56c8
-;score_yx        equ     &56d0 
+score_yx        equ     &48d0 
+
+timer_attr_yx   equ     &5ed0
 
 
-
-dark_blue       db      01
+dark_blue       equ      01
 bright_white    equ      &47
 bright_white_bl equ      &4f  
 bright_yellow   equ     &46
@@ -9114,7 +9115,7 @@ loc_A259:
                 ;ld      hl, minimap_attr_yx ; H=48 (Y), L=200 (X)
                 ;call    xy_to_attr          ; Convert to Attribute Address
                 ;ld      bc, &0504           ; 5 columns wide, 5 rows high
-                ;ld      a, bright_white              
+                ;ld      a, bright_white_bl              
                 ;call    fill_bc_hl_a        ; Fill the area
                 
 
@@ -9125,12 +9126,12 @@ loc_A259:
                 ld      a, (acg_key_flag)
                 bit     0, a                    ; acg_1 collected?
                 jr      nz, acg1_yellow       ; jump if so
-                ld      a, (dark_blue)           ; set to dark blue if not
+                ld      a, dark_blue   ; set to dark blue if not
                 jr      colour_acg_1
 acg1_yellow:    ld      a, &46                ; set to bright yellow
 colour_acg_1:
                 ;and     &7F
-                ld      bc, &0204
+                ld      bc, &0203
                 call    fill_bc_hl_a
 
                 ld      hl, acg_attr_yx+16
@@ -9138,7 +9139,7 @@ colour_acg_1:
                 ld      a, (acg_key_flag)
                 bit     1, a                  ; acg_2 collected?
                 jr      nz, acg2_yellow       ; jump if so
-                ld      a, (dark_blue)               ; set to dark blue if not
+                ld      a, dark_blue               ; set to dark blue if not
                 jr      colour_acg_2
 acg2_yellow:    ld      a, &46                ; set to bright yellow
 colour_acg_2:
@@ -9152,7 +9153,7 @@ colour_acg_2:
                 ld      a, (acg_key_flag)
                 bit     2, a                  ; acg_3 collected?
                 jr      nz, acg3_yellow       ; jump if so
-                ld      a, (dark_blue)                 ; set to dark blue if not
+                ld      a, dark_blue                 ; set to dark blue if not
                 jr      colour_acg_3
 acg3_yellow:    ld      a, &46                ; set to bright yellow
 colour_acg_3:

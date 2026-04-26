@@ -73,8 +73,8 @@ mod_options:    db  '1  CLASSIC MOD'
                 db  &c3
                 db  '5  AUTO-PICKU'
                 db  &d0
-                db  '6  TB'
-                db  &c3
+                db  '6  RANDOM STAR'
+                db  &d4  
                 db  '0  ENTE'
                 db  &d2
 
@@ -1608,6 +1608,7 @@ loc_7C59:
                 jr      z, loc_7C61          ; jump if not
                 and     &e7                  ; Mask b3& b4 (1110011)
                 or      8                    ; Set b3 - select Wizard/Auto-pickup
+                ;or      %00001000
 loc_7C61:
                 ld      d, a
                 ld      a, &ef              ; xxx67890
@@ -1619,7 +1620,8 @@ loc_7C61:
                 bit     4, e                 ; 6 pressed?
                 jr      z, loc_7C73          ; jump if not
                 and     &e7
-                or      &10                  ; select Serf
+                or      &10                  ; Set b4 - select Serf/Random Start
+                ;or      %00010000
 loc_7C73:
                 ld      ix,(current_menu)    
                 ld      (ix+0), a           ; store menu_selection in current menu's table          
@@ -1758,6 +1760,7 @@ start_game:
                 call    gf_mod
                 call    reset_game_state     ; copy initial game state to working state area
                 call    randomise_doors      ; randomise which doors can open/close
+                call    start_room_mod
                 call    prepare_player       ; prepare player to spawn
                 call    check_floor
                 call    draw_minimap
@@ -5297,6 +5300,38 @@ gf_doors:
                 dw trap_73_74
                 db &19, &34, &70, &24, &1b, &34, &70, &24
 
+
+; --- Random Start Room Mod ---
+
+start_room_mod:
+                ; --- Check if Mod 6 (Bit 4) is active ---
+                ld      a, (mod_selection)
+                and     16                  ; Mask Bit 4 (%00010000)
+                jr      z, srm_exit         ; If bit is 0, use default start
+
+                ; --- Random Start Room Mod ---
+
+                ld      a, r                ; Hardware entropy
+                ld      l, a
+                ld      a, (sysvar_FRAMES)  ; Time entropy
+                add     a, l                ; Mix them
+                and     7                   ; Result 0-7
+
+
+                ld      e, a
+                ld      d, 0
+                ld      hl, start_room_init
+                add     hl, de              ; Point to table entry
+                ld      a, (hl)             ; Get the room ID 
+                ld      (player_room), a    ; Set it for spawn
+                
+srm_exit        ret
+                
+                
+
+; Table containing 8 potential start rooms
+start_room_init:
+                db &74, &8F, &66, &00, &24, &85, &27, &76
 
 
 ; place a tombstone at the player position

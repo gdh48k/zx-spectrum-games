@@ -5593,15 +5593,15 @@ minimap_ptr:      dw  minimap_gf    ; 2-byte pointer to current floor table
 ;minimap_y         equ     48  
 
 gf_offset_x       equ     8
-gf_offset_y       equ     4
-f1_offset_x       equ     14
-f1_offset_y       equ     5
-at_offset_x       equ     14
-at_offset_y       equ     9
-bm_offset_x       equ     14
-bm_offset_y       equ     8
-cv_offset_x       equ     7
-cv_offset_y       equ     5
+gf_offset_y       equ     5
+f1_offset_x       equ     13
+f1_offset_y       equ     7
+at_offset_x       equ     13
+at_offset_y       equ     11
+bm_offset_x       equ     12
+bm_offset_y       equ     9
+cv_offset_x       equ     6
+cv_offset_y       equ     6
 
 
 ;----------------------------------------------------------

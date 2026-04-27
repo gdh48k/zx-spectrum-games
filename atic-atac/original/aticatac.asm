@@ -3588,7 +3588,8 @@ loc_8C26:
 chicken_entity: db  0, 0, 0, 0, 0, 0, 0, 0
 
 game_over:
-                call    clear_play_area      ; clear screen and attrs of play area
+                ;call    clear_play_area      ; clear screen and attrs of play area
+                call    clear_screen
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
                 ld      hl, &3040            ; game over at 64,48
@@ -3598,16 +3599,18 @@ game_over:
 loc_8C4A:
                 ld      b, &14               ; 20 loops of 65536 delay
                 ld      hl, 0
-gameover_delay:
-                dec     hl
-                ld      a, h
-                or      l
-                jr      nz, gameover_delay
-                djnz    gameover_delay
+;gameover_delay:
+;                dec     hl
+;                ld      a, h
+;                or      l
+;                jr      nz, gameover_delay
+;                djnz    gameover_delay
+
+                call    loc_94A1
                 jp      reset_menu             ; jp so to clear menu settings back to main menu
 
 gameover_msg:   db  &47                       ; bright white
-                db  'GAME OVE'
+                db  'G A M E   O V E '
                 db  &d2
 
 ; food item handler

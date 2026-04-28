@@ -1747,7 +1747,7 @@ print_text:
 
 start_game:
                 call    clear_game_data      ; clear 5E10-5FFF
-                ld      a, 3                 ; 3 lives on startup
+                ld      a, 0                 ; 3 lives on startup
                 ld      (lives), a
                 ld      hl, food_items
                 ld      (food_ptr), hl
@@ -3587,6 +3587,11 @@ loc_8C26:
 
 chicken_entity: db  0, 0, 0, 0, 0, 0, 0, 0
 
+
+
+
+
+
 game_over:
                 ;call    clear_play_area      ; clear screen and attrs of play area
                 call    clear_screen
@@ -3594,11 +3599,24 @@ game_over:
                 ld      (charset_addr), hl
                 ld      hl, &3040            ; game over at 64,48
                 ld      de, gameover_msg
-                call    colour_text          ; show a line of text, first byte is attr
+                call    colour_text          ; colour 'game over' text
                 call    game_stats           ; show game statistics
+
+                ; --- NEW: Attribute Safety Wipe ---
+        ; This sets the entire attribute area to Bright White Ink / Black Paper
+        ld      hl, &5800            ; Start of Attribute RAM
+        ld      (hl), &47            ; &47 = Bright (bit 6), White Ink (0-2), Black Paper (3-5)
+        ld      de, &5801
+        ld      bc, 767              ; 768 bytes total
+        ldir                         ; Fill the whole color screen
+
+                
+        call    test_attic_safe
+                
+
 loc_8C4A:
-                ld      b, &14               ; 20 loops of 65536 delay
-                ld      hl, 0
+                ;ld      b, &14               ; 20 loops of 65536 delay
+                ;ld      hl, 0
 ;gameover_delay:
 ;                dec     hl
 ;                ld      a, h
@@ -3606,12 +3624,85 @@ loc_8C4A:
 ;                jr      nz, gameover_delay
 ;                djnz    gameover_delay
 
-                call    loc_94A1
-                jp      reset_menu             ; jp so to clear menu settings back to main menu
+                call    loc_94A1              ; pause screen until space pressed
+                jp      reset_menu            ; jp so to clear menu settings back to main menu
 
 gameover_msg:   db  &47                       ; bright white
                 db  'G A M E   O V E '
                 db  &d2
+
+
+floor_ptrs_table:
+        dw  minimap_at    ; Top (Floor 4)
+        dw  minimap_f1    ; (Floor 3)
+        dw  minimap_gf    ; (Floor 2)
+        dw  minimap_bm    ; (Floor 1)
+        dw  minimap_cv    ; Bottom (Floor 0)
+
+
+test_attic_safe:
+        ; 1. Neutralize engine offsets
+        xor     a
+        ld      (minimap_x), a
+        ld      (minimap_y), a
+
+        ; 2. Set absolute anchors to TOP LEFT (Bank 0)
+        ld      a, 10                ; X = 10 (Far left)
+        ld      (current_floor_x), a
+        ld      a, 10                ; Y = 10 (Top)
+        ld      (current_floor_y), a
+
+        ; 3. Draw
+        ld      hl, minimap_at
+        ld      (minimap_ptr), hl
+        call    draw_minimap
+        ret
+
+
+
+
+draw_all_minimaps:
+                ld      hl, floor_ptrs_table 
+                ld      b, 5                 
+                ld      a, 4                 
+                ld      d, 64                ; START Y = 64 (Top of the middle screen bank)
+.damloop:
+                push    bc
+                push    af
+                push    hl
+                push    de
+
+                ld      (current_floor), a   
+                ld      e, (hl)
+                inc     hl
+                ld      d, (hl)
+                ld      (minimap_ptr), de    
+
+                ; --- Use a lower X to keep it away from the right edge ---
+                ld      a, 64                
+                ld      (minimap_x), a       
+                
+                pop     de                   
+                push    de
+                ld      a, d
+                ld      (minimap_y), a       
+
+                call    draw_minimap         
+                
+                pop     de
+                ld      a, d
+                add     a, 24                ; Vertical gap
+                ld      d, a                 
+                
+                pop     hl
+                inc     hl
+                inc     hl
+                pop     af
+                dec     a
+                pop     bc
+                djnz    .damloop
+                ret
+
 
 ; food item handler
 h_food:
@@ -6208,6 +6299,7 @@ update_ui_attributes:
         ld      l, a
         ld      (hl), &01           ; Dark Blue
         ret
+
 
 
 ;----------------------------------------------------------

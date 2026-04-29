@@ -1763,6 +1763,11 @@ start_game:
                 call    start_room_mod
                 call    prepare_player       ; prepare player to spawn
                 call    check_floor
+                ; --- Setup Default Minimap Position ---
+                ld      a, minimap_x         ; This is our 200 constant
+                ld      (map_anchor_x), a
+                ld      a, minimap_y         ; This is our 152 constant
+                ld      (map_anchor_y), a
                 call    draw_minimap
                 jp      enter_room
 
@@ -3863,6 +3868,17 @@ reset_game_state:
 
                 xor     a
                 ld      (acg_key_flag), a ; <--- MANUALLY RESET OUR FLAG
+
+                ; --- Reset UI Anchors to Side Panel ---
+                ld      a, minimap_x         
+                ld      (map_anchor_x), a
+                ld      a, minimap_y         
+                ld      (map_anchor_y), a
+        
+                ; Reset the "Last Room" so the minimap redraws fresh
+                ld      a, &FF
+                ld      (last_room_saved), a
+                ret
 
                 ; --- TEST OVERRIDE ---
                 ;ld      a, &09
@@ -6706,38 +6722,43 @@ pixel_address:
 ; Corrupts: AF, BC, DE, HL
 ;----------------------------------------------------------
 set_pixel_hl:
-        push    bc
+    push    bc               ; Protect caller's loop counter
+    
+    ld      c, l             ; Save relative_x in C
+    ld      b, h             ; Save relative_y in B
 
-        ; --- Final Y Calculation ---
-        ld      a, (current_floor_y)        ; Get offset (e.g., 5)
-        add     a, 152                      ; Add side panel Y anchor
-        add     a, h                        ; Add room relative Y
-        ld      h, a                        ; H = Absolute Screen Y
+    ; --- 1. Calculate Absolute Y ---
+    ld      a, (map_anchor_y)
+    ld      hl, current_floor_y
+    add     a, (hl)          ; A = Anchor_Y + Floor_Y
+    add     a, b             ; A = Anchor_Y + Floor_Y + Room_Y
+    ld      d, a             ; Store Absolute Y in D
 
-        ; --- Final X Calculation ---
-        ld      a, (current_floor_x)        ; Get offset (e.g., 8)
-        add     a, 200                      ; Add side panel X anchor
-        add     a, l                        ; Add room relative X
-        ld      l, a                        ; L = Absolute Screen X
-        
-        pop     bc
-        
-        ; pixel_address expects H=Y, L=X
-        ; returns screen address in HL, bit position in B
-        call    pixel_address
-        
-        ; --- Pixel Bit Selection ---
-        ld      a, %10000000                ; Initial bit (leftmost)
-        inc     b                           ; Safety for 0
+    ; --- 2. Calculate Absolute X ---
+    ld      a, (map_anchor_x)
+    ld      hl, current_floor_x
+    add     a, (hl)          ; A = Anchor_X + Floor_X
+    add     a, c             ; A = Anchor_X + Floor_X + Room_X
+    ld      l, a             ; L = Absolute X
+    ld      h, d             ; H = Absolute Y
+
+    ; --- 3. Convert & Plot ---
+    call    pixel_address    ; HL = screen address, B = bit position
+    
+    ld      a, %10000000
+    inc     b
 .shift_loop:
-        dec     b
-        jr      z, .done_shift
-        rrca                                ; Shift right to correct column
-        jr      .shift_loop
+    dec     b
+    jr      z, .done_shift
+    rrca
+    jr      .shift_loop
 .done_shift:
-        or      (hl)                        ; Combine with existing pixels
-        ld      (hl), a                     ; Write to screen
-        ret
+    or      (hl)
+    ld      (hl), a          ; DRAW PIXEL
+    
+    pop     bc               ; Restore caller's loop counter
+    ret
+
 
 
         
@@ -9180,12 +9201,14 @@ floor_yx         equ     &56d0
 time_cap_yx     equ     &5ec8
 time_yx         equ     &5ed0
 
-minimap_attr_yx equ     &98c8
+; --- MINIMAP ANCHORS ---
+minimap_yx      equ     &98c8            ; The "Master" Coordinate
+minimap_y       equ     high(minimap_yx) ; Extract &98 (152)
+minimap_x       equ     low(minimap_yx)  ; Extract &C8 (200)
 
-minimap_y       equ     152             ; Y=152 (&98)
-minimap_x       equ     200             ; X=200 (&C8)
-
-
+; --- Global Anchor Variables ---
+map_anchor_x:    db 0    ; This will hold our "Live" X (e.g., 200 or 10)
+map_anchor_y:    db 0    ; This will hold our "Live" Y (e.g., 152 or 20)
 
 ;score_cap_yx    equ     &56c8
 score_yx        equ     &48d0 

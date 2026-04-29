@@ -3653,7 +3653,7 @@ test_attic_safe:
         ld      (current_floor_y), a
 
         ; 3. Draw
-        ld      hl, minimap_at
+        ld      hl, minimap_gf
         ld      (minimap_ptr), hl
         call    draw_minimap
         ret
@@ -5667,8 +5667,11 @@ floor_gf        equ 2
 floor_f1        equ 3
 floor_at        equ 4
 
-current_floor_x:  db  0               ; pre-calculated x (minimap_x + offset)
-current_floor_y:  db  0               ; pre-calculated y (minimap_y + offset)
+current_floor_x:  db  200               ; pre-calculated x (minimap_x + offset)
+current_floor_y:  db  152               ; pre-calculated y (minimap_y + offset)
+
+current_floor_offset_x: db 0      ; Offset - Changed by update_floor_offsets
+current_floor_offset_y: db 0      ; Offset - Changed by update_floor_offsets
 
 pixel_addr_save:  dw  0    ; Stores the 16-bit Screen Address (HL)
 pixel_shift_save: db  0    ; Stores the bit-shift value (B)
@@ -6211,18 +6214,13 @@ check_floor:
         ld      (current_floor), a  
         ld      (minimap_ptr), de 
 
-        ;push    af                  ; Save New ID (A)
-        ;push    bc                  ; Save Old ID (B)
-        ;push    de                  ; Save Map Pointer
-        ;call    update_ui_attributes 
-        ;pop     de
-        ;pop     bc
-        ;pop     af
         
         call    update_floor_offsets 
         scf                         
         ret
 
+; Updates the floor-specific nudges based on current floor ID in A
+; Updates BOTH the clean offsets and the combined anchors
 update_floor_offsets:
         cp      floor_gf
         jr      z, .set_gf
@@ -6239,38 +6237,47 @@ update_floor_offsets:
 .set_gf:
         ld      a, gf_offset_x
         ld      (current_floor_x), a
+        ld      (current_floor_offset_x), a
         ld      a, gf_offset_y
         ld      (current_floor_y), a
-        ret
+        ld      (current_floor_offset_y), a
+        ret        
 
 .set_f1:
         ld      a, f1_offset_x
         ld      (current_floor_x), a
+        ld      (current_floor_offset_x), a
         ld      a, f1_offset_y
         ld      (current_floor_y), a
+        ld      (current_floor_offset_y), a
         ret
 
 .set_at:
         ld      a, at_offset_x
         ld      (current_floor_x), a
+        ld      (current_floor_offset_x), a
         ld      a, at_offset_y
         ld      (current_floor_y), a
+        ld      (current_floor_offset_y), a
         ret
 
 .set_bm:
         ld      a, bm_offset_x
         ld      (current_floor_x), a
+        ld      (current_floor_offset_x), a
         ld      a, bm_offset_y
         ld      (current_floor_y), a
+        ld      (current_floor_offset_y), a
         ret
 
 .set_cv:
         ld      a, cv_offset_x
         ld      (current_floor_x), a
+        ld      (current_floor_offset_x), a
         ld      a, cv_offset_y
         ld      (current_floor_y), a
+        ld      (current_floor_offset_y), a
         ret
-
 
 ; -----------------------------------------------------------
 ; update_ui_attributes
@@ -6328,32 +6335,16 @@ draw_minimap:
 ; 1. Decide which box type to draw based on the fresh flag
         jr      z, .skip_to_unvisited 
 
-        ; 2. If we are here, it's VISITED. Do the math now.
-        ld      a, (ix+1)
-        ld      hl, current_floor_x
-        add     a, (hl)              ; Flags destroyed here, but we don't care anymore
-        ld      d, a
-        
-        ld      a, (ix+2)
-        ld      hl, current_floor_y
-        add     a, (hl)
-        ld      e, a
-        
+        ; 2. VISITED Math
+        ld      d, (ix+1)            ; D = rel_x
+        ld      e, (ix+2)            ; E = rel_y
         call    draw_visited_room
         jr      .next
 
 .skip_to_unvisited:
-        ; 3. If we are here, it's UNVISITED. Do the same math.
-        ld      a, (ix+1)
-        ld      hl, current_floor_x
-        add     a, (hl)
-        ld      d, a
-        
-        ld      a, (ix+2)
-        ld      hl, current_floor_y
-        add     a, (hl)
-        ld      e, a
-        
+        ; 3. UNVISITED Math
+        ld      d, (ix+1)            ; D = rel_x
+        ld      e, (ix+2)            ; E = rel_y
         call    draw_unvisited_room
 
 .next:
@@ -6696,31 +6687,41 @@ pixel_address:
 ; Corrupts: AF, BC, DE, HL
 ;----------------------------------------------------------
 set_pixel_hl:
-        ld      a, minimap_y
-        add     a, h
-        ld      h, a
+        push    bc
 
-        ld      a, minimap_x
-        add     a, l
-        ld      l, a
+        ; --- Final Y Calculation ---
+        ld      a, (current_floor_y)        ; Get offset (e.g., 5)
+        add     a, 152                      ; Add side panel Y anchor
+        add     a, h                        ; Add room relative Y
+        ld      h, a                        ; H = Absolute Screen Y
 
-        call    pixel_address    
-
-        ; --- NEW LOGIC START ---
-        ld      a, &80           ; Base pixel (leftmost)
-        inc     b                ; Increment B to handle the 0 case safely
+        ; --- Final X Calculation ---
+        ld      a, (current_floor_x)        ; Get offset (e.g., 8)
+        add     a, 200                      ; Add side panel X anchor
+        add     a, l                        ; Add room relative X
+        ld      l, a                        ; L = Absolute Screen X
+        
+        pop     bc
+        
+        ; pixel_address expects H=Y, L=X
+        ; returns screen address in HL, bit position in B
+        call    pixel_address
+        
+        ; --- Pixel Bit Selection ---
+        ld      a, %10000000                ; Initial bit (leftmost)
+        inc     b                           ; Safety for 0
 .shift_loop:
-        dec     b                ; Decrement back
-        jr      z, .done_shift   ; If it was 0 (or is now 0), we are finished
-        rrca                     ; Shift the pixel bit right
-        jr      .shift_loop      ; Repeat until B reaches 0
+        dec     b
+        jr      z, .done_shift
+        rrca                                ; Shift right to correct column
+        jr      .shift_loop
 .done_shift:
-        ; --- NEW LOGIC END ---
-
-        or      (hl)
-        ld      (hl), a
+        or      (hl)                        ; Combine with existing pixels
+        ld      (hl), a                     ; Write to screen
         ret
 
+
+        
 ;----------------------------------------------------------
 ; check_flash_timer
 ; Toggle flash_state every 32 frames (~0.6s at 50Hz)
@@ -6919,7 +6920,7 @@ loc_96C6:
 calc_visited:
                 ld      hl, visited_rooms    ; visit rooms bit array
                 ld      bc, &0813             ; 8*19 bits covers all rooms
-                ld      d, 3                 ; D decremented for every visited room
+                ;ld      d, 3                 ; D decremented for every visited room
                 xor     a
 loc_96D2:
                 push    bc
@@ -6928,17 +6929,17 @@ loc_96D2:
 loc_96D5:
                 rr      e
                 jr      nc, loc_96E1
-                dec     d                    ; counter zero?
-                jr      nz, loc_96E1         ; jump if not
-                ld      d, 3                 ; reset counter
-                add     a, 2                 ; add 2% for every 3 visited rooms
+                ;dec     d                    ; counter zero?
+                ;jr      nz, loc_96E1         ; jump if not
+                ;ld      d, 3                 ; reset counter
+                add     a, 1                 ; add 2% for every 3 visited rooms
                 daa
 loc_96E1:
                 djnz    loc_96D5
                 pop     bc
                 dec     c
                 jr      nz, loc_96D2
-                inc     a                    ; add 1% to total
+                ;inc     a                    ; add 1% to total
                 ld      (visited_percent), a
                 ret
 game_complete:

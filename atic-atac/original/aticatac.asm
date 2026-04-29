@@ -3611,6 +3611,12 @@ game_over:
         ldir                         ; Fill the whole color screen
 
                 
+        ; --- Force Game Over Positioning ---
+        ld      a, 20                ; Set new X anchor for Game Over
+        ld      (current_floor_x), a
+        ld      a, 40                ; Set new Y anchor for Game Over
+        ld      (current_floor_y), a
+        
         call    test_attic_safe
                 
 
@@ -3641,19 +3647,22 @@ floor_ptrs_table:
 
 
 test_attic_safe:
-        ; 1. Neutralize engine offsets
         xor     a
         ld      (minimap_x), a
         ld      (minimap_y), a
 
-        ; 2. Set absolute anchors to TOP LEFT (Bank 0)
-        ld      a, 10                ; X = 10 (Far left)
+        ; --- THE WRAP-AROUND TRICK ---
+        ; If the plotter adds 200, and we want to be at 10:
+        ; 10 - 200 = -190. In 8-bit math, -190 is 66.
+        ld      a, 66                
         ld      (current_floor_x), a
-        ld      a, 10                ; Y = 10 (Top)
+        
+        ; If the plotter adds 152, and we want to be at 20:
+        ; 20 - 152 = -132. In 8-bit math, -132 is 124.
+        ld      a, 124                
         ld      (current_floor_y), a
 
-        ; 3. Draw
-        ld      hl, minimap_gf
+        ld      hl, minimap_at       ; Use 'at' for Attic
         ld      (minimap_ptr), hl
         call    draw_minimap
         ret
@@ -6456,34 +6465,44 @@ update_minimap:
 
 .room_found:
     ; --- 6. Calculate Coordinates Relative to Map Panel ---
-    ld      a, (ix+1)           ; rel_x
-    ld      hl, current_floor_x
-    or      a
-    add     a, (hl)
-    ld      d, a                ; D = Final X
+    ;ld      a, (ix+1)           ; rel_x
+    ;ld      hl, current_floor_x
+    ;or      a
+    ;add     a, (hl)
+    ;ld      d, a                ; D = Final X
 
-    ld      a, (ix+2)           ; rel_y
-    ld      hl, current_floor_y
-    or      a
-    add     a, (hl)
-    ld      e, a                ; E = Final Y
+    ;ld      a, (ix+2)           ; rel_y
+    ;ld      hl, current_floor_y
+    ;or      a
+    ;add     a, (hl)
+    ;ld      e, a                ; E = Final Y
 
+    ld d, (ix+1)               ; Just the raw relative X
+    ld e, (ix+2)               ; Just the raw relative
     push    de                  
     call    draw_visited_room   ; Now draws in the right spot!
     pop     de                  
 
 ; --- 7. Calculate New Address ---
-    ld      a, e
-    inc     a                   ; Center Y (Room + Offset + 1)
-    add     a, minimap_y        ; <--- ADD THIS: Move it into the panel!
-    ld      h, a
+    ; Calculate Y
+    ld      a, (current_floor_y)
+    ld      b, a
+    ld      a, 152              ; Side panel anchor Y
+    add     a, b                ; Combined Y offset
+    add     a, e                ; + Room Rel_Y
+    inc     a                   ; + 1 for center
+    ld      h, a                ; H = Final Absolute Y
     
-    ld      a, d
-    inc     a                   ; Center X (Room + Offset + 1)
-    add     a, minimap_x        ; <--- ADD THIS: Move it into the panel!
-    ld      l, a
+    ; Calculate X
+    ld      a, (current_floor_x)
+    ld      b, a
+    ld      a, 200              ; Side panel anchor X
+    add     a, b                ; Combined X offset
+    add     a, d                ; + Room Rel_X
+    inc     a                   ; + 1 for center
+    ld      l, a                ; L = Final Absolute X
 
-    ; NOW H and L are truly absolute screen coordinates.
+    ; NOW H and L match the math in set_pixel_hl exactly.
     call    pixel_address
     
     ; --- 8. Draw & Save ---
@@ -6773,7 +6792,7 @@ flash_center_pixel:
 update_flasher_coords:
     ld      a, (ix+0)
     cp      &FF
-    ret     z                     ; Safety exit
+    ret     z
     cp      b
     jr      z, .found_it
     ld      de, 3
@@ -6781,32 +6800,29 @@ update_flasher_coords:
     jr      update_flasher_coords
 
 .found_it:
-    ld      d, (ix+1)             ; rel_x
-    ld      e, (ix+2)             ; rel_y
+    ld      d, (ix+1)           ; rel_x
+    ld      e, (ix+2)           ; rel_y
 
-    
-    ; --- Calculate Y ---
+    ; --- Reverted Simple Math ---
     ld      a, e
-    inc     a                     ; center it (+1)
+    inc     a                   ; center (+1)
     ld      hl, current_floor_y
-    add     a, (hl)               ; <--- MUST HAVE (hl) to get the offset value
-    ld      c, a                  ; H = Final Screen Y
+    add     a, (hl)             ; + Floor Offset
+    ld      c, a                ; Store Y in C
     
-    ; --- Calculate X ---
     ld      a, d
-    inc     a                     ; center it (+1)
+    inc     a                   ; center (+1)
     ld      hl, current_floor_x
-    add     a, (hl)               ; <--- MUST HAVE (hl) to get the offset value
-    ld      l, a                  ; L = Final Screen X
+    add     a, (hl)             ; + Floor Offset
+    ld      l, a                ; Store X in L
 
-    ld      h, c
+    ld      h, c                ; Final H=Y, L=X
     
-    call    pixel_address         ; Returns HL=Addr, B=Shift
+    call    pixel_address       
     ld      (pixel_addr_save), hl
     ld      a, b
     ld      (pixel_shift_save), a
     ret
-
 
 ;----------------------------------------------------------
 ; erase_center_pixel

@@ -3594,50 +3594,6 @@ chicken_entity: db  0, 0, 0, 0, 0, 0, 0, 0
 
 
 
-
-
-
-game_over:
-                ;call    clear_play_area      ; clear screen and attrs of play area
-                call    clear_screen
-                ld      hl, charset - 256
-                ld      (charset_addr), hl
-                ld      hl, &3040            ; game over at 64,48
-                ld      de, gameover_msg
-                call    colour_text          ; colour 'game over' text
-                call    game_stats           ; show game statistics
-
-                ; --- NEW: Attribute Safety Wipe ---
-        ; This sets the entire attribute area to Bright White Ink / Black Paper
-        ld      hl, &5800            ; Start of Attribute RAM
-        ld      (hl), &47            ; &47 = Bright (bit 6), White Ink (0-2), Black Paper (3-5)
-        ld      de, &5801
-        ld      bc, 767              ; 768 bytes total
-        ldir                         ; Fill the whole color screen
-
-                
-        ; --- Force Game Over Positioning ---
-        ld      a, 20                ; Set new X anchor for Game Over
-        ld      (current_floor_x), a
-        ld      a, 40                ; Set new Y anchor for Game Over
-        ld      (current_floor_y), a
-        
-        call    test_attic_safe
-                
-
-loc_8C4A:
-                ;ld      b, &14               ; 20 loops of 65536 delay
-                ;ld      hl, 0
-;gameover_delay:
-;                dec     hl
-;                ld      a, h
-;                or      l
-;                jr      nz, gameover_delay
-;                djnz    gameover_delay
-
-                call    loc_94A1              ; pause screen until space pressed
-                jp      reset_menu            ; jp so to clear menu settings back to main menu
-
 gameover_msg:   db  &47                       ; bright white
                 db  'G A M E   O V E '
                 db  &d2
@@ -3651,23 +3607,50 @@ floor_ptrs_table:
         dw  minimap_cv    ; Bottom (Floor 0)
 
 
-test_attic_safe:
-        xor     a
-        ld      (minimap_x), a
-        ld      (minimap_y), a
 
-        ; --- THE WRAP-AROUND TRICK ---
-        ; If the plotter adds 200, and we want to be at 10:
-        ; 10 - 200 = -190. In 8-bit math, -190 is 66.
-        ld      a, 66                
-        ld      (current_floor_x), a
+game_over:
+                ;call    clear_play_area      ; clear screen and attrs of play area
+                call    clear_screen
+                ld      hl, charset - 256
+                ld      (charset_addr), hl
+                ld      hl, &3040            ; game over at 64,48
+                ld      de, gameover_msg
+                call    colour_text          ; colour 'game over' text
+                call    game_stats           ; show game statistics
+
+
+
+                ; --- NEW: Master Anchor Redefinition ---
+                xor     a
+                ld      (map_anchor_x), a    ; Set Master X to 0
+                ld      (map_anchor_y), a    ; Set Master Y to 0
+
+                ; --- NEW: Attribute Safety Wipe ---
+                ld      hl, &5800            
+                ld      (hl), &47            
+                ld      de, &5801
+                ld      bc, 767              
+                ldir                         
+
+                ; --- Force Game Over Positioning ---
+                ld      a, 20                ; Target X = 20
+                ld      (current_floor_x), a
+                ld      a, 40                ; Target Y = 40
+                ld      (current_floor_y), a
         
-        ; If the plotter adds 152, and we want to be at 20:
-        ; 20 - 152 = -132. In 8-bit math, -132 is 124.
-        ld      a, 124                
-        ld      (current_floor_y), a
+                call    test_gf_safe
+                
+loc_8C4A:
+                call    loc_94A1              
+                jp      reset_menu
 
-        ld      hl, minimap_at       ; Use 'at' for Attic
+
+
+test_gf_safe:
+        ; We don't need to xor minimap_x/y here because 
+        ; draw_pixel is using current_floor_x/y.
+
+        ld      hl, minimap_gf       ; Pointer to Attic data
         ld      (minimap_ptr), hl
         call    draw_minimap
         ret
@@ -3880,17 +3863,7 @@ reset_game_state:
                 ld      (last_room_saved), a
                 ret
 
-                ; --- TEST OVERRIDE ---
-                ;ld      a, &09
-                ;ld      (score_bcd), a
-                ;ld      a, &99
-                ;ld      (score_bcd+1), a
-                ;ld      a, &50
-                ;ld      (score_bcd+2), a
-                ; ---------------------
-                ret
-
-; reduce auto-walk counter
+               ; reduce auto-walk counter
 auto_walk_step:
                 ld      a, (ix+2)
                 and     &0f                  ; auto-walk active?

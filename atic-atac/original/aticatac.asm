@@ -6499,38 +6499,16 @@ update_minimap:
     call    draw_visited_room   ; Now draws in the right spot!
     pop     de                  
 
-; --- 7. Calculate New Address ---
-    ; Calculate Y
-    ld      a, (current_floor_y)
-    ld      b, a
-    ld      a, 152              ; Side panel anchor Y
-    add     a, b                ; Combined Y offset
-    add     a, e                ; + Room Rel_Y
-    inc     a                   ; + 1 for center
-    ld      h, a                ; H = Final Absolute Y
-    
-    ; Calculate X
-    ld      a, (current_floor_x)
-    ld      b, a
-    ld      a, 200              ; Side panel anchor X
-    add     a, b                ; Combined X offset
-    add     a, d                ; + Room Rel_X
-    inc     a                   ; + 1 for center
-    ld      l, a                ; L = Final Absolute X
+; --- 7. Update Flasher Coordinates ---
+    ; IX is pointing to the current room entry
+    ld      d, (ix+1)           ; Rel_X from room table
+    ld      e, (ix+2)           ; Rel_Y from room table
+    call    update_flasher_coords ; Calculate address and save to vars
 
-    ; NOW H and L match the math in set_pixel_hl exactly.
-    call    pixel_address
-    
-    ; --- 8. Draw & Save ---
-
-    ld      (pixel_addr_save), hl
-    ld      a, b
-    ld      (pixel_shift_save), a
-    push    hl
-    push    bc
-    call    draw_new_center_pixel 
-    pop     bc
-    pop     hl
+; --- 8. Draw New Center ---
+    ; update_flasher_coords has saved the values to:
+    ; (pixel_addr_save) and (pixel_shift_save)
+    call    draw_new_center_pixel
 
 
 
@@ -6561,7 +6539,7 @@ draw_unvisited_room:
         inc     h                    ; H = rel_y + 1
         ld      l, d
         inc     l                    ; L = rel_x + 1
-        jp      set_pixel_hl         ; tail call
+        jp      draw_pixel         ; tail call
 
 ;----------------------------------------------------------
 ; draw_visited_room
@@ -6612,28 +6590,28 @@ draw_visited_room:
 .px0y0:
         ld  h, e        ; H = rel_y + 0  (E unchanged)
         ld  l, d        ; L = rel_x + 0  (D unchanged)
-        jp  set_pixel_hl
+        jp  draw_pixel
 
 .px1y0:
         ld  h, e        ; H = rel_y + 0
         ld  a, d        ; A = rel_x
         inc a           ; A = rel_x + 1
         ld  l, a        ; L = rel_x + 1
-        jp  set_pixel_hl 
+        jp  draw_pixel 
 
 .px2y0: 
         ld  h, e        ; H = rel_y + 0
         ld  a, d        ; A = rel_x
         add a, 2        ; A = rel_x + 2
         ld  l, a        ; L = rel_x + 2
-        jp  set_pixel_hl
+        jp  draw_pixel
 
 .px0y1: 
         ld  a, e        ; A = rel_y
         inc a           ; A = rel_y + 1
         ld  h, a        ; H = rel_y + 1
         ld  l, d        ; L = rel_x + 0
-        jp  set_pixel_hl
+        jp  draw_pixel
 
 .px2y1: 
         ld  a, e        ; A = rel_y
@@ -6642,14 +6620,14 @@ draw_visited_room:
         ld  a, d        ; A = rel_x  (reload — H just consumed A)
         add a, 2        ; A = rel_x + 2
         ld  l, a        ; L = rel_x + 2
-        jp  set_pixel_hl
+        jp  draw_pixel
 
 .px0y2: 
         ld  a, e        ; A = rel_y
         add a, 2        ; A = rel_y + 2
         ld  h, a        ; H = rel_y + 2
         ld  l, d        ; L = rel_x + 0
-        jp  set_pixel_hl
+        jp  draw_pixel
 
 .px1y2:
         ld  a, e        ; A = rel_y
@@ -6658,7 +6636,7 @@ draw_visited_room:
         ld  a, d        ; A = rel_x
         inc a           ; A = rel_x + 1
         ld  l, a        ; L = rel_x + 1
-        jp  set_pixel_hl 
+        jp  draw_pixel 
 
 .px2y2:
         ld  a, e        ; A = rel_y
@@ -6667,7 +6645,7 @@ draw_visited_room:
         ld  a, d        ; A = rel_x
         add a, 2        ; A = rel_x + 2
         ld  l, a        ; L = rel_x + 2
-        jp  set_pixel_hl 
+        jp  draw_pixel 
 
 
 
@@ -6717,48 +6695,55 @@ pixel_address:
         ld      l, a             
         ret
 ;----------------------------------------------------------
-; set_pixel_hl
-; Entry: H = rel_y, L = rel_x
-; Corrupts: AF, BC, DE, HL
+; draw_pixel
+; Purpose:  Plots a single pixel for the minimap by calculating the 
+;           absolute screen position from relative room data.
+;
+; Entry:    H = rel_y, L = rel_x 
+;           (The room's relative offset within the current floor layout)
+;
+; Logic:    Absolute = Anchor (Global) + Floor Offset (Scroll) + Room Offset (Local)
+;
+; Exit:     Pixel drawn to screen.
+; Corrupts: AF, DE, HL (BC is preserved for caller's loop)
 ;----------------------------------------------------------
-set_pixel_hl:
-    push    bc               ; Protect caller's loop counter
+draw_pixel:
+    ;push    bc               ; Protect caller's loop counter
     
-    ld      c, l             ; Save relative_x in C
-    ld      b, h             ; Save relative_y in B
+    ld      c, l             ; Save relative_x (0-63) in C
+    ld      b, h             ; Save relative_y (0-63) in B
 
     ; --- 1. Calculate Absolute Y ---
-    ld      a, (map_anchor_y)
+    ld      a, (map_anchor_y) ; Get Global Y (e.g., 152)
     ld      hl, current_floor_y
-    add     a, (hl)          ; A = Anchor_Y + Floor_Y
-    add     a, b             ; A = Anchor_Y + Floor_Y + Room_Y
-    ld      d, a             ; Store Absolute Y in D
+    add     a, (hl)          ; Add Floor scroll offset
+    add     a, b             ; Add Room relative_y
+    ld      d, a             ; D = Absolute Screen Y
 
     ; --- 2. Calculate Absolute X ---
-    ld      a, (map_anchor_x)
+    ld      a, (map_anchor_x) ; Get Global X (e.g., 200)
     ld      hl, current_floor_x
-    add     a, (hl)          ; A = Anchor_X + Floor_X
-    add     a, c             ; A = Anchor_X + Floor_X + Room_X
-    ld      l, a             ; L = Absolute X
-    ld      h, d             ; H = Absolute Y
+    add     a, (hl)          ; Add Floor scroll offset
+    add     a, c             ; Add Room relative_x
+    ld      l, a             ; L = Absolute Screen X
+    ld      h, d             ; H = Absolute Screen Y
 
     ; --- 3. Convert & Plot ---
     call    pixel_address    ; HL = screen address, B = bit position
     
-    ld      a, %10000000
+    ld      a, %10000000     ; Prepare pixel mask
     inc     b
 .shift_loop:
     dec     b
     jr      z, .done_shift
-    rrca
+    rrca                     ; Rotate to correct horizontal pixel
     jr      .shift_loop
 .done_shift:
-    or      (hl)
+    or      (hl)             ; Combine with existing background
     ld      (hl), a          ; DRAW PIXEL
     
-    pop     bc               ; Restore caller's loop counter
+    ;pop     bc               ; Restore caller's loop counter
     ret
-
 
 
         
@@ -6810,39 +6795,56 @@ flash_center_pixel:
         ld      (hl), a
         ret
 
+; =============================================================================
+; update_flasher_coords
+; -----------------------------------------------------------------------------
+; DESCRIPTION:
+;   Calculates the absolute screen coordinates for the current room's center
+;   pixel on the minimap, converts them to a memory address, and saves the 
+;   results for the interrupt-driven flasher routine.
+;
+; INPUT:
+;   D = Room Relative X (from room table)
+;   E = Room Relative Y (from room table)
+;
+; OUTPUT:
+;   HL = Calculated Screen Address
+;   B  = Pixel Shift Bit (for use with 'OR' or 'XOR')
+;
+; SAVES TO:
+;   (pixel_addr_save)  - 2 bytes
+;   (pixel_shift_save) - 1 byte 
+;
+; REGISTER USAGE:
+;   AF, BC, DE, HL (All registers preserved or used as output)
+; =============================================================================
 update_flasher_coords:
-    ld      a, (ix+0)
-    cp      &FF
-    ret     z
-    cp      b
-    jr      z, .found_it
-    ld      de, 3
-    add     ix, de
-    jr      update_flasher_coords
+    ; --- Calculate Absolute Y ---
+    ld      a, (current_floor_y)        ; Get floor-specific nudge
+    ld      b, a
+    ld      a, 152                      ; Side panel anchor Y
+    add     a, b                        ; Combined Y offset
+    add     a, e                        ; + Room Rel_Y
+    inc     a                           ; + 1 to hit center of 3x3 room
+    ld      h, a                        ; H = Final Absolute Y
 
-.found_it:
-    ld      d, (ix+1)           ; rel_x
-    ld      e, (ix+2)           ; rel_y
+    ; --- Calculate Absolute X ---
+    ld      a, (current_floor_x)        ; Get floor-specific nudge
+    ld      b, a
+    ld      a, 200                      ; Side panel anchor X
+    add     a, b                        ; Combined X offset
+    add     a, d                        ; + Room Rel_X
+    inc     a                           ; + 1 to hit center of 3x3 room
+    ld      l, a                        ; L = Final Absolute X
 
-    ; --- Reverted Simple Math ---
-    ld      a, e
-    inc     a                   ; center (+1)
-    ld      hl, current_floor_y
-    add     a, (hl)             ; + Floor Offset
-    ld      c, a                ; Store Y in C
-    
-    ld      a, d
-    inc     a                   ; center (+1)
-    ld      hl, current_floor_x
-    add     a, (hl)             ; + Floor Offset
-    ld      l, a                ; Store X in L
+    ; --- Convert to Spectrum Address ---
+    ; Transform H (Y) and L (X) into a screen memory address
+    call    pixel_address               ; Returns HL=Addr, B=Bit
 
-    ld      h, c                ; Final H=Y, L=X
-    
-    call    pixel_address       
-    ld      (pixel_addr_save), hl
+    ; --- Save for Flasher Routine ---
+    ld      (pixel_addr_save), hl       ; Store for the interrupt flasher
     ld      a, b
-    ld      (pixel_shift_save), a
+    ld      (pixel_shift_save), a       ; Store the shift bit
     ret
 
 ;----------------------------------------------------------

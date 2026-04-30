@@ -3594,9 +3594,26 @@ chicken_entity: db  0, 0, 0, 0, 0, 0, 0, 0
 
 
 
+
+; --- GAME OVER LAYOUT EQUATES (H=Y, L=X) ---
+
+go_title_yx     equ     &1048    ; Y=16,  X=72  (Row 2,  Col 9)
+go_acgcap_yx    equ     &2828    ; Y=40,  X=40  (Row 5,  Col 5)
+go_itemscap_yx  equ     &5028    ; Y=80,  X=40  (Row 10, Col 5)
+go_floorcap_yx  equ     &7828    ; Y=120, X=40  (Row 15, Col 5)
+
+go_scorecap_yx  equ     &2888    ; Y=40,  X=136 (Row 5,  Col 17)
+go_timecap_yx   equ     &3088    ; Y=48,  X=136 (Row 6,  Col 17)
+go_roomscap_yx  equ     &3888    ; Y=56,  X=136 (Row 7,  Col 17)
+
+go_score_yx:    equ     &28B8    ; Y=40,  X=184 (Row 5,  Col 23)
+go_time_yx:     equ     &30B8    ; Y=48,  X=184 (Row 6,  Col 23)
+go_rooms_yx:    equ     &38B8    ; Y=56,  X=184 (Row 7,  Col 23)
+
+
 gameover_msg:   db  &47                       ; bright white
-                db  'G A M E   O V E '
-                db  &d2
+                db  'G A M E   S T A T '
+                db  &d3
 
 
 floor_ptrs_table:
@@ -3613,7 +3630,8 @@ game_over:
                 call    clear_screen
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
-                ld      hl, &3040            ; game over at 64,48
+                
+                ld      hl, go_title_yx      
                 ld      de, gameover_msg
                 call    colour_text          ; colour 'game over' text
                 call    game_stats           ; show game statistics
@@ -5537,123 +5555,51 @@ loc_963B:
                 call    loc_9565
                 jp      h_room_item          ; draw room item                
 
-;any_order:      ld      b,  3               ; B = no of parts to ACG key
-;                ld      hl, inventory1+2
-;                ld      c,  0               ; C = bit mask (cleared)
 
-;a_o_loop:
-;                ld      a, (hl)
-;chk_p1:         cp      &8C                 ; Part 1 held?
-;                jr      nz, chk_p2         ; Jump if not
-;                set     0, c                ; Set b0 if so
-;                jr      a_o_next_slot
-;chk_p2:
-;                cp      &8D                 ; Part 2 held?
-;                jr      nz, chk_p3          ; Jump if not
-;                set     1, c                ; Set b1 if so
-;                jr      a_o_next_slot
-;chk_p3:
-;                cp      &8E                 ; Part 2 held?
-;                jr      nz, a_o_next_slot   ; Jump if not
-;                set     2, c                ; Set b2 if so
-;
-;a_o_next_slot:
-;                ld      a, 4                ; Move to next slot
-;                add     a, l
-;                ld      l, a
-;                jr      nc, a_o_no_c        ; Jump if Plus 4 does NOT exceed 255 (l register)
-;                inc     h                   ; If so, increment h register
-;a_o_no_c:
-;                djnz    a_o_loop
-;
-;                ld      a, c
-;                cp      %00000111           ; All 3 parts found? (b0-b2 = 111)
-;                jr      z, .success         ; Jump if so
-;                or      a                   ; Clear Carry (Failure)
-;                jr      nc, loc_963B
-;.success:
-;                scf                         ; Set Carry (Success)
-;                jr      unlock_acg                        
-;
-;
-;strict_order:
-;                ld      hl,  inventory1+2    ; graphic idx
-;                ld      de, 4                ; 4 bytes per inventory slot
-;                
-;                ld      a, (hl)
-;                cp      &8c                  ; ACG key part 1?
-;                jr      nz, loc_963B         ; jump if not
-;                
-;                add     hl, de               ; next slot
-;                ld      a, (hl)
-;                cp      &8d                  ; ACG key part 2?
-;                jr      nz, loc_963B         ; jump if not
-;                
-;                add     hl, de               ; next slot
-;                ld      a, (hl)
-;                cp      &8e                  ; ACG key part 3?
-;                jr      nz, loc_963B         ; jump if not
-;                
-;unlock_acg:     
-;                call sort_visual_keys
-;                call    enter_door           ; enter linked object (door etc.)
-;                ld      bc, &3020            ; 48x32
-;                jp      loc_91F5
-;loc_963B:
-;                call    loc_9565
-;                jp      h_room_item          ; draw room item
-
-; auto_sort ACG key into correct order
-;sort_visual_keys:
-;                push    hl
-;                ld      hl, inventory1+2       ; Point to Slot 1 ID
-;                ld      (hl), &8C              ; Force Part 1
-;                
-;                ld      de, 4                  ; Offset to Slot 2
-;                add     hl, de
-;                ld      (hl), &8D              ; Force Part 2
-;                
-;                add     hl, de                 ; Offset to Slot 3
-;                ld      (hl), &8E              ; Force Part 3
-;                pop     hl
-;                ret
 
 ; show game statistics
 game_stats:
                 call    calc_visited         ; calculate percentage of rooms visited
-                ld      hl, &4040            ; time header at 64,64
+                
+                ld      hl, go_timecap_yx            ; time header at 64,64
                 ld      de, time_msg
                 call    colour_text          ; show a line of text, first byte is attr
-                ld      hl, &5040            ; score header at 64,80
+                
+                ld      hl, go_scorecap_yx           ; score header at 64,80
                 ld      de, score_msg
                 call    colour_text          ; show a line of text, first byte is attr
-                ld      hl, &6040            ; percent header at 64,96
+                
+                ld      hl, go_roomscap_yx            ; percent header at 64,96
                 ld      de, percent_msg
                 call    colour_text          ; show a line of text, first byte is attr
+                
                 ld      hl, digit_charset
                 ld      (charset_addr), hl
-                ld      hl, &4080            ; clock at 128,64
+                
+                ld      hl, go_time_yx       ; clock at 128,64
                 call    print_clock          ; print clock time at position HL
-                ld      hl, &5080            ; score at 128,80
+                
+                ld      hl, go_score_yx      ; score at 128,80
                 call    print_score          ; print player score at position HL
-                ld      hl, &6080            ; percent at 128,96
+                
+                ld      hl, go_rooms_yx      ; percent at 128,96
                 call    xy_to_display        ; convert coords in HL to display address in HL
                 ld      de, visited_percent
                 ld      b, 1
                 jp      print_bcd_bytes      ; print B BCD bytes at DE
 
 time_msg:       db  &45                       ; bright cyan
-                db  'TIME      '
+                db  'TIME    '
                 db  '#  '
                 db  &a0
 
 score_msg:      db  &45                       ; bright cyan
-                db  'SCORE         '
-                db  &a0
+                db  'SCOR'
+                db  &c5
 
 percent_msg:    db  &45                       ; bright cyan
-                db  '$             '
-                db  &a0
+                db  'ROOM'
+                db  &D3
 
 ;----------------------------------------------------------
 ; Minimap variables — co-located with minimap code

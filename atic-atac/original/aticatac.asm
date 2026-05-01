@@ -1753,6 +1753,7 @@ start_game:
                 ld      (food_ptr), hl
                 call    clear_screen         ; clear display, attributes, and set black border
                 call    draw_side_panel      ; draw side panel background scroll
+                ld      de, acg_key_yx
                 call    draw_acg_key
                 call    draw_lives           ; draw lives sprites in side panel
                 call    place_key_pieces     ; set locations of ACG key pieces
@@ -3610,6 +3611,13 @@ go_score_yx:    equ     &28B8    ; Y=40,  X=184 (Row 5,  Col 23)
 go_time_yx:     equ     &30B8    ; Y=48,  X=184 (Row 6,  Col 23)
 go_rooms_yx:    equ     &38B8    ; Y=56,  X=184 (Row 7,  Col 23)
 
+go_acgkey_yx    equ     &3E28    ; Y=46,  X=40  (Row 5,  Col 5)
+
+go_mapcv_yx     equ     &5028
+go_mapcv_y      equ     high(go_mapcv_yx) 
+go_mapcv_x      equ     low(go_mapcv_yx) 
+
+
 
 gameover_msg:   db  &47                       ; bright white
                 db  'G A M E   S T A T '
@@ -3626,6 +3634,12 @@ floor_ptrs_table:
 
 
 game_over:
+                ; --- NEW: Master Anchor Redefinition ---
+                xor     a
+                ld      (map_anchor_x), a    ; Set Master X to 0
+                ld      (map_anchor_y), a    ; Set Master Y to 0
+
+
                 ;call    clear_play_area      ; clear screen and attrs of play area
                 call    clear_screen
                 ld      hl, charset - 256
@@ -3634,14 +3648,13 @@ game_over:
                 ld      hl, go_title_yx      
                 ld      de, gameover_msg
                 call    colour_text          ; colour 'game over' text
+
+                ld      de, go_acgkey_yx
+                call    draw_acg_key
+
+                
                 call    game_stats           ; show game statistics
-
-
-
-                ; --- NEW: Master Anchor Redefinition ---
-                xor     a
-                ld      (map_anchor_x), a    ; Set Master X to 0
-                ld      (map_anchor_y), a    ; Set Master Y to 0
+                
 
                 ; --- NEW: Attribute Safety Wipe ---
                 ld      hl, &5800            
@@ -3651,12 +3664,16 @@ game_over:
                 ldir                         
 
                 ; --- Force Game Over Positioning ---
-                ld      a, 20                ; Target X = 20
-                ld      (current_floor_x), a
-                ld      a, 40                ; Target Y = 40
-                ld      (current_floor_y), a
+                ;ld      a, go_mapcv_x               
+                ;ld      (current_floor_x), a
+                ;ld      a, go_mapcv_y 
+                ;ld      (current_floor_y), a
         
-                call    test_gf_safe
+                
+                ;call    test_cv_safe
+                call draw_all_maps_manual
+
+
                 
 loc_8C4A:
                 call    loc_94A1              
@@ -3664,14 +3681,47 @@ loc_8C4A:
 
 
 
-test_gf_safe:
+draw_all_maps_manual:
+        ; Set common Y for all 5 maps
+        ld      a, go_mapcv_y
+        ld      (current_floor_y), a
+
+        ; Map 1: CV
+        ld      a, 20               ; Start further left to fit all 5
+        ld      (current_floor_x), a
+        ld      hl, minimap_cv
+        call    draw_and_prepare_next
+
+        ; Map 2: BM
+        ld      hl, minimap_bm
+        call    draw_and_prepare_next
+
+        ; ... repeat for others ...
+        ret
+
+draw_and_prepare_next:
+        ld      (minimap_ptr), hl
+        call    draw_minimap
+        
+        ; Manually nudge X forward 44 pixels for the next map
+        ld      a, (current_floor_x)
+        add     a, 44               
+        ld      (current_floor_x), a
+        ret
+
+
+
+
+test_cv_safe:
         ; We don't need to xor minimap_x/y here because 
         ; draw_pixel is using current_floor_x/y.
 
-        ld      hl, minimap_gf       ; Pointer to Attic data
+        ld      hl, minimap_cv       ; Pointer to Attic data
         ld      (minimap_ptr), hl
         call    draw_minimap
         ret
+
+
 
 
 
@@ -9375,19 +9425,20 @@ key_part_coords:
 
 
 ; -----------------------------------------------------------------------------
-; Block:    draw_acg_key
-; Purpose:  Renders the three components of the ACG key side-by-side.
-; Inputs:   acg_key_yx (EQU) - Base Y,X anchor for the first part.
-;           key_part_indices - Table of 3 graphic IDs for the key parts.
-; Outputs:  Renders 3 sprites horizontally spaced by 16 pixels.
-; Corrupts: AF, BC, DE, HL, IX
-; -----------------------------------------------------------------------
+; draw_acg_key
+; -----------------------------------------------------------------------------
+; Description: Renders the three parts of the ACG key to the screen.
+; Inputs:      DE = Starting YX coordinates (D=Y, E=X)
+; Registers:   Modifies AF, BC, DE, HL, IX
+; Notes:       Uses the entity_to_draw buffer to interface with draw_entity.
+;              Does not call clear_sprite; assumes a clean background.
+; -----------------------------------------------------------------------------
 
 
 draw_acg_key:
                 ld      ix, entity_to_draw 
                 ld      hl, key_part_indices 
-                ld      de, acg_key_yx       
+                ;ld      de, acg_key_yx ; Repositioned to calling routine       
 
                 ld      b, 3 
 
@@ -9406,7 +9457,7 @@ draw_key_loop:
                 ;ld      (ix+5), &47  ; Bright white
 
                 ; 3. Render
-                call    clear_sprite
+                ;call    clear_sprite ; Removed for optimisation
                 call    draw_entity 
 
                 pop     de      ; Restore current Y,X

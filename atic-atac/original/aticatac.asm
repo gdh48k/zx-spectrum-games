@@ -3613,9 +3613,16 @@ go_rooms_yx:    equ     &38B8    ; Y=56,  X=184 (Row 7,  Col 23)
 
 go_acgkey_yx    equ     &3E28    ; Y=46,  X=40  (Row 5,  Col 5)
 
-go_mapcv_yx     equ     &5028
+
+go_mapbm_x      equ     &30
+
+go_mapcv_yx     equ     &0000
 go_mapcv_y      equ     high(go_mapcv_yx) 
 go_mapcv_x      equ     low(go_mapcv_yx) 
+
+go_minimap_yx   equ    &5000 
+go_minimap_y    equ    high(go_minimap_yx)
+go_minimap_x    equ    low(go_minimap_yx)
 
 
 
@@ -3634,10 +3641,10 @@ floor_ptrs_table:
 
 
 game_over:
-                ; --- NEW: Master Anchor Redefinition ---
-                xor     a
-                ld      (map_anchor_x), a    ; Set Master X to 0
-                ld      (map_anchor_y), a    ; Set Master Y to 0
+                ld      a, go_minimap_x
+                ld      (map_anchor_x), a  
+                ld      a, go_minimap_y    
+                ld      (map_anchor_y), a  
 
 
                 ;call    clear_play_area      ; clear screen and attrs of play area
@@ -3663,13 +3670,7 @@ game_over:
                 ld      bc, 767              
                 ldir                         
 
-                ; --- Force Game Over Positioning ---
-                ;ld      a, go_mapcv_x               
-                ;ld      (current_floor_x), a
-                ;ld      a, go_mapcv_y 
-                ;ld      (current_floor_y), a
-        
-                
+                        
                 ;call    test_cv_safe
                 call draw_all_maps_manual
 
@@ -3682,32 +3683,41 @@ loc_8C4A:
 
 
 draw_all_maps_manual:
-        ; Set common Y for all 5 maps
-        ld      a, go_mapcv_y
-        ld      (current_floor_y), a
+                ld      a, go_mapcv_y
+                ld      (current_floor_y), a   ; Set common Y once
 
-        ; Map 1: CV
-        ld      a, 20               ; Start further left to fit all 5
-        ld      (current_floor_x), a
-        ld      hl, minimap_cv
-        call    draw_and_prepare_next
+                ; Floor 0 (CV)
+                ld      a, go_mapcv_x
+                ld      (current_floor_x), a   ; Set common Y once
+                ld      hl, minimap_cv
+                call    draw_single_map         ; Helper to draw and inc X
+                
+                ; Floor 1 (BM)
+                ld      hl, minimap_bm
+                call    draw_single_map
 
-        ; Map 2: BM
-        ld      hl, minimap_bm
-        call    draw_and_prepare_next
+                ; Floor 1 (GF)
+                ld      hl, minimap_gf
+                call    draw_single_map
+                
+                ; Floor 1 (F1)
+                ld      hl, minimap_f1
+                call    draw_single_map
+                
+                ; Floor 1 (AT)
+                ld      hl, minimap_at
+                call    draw_single_map
 
-        ; ... repeat for others ...
-        ret
 
-draw_and_prepare_next:
-        ld      (minimap_ptr), hl
-        call    draw_minimap
-        
-        ; Manually nudge X forward 44 pixels for the next map
-        ld      a, (current_floor_x)
-        add     a, 44               
-        ld      (current_floor_x), a
-        ret
+                ret
+
+draw_single_map:
+                ld      (minimap_ptr), hl
+                call    draw_minimap
+                ld      a, (current_floor_x)
+                add     a, 40                   ; Increment X for next map
+                ld      (current_floor_x), a
+                ret
 
 
 

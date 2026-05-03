@@ -5968,33 +5968,36 @@ minimap_cv:
         db  &FF 
 
 minimap_at:
-        ; --- ROW 0 ---
-        db  &75,  0,  0      ; col 0
-        db  &2D,  9,  0      ; col 3
-        db  &2E, 12,  0      ; col 4
-        db  &27, 15,  0      ; col 5
+        ; --- ROW 0 (New) ---
+        db  &2F, 15,  0      ; col 5
 
-        ; --- ROW 1 ---
-        db  &76,  0,  3      ; col 0
-        db  &77,  3,  3      ; col 1
-        db  &78,  6,  3      ; col 2
-        db  &2C,  9,  3      ; col 3
-        db  &28, 15,  3      ; col 5
+        ; --- ROW 1 (Shifted +3) ---
+        db  &75,  0,  3      ; col 0
+        db  &2D,  9,  3      ; col 3
+        db  &2E, 12,  3      ; col 4
+        db  &27, 15,  3      ; col 5
 
-        ; --- ROW 2 ---
-        db  &7D,  0,  6      ; col 0
-        db  &79,  6,  6      ; col 2
-        db  &2B,  9,  6      ; col 3
-        db  &2A, 12,  6      ; col 4
-        db  &29, 15,  6      ; col 5
+        ; --- ROW 2 (Shifted +3) ---
+        db  &76,  0,  6      ; col 0
+        db  &77,  3,  6      ; col 1
+        db  &78,  6,  6      ; col 2
+        db  &2C,  9,  6      ; col 3
+        db  &28, 15,  6      ; col 5
 
-        ; --- ROW 3 (Swapped IDs) ---
-        db  &7C,  0,  9      ; col 0
-        db  &7B,  3,  9      ; col 1
-        db  &7A,  6,  9      ; col 2
-        db  &7E, 15,  9      ; col 5
+        ; --- ROW 3 (Shifted +3) ---
+        db  &7D,  0,  9      ; col 0
+        db  &79,  6,  9      ; col 2
+        db  &2B,  9,  9      ; col 3
+        db  &2A, 12,  9      ; col 4
+        db  &29, 15,  9      ; col 5
 
-        db  &FF              ; end marker        
+        ; --- ROW 4 (Shifted +3) ---
+        db  &7A,  0, 12      ; col 0
+        db  &7B,  3, 12      ; col 1
+        db  &7C,  6, 12      ; col 2
+        db  &7E, 15, 12      ; col 5
+
+        db  &FF              ; end marker      
 
 room_floor_lookup:
         ; --- Ground Floor Rooms (minimap_gf) ---
@@ -6130,6 +6133,7 @@ room_floor_lookup:
         db &94, LOW minimap_cv, HIGH minimap_cv
 
         ; --- Attic Rooms (minimap_at) ---
+        db &2F, LOW minimap_at, HIGH minimap_at
         db &27, LOW minimap_at, HIGH minimap_at
         db &28, LOW minimap_at, HIGH minimap_at
         db &29, LOW minimap_at, HIGH minimap_at

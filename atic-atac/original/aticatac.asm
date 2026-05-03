@@ -3598,10 +3598,10 @@ chicken_entity: db  0, 0, 0, 0, 0, 0, 0, 0
 
 ; --- GAME OVER LAYOUT EQUATES (H=Y, L=X) ---
 
-go_title_yx     equ     &1048    ; Y=16,  X=72  (Row 2,  Col 9)
-go_acgcap_yx    equ     &2828    ; Y=40,  X=40  (Row 5,  Col 5)
-go_itemscap_yx  equ     &5028    ; Y=80,  X=40  (Row 10, Col 5)
-go_floorcap_yx  equ     &7828    ; Y=120, X=40  (Row 15, Col 5)
+go_title_yx     equ     &1028    ; Y=16,  X=72  (Row 2,  Col 9)
+;go_acgcap_yx    equ     &2828    ; Y=40,  X=40  (Row 5,  Col 5)
+;go_itemscap_yx  equ     &5028    ; Y=80,  X=40  (Row 10, Col 5)
+;go_floorcap_yx  equ     &7828    ; Y=120, X=40  (Row 15, Col 5)
 
 go_scorecap_yx  equ     &2888    ; Y=40,  X=136 (Row 5,  Col 17)
 go_timecap_yx   equ     &3088    ; Y=48,  X=136 (Row 6,  Col 17)
@@ -3611,24 +3611,34 @@ go_score_yx:    equ     &28B8    ; Y=40,  X=184 (Row 5,  Col 23)
 go_time_yx:     equ     &30B8    ; Y=48,  X=184 (Row 6,  Col 23)
 go_rooms_yx:    equ     &38B8    ; Y=56,  X=184 (Row 7,  Col 23)
 
-go_acgkey_yx    equ     &3E28    ; Y=46,  X=40  (Row 5,  Col 5)
+go_acgkey_yx    equ     &3E40    ; Y=46,  X=40  (Row 5,  Col 5)
 
 
-go_mapbm_x      equ     &30
-
-go_mapcv_yx     equ     &0000
-go_mapcv_y      equ     high(go_mapcv_yx) 
-go_mapcv_x      equ     low(go_mapcv_yx) 
-
-go_minimap_yx   equ    &5000 
+go_minimap_yx   equ    &5030 
 go_minimap_y    equ    high(go_minimap_yx)
 go_minimap_x    equ    low(go_minimap_yx)
 
 
 
+go_mapcv_y      equ     0 
+go_mapcv_x      equ     0
+go_mapbm_y      equ     0
+go_mapbm_x      equ     &30
+go_mapgf_y      equ     0
+go_mapgf_x      equ     &50
+go_mapf1_y      equ     0
+go_mapf1_x      equ     &78
+go_mapat_y      equ     0
+go_mapat_x      equ     &98
+
+
+
+
+
+
 gameover_msg:   db  &47                       ; bright white
-                db  'G A M E   S T A T '
-                db  &d3
+                db  "Q U E S T   S O   F A " 
+                db  &d2
 
 
 floor_ptrs_table:
@@ -3683,41 +3693,53 @@ loc_8C4A:
 
 
 draw_all_maps_manual:
-                ld      a, go_mapcv_y
-                ld      (current_floor_y), a   ; Set common Y once
+        ; --- Floor 0 (Caves) ---
+        ld      a, go_mapcv_y
+        ld      (current_floor_y), a
+        ld      a, go_mapcv_x
+        ld      (current_floor_x), a
+        ld      hl, minimap_cv
+        call    draw_single_map_no_inc
 
-                ; Floor 0 (CV)
-                ld      a, go_mapcv_x
-                ld      (current_floor_x), a   ; Set common Y once
-                ld      hl, minimap_cv
-                call    draw_single_map         ; Helper to draw and inc X
-                
-                ; Floor 1 (BM)
-                ld      hl, minimap_bm
-                call    draw_single_map
+        ; --- Floor 1 (Basement) ---
+        ld      a, go_mapbm_y
+        ld      (current_floor_y), a
+        ld      a, go_mapbm_x
+        ld      (current_floor_x), a
+        ld      hl, minimap_bm
+        call    draw_single_map_no_inc
 
-                ; Floor 1 (GF)
-                ld      hl, minimap_gf
-                call    draw_single_map
-                
-                ; Floor 1 (F1)
-                ld      hl, minimap_f1
-                call    draw_single_map
-                
-                ; Floor 1 (AT)
-                ld      hl, minimap_at
-                call    draw_single_map
+        ; --- Floor 2 (Ground Floor) ---
+        ld      a, go_mapgf_y
+        ld      (current_floor_y), a
+        ld      a, go_mapgf_x
+        ld      (current_floor_x), a
+        ld      hl, minimap_gf
+        call    draw_single_map_no_inc
 
+        ; --- Floor 3 (First Floor) ---
+        ld      a, go_mapf1_y
+        ld      (current_floor_y), a
+        ld      a, go_mapf1_x
+        ld      (current_floor_x), a
+        ld      hl, minimap_f1
+        call    draw_single_map_no_inc
 
-                ret
+        ; --- Floor 4 (Attic) ---
+        ld      a, go_mapat_y
+        ld      (current_floor_y), a
+        ld      a, go_mapat_x
+        ld      (current_floor_x), a
+        ld      hl, minimap_at
+        call    draw_single_map_no_inc
 
-draw_single_map:
-                ld      (minimap_ptr), hl
-                call    draw_minimap
-                ld      a, (current_floor_x)
-                add     a, 40                   ; Increment X for next map
-                ld      (current_floor_x), a
-                ret
+        ret
+
+; --- Helper: Draw without auto-incrementing X ---
+draw_single_map_no_inc:
+        ld      (minimap_ptr), hl
+        call    draw_minimap
+        ret
 
 
 

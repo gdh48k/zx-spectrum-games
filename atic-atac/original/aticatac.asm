@@ -5844,19 +5844,20 @@ minimap_f1:
         ; --- ROW 2 (Y=6) ---
         db  &8B,  6,  6      ; col 2
         db  &21,  9,  6      ; col 3
-        db  &20, 12,  6      ; col 4 (Stairs Up)
-        db  &1f, 15,  6      ; col 5 (The Far-Right Room)
+        db  &20, 12,  6      ; col 4 (Stairs Up to Attic)
+        db  &1F, 15,  6      ; col 5 
 
         ; --- ROW 3 (Y=9) ---
         db  &8C,  6,  9      ; col 2
         db  &22,  9,  9      ; col 3
-        db  &1E, 15,  9      ; col 5 (Below 1F)
+        db  &26, 12,  9      ; col 4 (ADDED: Stairs Down to Ground Floor)
+        db  &1E, 15,  9      ; col 5 
 
         ; --- ROW 4 (Y=12) ---
         db  &8D,  6, 12      ; col 2
         db  &23,  9, 12      ; col 3
-        db  &24, 12, 12      ; col 4 (Stairs Down)
-        db  &25, 15, 12      ; col 5 (Below 1E)
+        db  &24, 12, 12      ; col 4 (Stairs Down to Ground Floor)
+        db  &25, 15, 12      ; col 5 
 
         ; --- ROW 5 (Y=15) ---
         db  &83,  0, 15      ; col 0
@@ -6037,6 +6038,7 @@ room_floor_lookup:
         db &8E, LOW minimap_gf, HIGH minimap_gf
 
         ; --- First Floor Rooms (minimap_f1) ---
+        db &26, LOW minimap_f1, HIGH minimap_f1  ; ADDED: Stairwell room
         db &7F, LOW minimap_f1, HIGH minimap_f1
         db &80, LOW minimap_f1, HIGH minimap_f1
         db &81, LOW minimap_f1, HIGH minimap_f1
@@ -6133,7 +6135,7 @@ room_floor_lookup:
         db &94, LOW minimap_cv, HIGH minimap_cv
 
         ; --- Attic Rooms (minimap_at) ---
-        db &2F, LOW minimap_at, HIGH minimap_at
+        db &2F, LOW minimap_at, HIGH minimap_at ; ADDED: Stairwell room
         db &27, LOW minimap_at, HIGH minimap_at
         db &28, LOW minimap_at, HIGH minimap_at
         db &29, LOW minimap_at, HIGH minimap_at

@@ -5734,42 +5734,62 @@ cv_offset_y       equ     6
 ; Each cell = 3px, no gaps
 ; Terminated by &FF
 ;----------------------------------------------------------
+
 minimap_gf:
-        ; --- MAP DATA (Shifted X+4 to clear space for label) ---
-        db  &73,  4,  0      ; Row 0
-        db  &13,  7,  0
-        db  &14, 10,  0
-        db  &15, 13,  0
-        db  &16, 16,  0
-        db  &17, 19,  0
-        db  &12,  7,  3      ; Row 1
-        db  &18, 19,  3
-        db  &11,  7,  6      ; Row 2
-        db  &6B, 10,  6
-        db  &6C, 13,  6
-        db  &03, 16,  6
-        db  &02, 19,  6
-        db  &01, 22,  6
-        db  &10,  7,  9      ; Row 3
-        db  &04, 16,  9
-        db  &19, 19,  9
-        db  &00, 22,  9
-        db  &8E, 25,  9
-        db  &0F,  7, 12      ; Row 4
-        db  &6D, 10, 12
-        db  &6E, 13, 12
-        db  &05, 16, 12
-        db  &06, 19, 12
-        db  &07, 22, 12
-        db  &0E,  7, 15      ; Row 5
-        db  &08, 19, 15
-        db  &0D,  7, 18      ; Row 6
-        db  &0C, 10, 18
-        db  &0B, 13, 18
-        db  &0A, 16, 18
-        db  &09, 19, 18
-        db  &6F,  7, 21      ; Row 7
-        db  &70,  7, 24      ; Row 8
+        ; --- ROW 0 (Y=0) ---
+        db  &73,  0,  0
+        db  &13,  3,  0
+        db  &14,  6,  0
+        db  &15,  9,  0
+        db  &16, 12,  0
+        db  &17, 15,  0
+
+        ; --- ROW 1 (Y=3) ---
+        db  &12,  3,  3
+        db  &18, 15,  3
+
+        ; --- ROW 2 (Y=6) ---
+        db  &11,  3,  6
+        db  &6B,  6,  6
+        db  &6C,  9,  6
+        db  &03, 12,  6
+        db  &02, 15,  6
+        db  &01, 18,  6
+
+        ; --- ROW 3 (Y=9) ---
+        db  &10,  3,  9
+        db  &04, 12,  9
+        db  &19, 15,  9
+        db  &00, 18,  9
+
+        ; --- ROW 4 (Y=12) ---
+        db  &0F,  3, 12
+        db  &6D,  6, 12
+        db  &6E,  9, 12
+        db  &05, 12, 12
+        db  &06, 15, 12
+        db  &07, 18, 12
+
+        ; --- ROW 5 (Y=15) ---
+        db  &0E,  3, 15
+        db  &08, 15, 15
+
+        ; --- ROW 6 (Y=18) ---
+        db  &72,  0, 18      ; ADDED: Stairwell
+        db  &0D,  3, 18
+        db  &0C,  6, 18
+        db  &0B,  9, 18
+        db  &0A, 12, 18
+        db  &09, 15, 18
+
+        ; --- ROW 7 (Y=21) ---
+        db  &71,  0, 21      ; ADDED: Stairwell
+        db  &6F,  3, 21
+
+        ; --- ROW 8 (Y=24) ---
+        db  &70,  2, 24
+
+        
 
         ; --- IRREGULAR MEDIEVAL BORDER (Offset Adjusted) ---
         
@@ -5873,38 +5893,44 @@ minimap_f1:
 
 minimap_bm:
         ; --- ROW 0 ---
-        db  &67,  3,  0      ; col 1 (was 2)
-        db  &68, 15,  0      ; col 5 (was 6)
+        db  &67,  3,  0
+        db  &68, 12,  0
 
         ; --- ROW 1 ---
-        db  &69,  0,  3      ; col 0 (Leftmost Anchor)
-        db  &56,  3,  3      ; col 1
-        db  &57,  6,  3      ; col 2
-        db  &58, 12,  3      ; col 4
-        db  &59, 15,  3      ; col 5
+        db  &69,  0,  3
+        db  &56,  3,  3
+        db  &57,  6,  3
+        db  &58, 12,  3
+        db  &59, 15,  3
 
         ; --- ROW 2 ---
-        db  &5A,  3,  6      ; col 1
-        db  &5B,  6,  6      ; col 2
-        db  &66,  9,  6      ; col 3 (Central Hub)
-        db  &5C, 12,  6      ; col 4
-        db  &5D, 15,  6      ; col 5
+        db  &5A,  3,  6
+        db  &5B,  6,  6
+        db  &5C, 12,  6
+        db  &5D, 15,  6
 
         ; --- ROW 3 ---
-        db  &5E,  3,  9      ; col 1
-        db  &5F,  6,  9      ; col 2
-        db  &60, 12,  9      ; col 4
-        db  &61, 15,  9      ; col 5
+        db  &66,  9,  9
 
         ; --- ROW 4 ---
-        db  &6A,  0, 12      ; col 0 (Leftmost Anchor)
-        db  &62,  3, 12      ; col 1
-        db  &63,  6, 12      ; col 2
-        db  &64, 12, 12      ; col 4
-        db  &65, 15, 12      ; col 5
-        db  &1B, 18, 12      ; col 6
+        db  &5E,  3, 12
+        db  &5F,  6, 12
+        db  &60, 12, 12
+        db  &61, 15, 12
 
-        db  &FF              ; End of table
+        ; --- ROW 5 ---
+        db  &6A,  0, 15
+        db  &62,  3, 15
+        db  &63,  6, 15
+        db  &64, 12, 15
+        db  &65, 15, 15
+        db  &1B, 18, 15      ; Entry Room
+        db  &1C, 21, 15      ; STAIRS: To Caverns
+
+        ; --- ROW 6 ---
+        db  &1A, 18, 18      ; STAIRS: To Ground Floor
+
+        db  &FF              ; End of Basement
 
 minimap_cv:
         ; --- ROW 0 ---
@@ -6034,6 +6060,8 @@ room_floor_lookup:
         db &6E, LOW minimap_gf, HIGH minimap_gf
         db &6F, LOW minimap_gf, HIGH minimap_gf
         db &70, LOW minimap_gf, HIGH minimap_gf
+        db &71, LOW minimap_gf, HIGH minimap_gf  ; Stairwell transition
+        db &72, LOW minimap_gf, HIGH minimap_gf  ; Stairwell transition
         db &73, LOW minimap_gf, HIGH minimap_gf
         db &8E, LOW minimap_gf, HIGH minimap_gf
 
@@ -6064,7 +6092,9 @@ room_floor_lookup:
         db &25, LOW minimap_f1, HIGH minimap_f1
 
         ; --- Basement Rooms (minimap_bm) ---
-        db &1B, LOW minimap_bm, HIGH minimap_bm
+        db &1A, LOW minimap_bm, HIGH minimap_bm  ; Stairs Up
+        db &1B, LOW minimap_bm, HIGH minimap_bm  
+        db &1C, LOW minimap_bm, HIGH minimap_bm  ; Stairs Down
         db &56, LOW minimap_bm, HIGH minimap_bm
         db &57, LOW minimap_bm, HIGH minimap_bm
         db &58, LOW minimap_bm, HIGH minimap_bm

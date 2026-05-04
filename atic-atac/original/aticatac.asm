@@ -3611,7 +3611,8 @@ go_score_yx:    equ     &28B8    ; Y=40,  X=184 (Row 5,  Col 23)
 go_time_yx:     equ     &30B8    ; Y=48,  X=184 (Row 6,  Col 23)
 go_rooms_yx:    equ     &38B8    ; Y=56,  X=184 (Row 7,  Col 23)
 
-go_acgkey_yx    equ     &3E40    ; Y=46,  X=40  (Row 5,  Col 5)
+go_acgkey_yx    equ     &3E40   ; Y=46,  X=40  (Row 5,  Col 5)
+go_acgkey_attr_yx    equ     &2740    ; Y=30,  X=40  (Row 5,  Col 5)
 
 
 go_minimap_yx   equ    &5030 
@@ -3620,15 +3621,15 @@ go_minimap_x    equ    low(go_minimap_yx)
 
 
 
-go_mapcv_y      equ     0 
+go_mapcv_y      equ     2 
 go_mapcv_x      equ     0
-go_mapbm_y      equ     0
+go_mapbm_y      equ     2
 go_mapbm_x      equ     &30
 go_mapgf_y      equ     0
-go_mapgf_x      equ     &50
-go_mapf1_y      equ     0
+go_mapgf_x      equ     &54
+go_mapf1_y      equ     2
 go_mapf1_x      equ     &78
-go_mapat_y      equ     0
+go_mapat_y      equ     4
 go_mapat_x      equ     &98
 
 
@@ -3669,20 +3670,28 @@ game_over:
                 ld      de, go_acgkey_yx
                 call    draw_acg_key
 
+                ld      hl, go_acgkey_attr_yx     
+                call    colour_acg_key
+
                 
                 call    game_stats           ; show game statistics
+
+colour_stats_block:
+                ld      hl, go_score_yx      
+                call    xy_to_attr          ; Get attribute start address
+                ld      a, &45              ; Bright Cyan
+                ld      bc, &0503           ; 5 wide by 3 tall
+                call    fill_bc_hl_a        ; Paint the entire rectangle
                 
 
-                ; --- NEW: Attribute Safety Wipe ---
-                ld      hl, &5800            
-                ld      (hl), &47            
-                ld      de, &5801
-                ld      bc, 767              
-                ldir                         
+colour_maps_block:
+                ld      hl, go_minimap_yx ; ; 
+                call    xy_to_attr          ; Convert to Attribute Address
+                ld      bc, &1604           ; 5 columns wide, 5 rows high
+                ld      a, bright_white              
+                call    fill_bc_hl_a        ; Fill the area
 
-                call draw_all_maps_manual
-
-
+                call    draw_all_maps_manual
                 
 loc_8C4A:
                 call    loc_94A1              
@@ -9259,57 +9268,11 @@ loc_A259:
                 ;ld      (hl), e              ; rosette centre
 
 
-; --- TURN MAP AREA BRIGHT WHITE ---
-                ;ld      hl, minimap_attr_yx ; H=48 (Y), L=200 (X)
-                ;call    xy_to_attr          ; Convert to Attribute Address
-                ;ld      bc, &0504           ; 5 columns wide, 5 rows high
-                ;ld      a, bright_white_bl              
-                ;call    fill_bc_hl_a        ; Fill the area
-                
 
 
-
-                ld      hl, acg_attr_yx
-                call    xy_to_attr
-                ld      a, (acg_key_flag)
-                bit     0, a                    ; acg_1 collected?
-                jr      nz, acg1_yellow       ; jump if so
-                ld      a, dark_blue   ; set to dark blue if not
-                jr      colour_acg_1
-acg1_yellow:    ld      a, &46                ; set to bright yellow
-colour_acg_1:
-                ;and     &7F
-                ld      bc, &0203
-                call    fill_bc_hl_a
-
-                ld      hl, acg_attr_yx+16
-                call    xy_to_attr
-                ld      a, (acg_key_flag)
-                bit     1, a                  ; acg_2 collected?
-                jr      nz, acg2_yellow       ; jump if so
-                ld      a, dark_blue               ; set to dark blue if not
-                jr      colour_acg_2
-acg2_yellow:    ld      a, &46                ; set to bright yellow
-colour_acg_2:
-                ;and     &7F
-                ld      bc, &0204
-                call    fill_bc_hl_a
-
-                
-                ld      hl, acg_attr_yx+32
-                call    xy_to_attr
-                ld      a, (acg_key_flag)
-                bit     2, a                  ; acg_3 collected?
-                jr      nz, acg3_yellow       ; jump if so
-                ld      a, dark_blue                 ; set to dark blue if not
-                jr      colour_acg_3
-acg3_yellow:    ld      a, &46                ; set to bright yellow
-colour_acg_3:
-                ;and     &7F
-                ld      bc, &0204
-                call    fill_bc_hl_a
-
-                
+                ld      hl, acg_attr_yx     ; Use existing side panel coords
+                call    colour_acg_key
+      
                 ld      hl, lives_attr_yx    ; MOD: Change &7fc8 to &86c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0603            ; 6x3
@@ -9420,15 +9383,7 @@ loc_A30C:
 key_part_indices:
                 db &8C, &8D, &8E           ; Graphics for the 3 ACG parts
 
-; --- Coordinate Table (X, Y in pixels) ---
-; These map to the side panel area (X=240, column 30)
-key_part_coords:
-                ;db 200, 70                ; Part 0: Char(30, 2)
-                ;db 216, 70                ; Part 1: Char(30, 6)
-                ;db 232, 70                ; Part 2: Char(30, 10)
-                db 200, 171                
-                db 216, 171               
-                db 232, 171      
+
 
 
 ; -----------------------------------------------------------------------------
@@ -9482,7 +9437,55 @@ draw_key_loop:
                 djnz    draw_key_loop
                 ret
 
-            
+
+
+; -----------------------------------------------------------
+; Helper Function: colour_acg_key
+; Input:  HL = Pointer to the YX coordinate table for the keys
+; Output: Updates attribute memory based on acg_key_flag
+; -----------------------------------------------------------
+colour_acg_key:
+                ; --- Part 1 ---
+                push    hl                  ; Save anchor (Part 1 coords)
+                call    xy_to_attr          
+                ld      a, (acg_key_flag)
+                bit     0, a                
+                ld      a, dark_blue        
+                jr      z, .fill_1
+                ld      a, bright_yellow    
+.fill_1:        ld      bc, &0204           
+                call    fill_bc_hl_a
+
+                ; --- Part 2 ---
+                pop     hl                  ; Restore anchor
+                push    hl                  ; Save anchor again
+                ld      a, l
+                add     a, 16               ; Offset X by 16 pixels
+                ld      l, a                ; Update HL (assumes same Y)
+                call    xy_to_attr
+                ld      a, (acg_key_flag)
+                bit     1, a
+                ld      a, dark_blue
+                jr      z, .fill_2
+                ld      a, bright_yellow
+.fill_2:        ld      bc, &0204           
+                call    fill_bc_hl_a
+
+                ; --- Part 3 ---
+                pop     hl                  ; Restore anchor
+                ld      a, l
+                add     a, 32               ; Offset X by 32 pixels
+                ld      l, a
+                call    xy_to_attr
+                ld      a, (acg_key_flag)
+                bit     2, a
+                ld      a, dark_blue
+                jr      z, .fill_3
+                ld      a, bright_yellow
+.fill_3:        ld      bc, &0204           
+                call    fill_bc_hl_a
+                
+                ret
 
 
 ; draw menu icons for controls and player acharacters

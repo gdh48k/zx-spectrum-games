@@ -3680,8 +3680,6 @@ game_over:
                 ld      bc, 767              
                 ldir                         
 
-                        
-                ;call    test_cv_safe
                 call draw_all_maps_manual
 
 
@@ -3740,65 +3738,6 @@ draw_single_map_no_inc:
         ld      (minimap_ptr), hl
         call    draw_minimap
         ret
-
-
-
-
-test_cv_safe:
-        ; We don't need to xor minimap_x/y here because 
-        ; draw_pixel is using current_floor_x/y.
-
-        ld      hl, minimap_cv       ; Pointer to Attic data
-        ld      (minimap_ptr), hl
-        call    draw_minimap
-        ret
-
-
-
-
-
-
-draw_all_minimaps:
-                ld      hl, floor_ptrs_table 
-                ld      b, 5                 
-                ld      a, 4                 
-                ld      d, 64                ; START Y = 64 (Top of the middle screen bank)
-.damloop:
-                push    bc
-                push    af
-                push    hl
-                push    de
-
-                ld      (current_floor), a   
-                ld      e, (hl)
-                inc     hl
-                ld      d, (hl)
-                ld      (minimap_ptr), de    
-
-                ; --- Use a lower X to keep it away from the right edge ---
-                ld      a, 64                
-                ld      (minimap_x), a       
-                
-                pop     de                   
-                push    de
-                ld      a, d
-                ld      (minimap_y), a       
-
-                call    draw_minimap         
-                
-                pop     de
-                ld      a, d
-                add     a, 24                ; Vertical gap
-                ld      d, a                 
-                
-                pop     hl
-                inc     hl
-                inc     hl
-                pop     af
-                dec     a
-                pop     bc
-                djnz    .damloop
-                ret
 
 
 ; food item handler

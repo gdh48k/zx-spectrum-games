@@ -3692,6 +3692,8 @@ colour_maps_block:
                 call    fill_bc_hl_a        ; Fill the area
 
                 call    draw_all_maps_manual
+
+                call    run_replay_demo
                 
 loc_8C4A:
                 call    loc_94A1              
@@ -3747,6 +3749,77 @@ draw_single_map_no_inc:
         ld      (minimap_ptr), hl
         call    draw_minimap
         ret
+
+
+
+; --- Demo Mockup Path ---
+demo_ids:
+    db  &00, &01, &02, &03, &04, &05, &06, &07, &00, &FF
+
+run_replay_demo:
+    ; 1. Anchor to Ground Floor
+    ld      a, go_mapgf_y
+    ld      (current_floor_y), a
+    ld      a, go_mapgf_x
+    ld      (current_floor_x), a
+
+    ld      hl, demo_ids        ; Our sequence (0, 1, 2...)
+
+.next_demo_id:
+    ld      a, (hl)
+    cp      &FF
+    ret     z                   ; Done!
+
+    push    hl                  ; Save sequence pointer
+    ld      c, a                ; C = The ID we are looking for
+    
+    ; 2. Search Ground Floor table for this ID
+    ld      ix, minimap_gf      ; Point to the GF room definitions
+.search_loop:
+    ld      a, (ix+0)
+    cp      &FF                 ; Safety check end of table
+    jr      z, .id_not_found
+    cp      c                   ; Is this our room?
+    jr      z, .found_it
+    
+    ld      de, 3               ; Each entry is 3 bytes
+    add     ix, de
+    jr      .search_loop
+
+.found_it:
+    ; 3. Draw the full 9-pixel block using table values
+    ld      d, (ix+1)           ; D = rel_x
+    ld      e, (ix+2)           ; E = rel_y
+    
+    push    de
+    call    draw_visited_room   ; 8-pixel border
+    pop     de
+    call    update_flasher_coords ; Save address for center
+    call    draw_new_center_pixel ; Make it solid
+
+    ; 4. Delay
+    ld      b, 10
+    call    wait_frames
+
+.id_not_found:
+    pop     hl                  ; Restore sequence pointer
+    inc     hl                  ; Move to next Room ID in sequence
+    jr      .next_demo_id
+
+
+
+;----------------------------------------------------------
+; wait_frames
+; Purpose: Pauses execution for B frames (1/50th sec each)
+; Entry:   B = Number of frames to wait
+; Corrupts: AF, B
+;----------------------------------------------------------
+wait_frames:
+        halt                ; Wait for the VSync interrupt
+        djnz    wait_frames ; Decrement B and jump back if not zero
+        ret
+
+
 
 
 ; food item handler

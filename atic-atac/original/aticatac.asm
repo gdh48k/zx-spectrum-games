@@ -3649,6 +3649,9 @@ floor_ptrs_table:
         dw  minimap_bm    ; (Floor 1)
         dw  minimap_cv    ; Bottom (Floor 0)
 
+room_history:       defs 50, &FF    ; 50-room buffer
+history_count:      defb 0          ; Current index/total rooms logged
+
 
 
 game_over:
@@ -3747,8 +3750,49 @@ draw_all_maps_manual:
 ; --- Helper: Draw without auto-incrementing X ---
 draw_single_map_no_inc:
         ld      (minimap_ptr), hl
-        call    draw_minimap
+        call    draw_minimap_unvisited
         ret
+
+; =============================================================================
+; draw_minimap_unvisited
+; -----------------------------------------------------------------------------
+; DESCRIPTION:
+;    Iterates through a floor's room table and draws the "unvisited" version
+;    (a single center dot) for every defined room. This is used to create the
+;    background schematic for the Game Over "Quest So Far" replay.
+;
+; INPUT:
+;    (minimap_ptr) = Pointer to the start of the floor's room table (e.g., minimap_gf)
+;
+; OUTPUT:
+;    None (Draws directly to the screen)
+;
+; REGISTER USAGE:
+;    AF, BC, DE, IX (IX is used as the table pointer)
+; =============================================================================
+draw_minimap_unvisited:
+    ld      ix, (minimap_ptr)    ; Load the floor table address into IX
+
+.dmuloop:
+    ; --- 1. End of Table Check ---
+    ld      a, (ix+0)            ; Get the Room ID
+    cp      &FF                  ; Is it the end-of-table marker?
+    ret     z                    ; If yes, return to caller
+
+    ; --- 2. Extract Coordinates ---
+    ld      d, (ix+1)            ; D = Room Relative X
+    ld      e, (ix+2)            ; E = Room Relative Y
+
+    ; --- 3. Draw the Dot ---
+    ; This routine handles the internal +1 offset and screen address 
+    ; calculation for a single 1x1 pixel.
+    call    draw_unvisited_room
+
+    ; --- 4. Advance to Next Entry ---
+.nextrm:
+    ld      bc, 3                ; Each room entry is 3 bytes [ID, X, Y]
+    add     ix, bc               ; Move IX to the next entry
+    jr      .dmuloop             ; Repeat until &FF is reached
 
 
 
@@ -3763,7 +3807,7 @@ run_replay_demo:
     ld      a, go_mapgf_x
     ld      (current_floor_x), a
 
-    ld      hl, demo_ids        ; Our sequence (0, 1, 2...)
+    ld      hl, room_history       
 
 .next_demo_id:
     ld      a, (hl)
@@ -3792,19 +3836,19 @@ run_replay_demo:
     ld      e, (ix+2)           ; Get rel_y from table
     
     ; We MUST manually match the "+1" used in draw_unvisited_room
-    inc     d                   ; D = rel_x + 1
-    inc     e                   ; E = rel_y + 1
+    ;inc     d                   ; D = rel_x + 1
+    ;inc     e                   ; E = rel_y + 1
     
     push    de                  ; Save for later border drawing
-    call    update_flasher_coords_MANUAL ; Set address for erasure
+    call    update_flasher_coords ; Set address for erasure
 
     ; --- 2. Erase the Dot ---
     call    erase_center_pixel  ; Scrub the unvisited dot
 
     ; --- 3. Draw the Border ---
     pop     de                  ; Get rel_x+1, rel_y+1 back
-    dec     d                   ; Revert to original rel_x
-    dec     e                   ; Revert to original rel_y
+    ;dec     d                   ; Revert to original rel_x
+    ;dec     e                   ; Revert to original rel_y
     
     call    draw_visited_room   ; Draw the 8-pixel hollow frame
 
@@ -3830,33 +3874,7 @@ wait_frames:
         ret
 
 
-update_flasher_coords_MANUAL:
-    ; --- Calculate Absolute Y ---
-    ld      a, (current_floor_y) ; Get floor nudge
-    ld      b, a
-    ld      a, (map_anchor_y)    ; Get Game Over Y anchor
-    add     a, b                 ; Floor offset
-    add     a, e                 ; + Room rel_y (+1 already included)
-    ; inc a                      ; REMOVED: prevents double-offset
-    ld      h, a                 ; H = Final Absolute Y
 
-    ; --- Calculate Absolute X ---
-    ld      a, (current_floor_x) ; Get floor nudge
-    ld      b, a
-    ld      a, (map_anchor_x)    ; Get Game Over X anchor
-    add     a, b                 ; Floor offset
-    add     a, d                 ; + Room rel_x (+1 already included)
-    ; inc a                      ; REMOVED: prevents double-offset
-    ld      l, a                 ; L = Final Absolute X
-
-    ; --- Convert to Spectrum Address ---
-    call    pixel_address        ; Returns HL=Addr, B=Bit
-
-    ; --- Save for Eraser ---
-    ld      (pixel_addr_save), hl
-    ld      a, b
-    ld      (pixel_shift_save), a
-    ret
 
 
 ; food item handler
@@ -6525,6 +6543,35 @@ update_minimap:
     jr      z, .exit           ; If room hasn't changed, exit immediately
 
     ; ==========================================================
+    ; ROOM HAS CHANGED - LOG TO HISTORY
+    ; ==========================================================
+    push    af                  ; Save new Room ID (A)
+    
+    ; --- Check if History is full ---
+    ld      a, (history_count)
+    cp      50                  ; Check against the new 50-room limit
+    jr      nc, .history_full   ; If count >= 50, stop logging
+
+    ; --- Append to History ---
+    ; We record every visit, including duplicates, per your request.
+    ld      hl, room_history
+    ld      d, 0
+    ld      e, a                ; E = current history_count index
+    add     hl, de              ; HL = room_history + history_count
+    
+    pop     af                  ; Get the Room ID back into A
+    push    af                  ; Keep a copy for the rest of the engine
+    ld      (hl), a             ; Store the Room ID in the history
+    
+    ; Increment the count
+    ld      a, (history_count)
+    inc     a
+    ld      (history_count), a  ; Update history_count
+
+.history_full:
+    pop     af                  ; Restore new Room ID for the engine
+
+    ; ==========================================================
     ; ROOM HAS CHANGED - RUN TRANSITION LOGIC
     ; ==========================================================
 
@@ -6939,7 +6986,7 @@ update_flasher_coords:
     call    pixel_address               ; Returns HL=Addr, B=Bit
 
     ; --- Save for Flasher Routine ---
-    ld      (pixel_addr_save), hl       ; Store for the interrupt flasher
+    ld      (pixel_addr_save), hl       ; Store for the flasher
     ld      a, b
     ld      (pixel_shift_save), a       ; Store the shift bit
     ret

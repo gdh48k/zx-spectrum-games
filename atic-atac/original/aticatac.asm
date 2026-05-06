@@ -3787,20 +3787,30 @@ run_replay_demo:
     jr      .search_loop
 
 .found_it:
-    ; 3. Draw the full 9-pixel block using table values
-    ld      d, (ix+1)           ; D = rel_x
-    ld      e, (ix+2)           ; E = rel_y
+    ; --- 1. Target the Dot ---
+    ld      d, (ix+1)           ; Get rel_x from table
+    ld      e, (ix+2)           ; Get rel_y from table
     
-    push    de
-    call    draw_visited_room   ; 8-pixel border
-    pop     de
-    call    update_flasher_coords ; Save address for center
-    call    draw_new_center_pixel ; Make it solid
+    ; We MUST manually match the "+1" used in draw_unvisited_room
+    inc     d                   ; D = rel_x + 1
+    inc     e                   ; E = rel_y + 1
+    
+    push    de                  ; Save for later border drawing
+    call    update_flasher_coords_MANUAL ; Set address for erasure
 
-    ; 4. Delay
-    ld      b, 10
-    call    wait_frames
+    ; --- 2. Erase the Dot ---
+    call    erase_center_pixel  ; Scrub the unvisited dot
 
+    ; --- 3. Draw the Border ---
+    pop     de                  ; Get rel_x+1, rel_y+1 back
+    dec     d                   ; Revert to original rel_x
+    dec     e                   ; Revert to original rel_y
+    
+    call    draw_visited_room   ; Draw the 8-pixel hollow frame
+
+    ; --- 4. Pause to see the result ---
+    ld      b, 15               ; Wait about 1/3rd of a second
+    call    wait_frames         ;
 .id_not_found:
     pop     hl                  ; Restore sequence pointer
     inc     hl                  ; Move to next Room ID in sequence
@@ -3820,6 +3830,33 @@ wait_frames:
         ret
 
 
+update_flasher_coords_MANUAL:
+    ; --- Calculate Absolute Y ---
+    ld      a, (current_floor_y) ; Get floor nudge
+    ld      b, a
+    ld      a, (map_anchor_y)    ; Get Game Over Y anchor
+    add     a, b                 ; Floor offset
+    add     a, e                 ; + Room rel_y (+1 already included)
+    ; inc a                      ; REMOVED: prevents double-offset
+    ld      h, a                 ; H = Final Absolute Y
+
+    ; --- Calculate Absolute X ---
+    ld      a, (current_floor_x) ; Get floor nudge
+    ld      b, a
+    ld      a, (map_anchor_x)    ; Get Game Over X anchor
+    add     a, b                 ; Floor offset
+    add     a, d                 ; + Room rel_x (+1 already included)
+    ; inc a                      ; REMOVED: prevents double-offset
+    ld      l, a                 ; L = Final Absolute X
+
+    ; --- Convert to Spectrum Address ---
+    call    pixel_address        ; Returns HL=Addr, B=Bit
+
+    ; --- Save for Eraser ---
+    ld      (pixel_addr_save), hl
+    ld      a, b
+    ld      (pixel_shift_save), a
+    ret
 
 
 ; food item handler

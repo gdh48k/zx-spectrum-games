@@ -6880,7 +6880,8 @@ update_flasher_coords:
     ; --- Calculate Absolute Y ---
     ld      a, (current_floor_y)        ; Get floor-specific nudge
     ld      b, a
-    ld      a, 152                      ; Side panel anchor Y
+    ;ld      a, 152                      ; Side panel anchor Y
+    ld      a, (map_anchor_y)
     add     a, b                        ; Combined Y offset
     add     a, e                        ; + Room Rel_Y
     inc     a                           ; + 1 to hit center of 3x3 room
@@ -6889,7 +6890,8 @@ update_flasher_coords:
     ; --- Calculate Absolute X ---
     ld      a, (current_floor_x)        ; Get floor-specific nudge
     ld      b, a
-    ld      a, 200                      ; Side panel anchor X
+    ;ld      a, 200                      ; Side panel anchor X
+    ld      a, (map_anchor_x)
     add     a, b                        ; Combined X offset
     add     a, d                        ; + Room Rel_X
     inc     a                           ; + 1 to hit center of 3x3 room

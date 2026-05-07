@@ -1764,6 +1764,7 @@ start_game:
                 call    start_room_mod
                 call    prepare_player       ; prepare player to spawn
                 call    check_floor
+                call    update_floor_offsets
                 ; --- Setup Default Minimap Position ---
                 ld      a, minimap_x         ; This is our 200 constant
                 ld      (map_anchor_x), a
@@ -3872,6 +3873,7 @@ wait_frames:
         halt                ; Wait for the VSync interrupt
         djnz    wait_frames ; Decrement B and jump back if not zero
         ret
+
 
 
 
@@ -6353,7 +6355,7 @@ check_floor:
         ld      (minimap_ptr), de 
 
         
-        call    update_floor_offsets 
+        ;call    update_floor_offsets 
         scf                         
         ret
 
@@ -6586,6 +6588,7 @@ update_minimap:
     ; ==========================================================
 
     ; --- 3. Floor Change Actions ---
+    call    update_floor_offsets
     call    clear_minimap         
     call    draw_minimap          
     

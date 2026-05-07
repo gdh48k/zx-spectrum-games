@@ -4090,9 +4090,12 @@ reset_game_state:
                 ; Reset the "Last Room" so the minimap redraws fresh
                 ld      a, &FF
                 ld      (last_room_saved), a
-                ret
+                ret  
+                
 
-               ; reduce auto-walk counter
+
+
+; reduce auto-walk counter
 auto_walk_step:
                 ld      a, (ix+2)
                 and     &0f                  ; auto-walk active?

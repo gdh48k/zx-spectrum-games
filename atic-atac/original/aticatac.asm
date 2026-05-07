@@ -3802,64 +3802,56 @@ demo_ids:
     db  &00, &01, &02, &03, &04, &05, &06, &07, &00, &FF
 
 run_replay_demo:
-    ; 1. Anchor to Ground Floor
-    ld      a, go_mapgf_y
-    ld      (current_floor_y), a
-    ld      a, go_mapgf_x
-    ld      (current_floor_x), a
+        ld      hl, room_history       ; Start of the actual path taken
 
-    ld      hl, room_history       
+.next_id:
+        ld      a, (hl)
+        cp      &FF                    ; End of history?
+        ret     z
 
-.next_demo_id:
-    ld      a, (hl)
-    cp      &FF
-    ret     z                   ; Done!
+        push    hl                     ; Save history pointer
+        
+        ; --- 1. Identify Floor & Set Replay Anchors ---
+        ; We use the Room ID (A) to update our pointers and screen positions
+        push    af
+        ld      (player_room), a       ; Temporarily set player_room for check_floor
+        call    check_floor            ; Returns Floor ID in A, Pointer in DE
+        call    update_replay_offsets  ; Set the GO anchors (NOT side panel)
+        pop     af
+        
+        ld      c, a                   ; C = Room ID to find in the table
+        
+        ; --- 2. Search correct floor table ---
+        ld      ix, (minimap_ptr)      ; IX = current floor's definition table
+.search:
+        ld      a, (ix+0)
+        cp      &FF
+        jr      z, .not_found
+        cp      c
+        jr      z, .found
+        
+        ld      de, 3
+        add     ix, de
+        jr      .search
 
-    push    hl                  ; Save sequence pointer
-    ld      c, a                ; C = The ID we are looking for
-    
-    ; 2. Search Ground Floor table for this ID
-    ld      ix, minimap_gf      ; Point to the GF room definitions
-.search_loop:
-    ld      a, (ix+0)
-    cp      &FF                 ; Safety check end of table
-    jr      z, .id_not_found
-    cp      c                   ; Is this our room?
-    jr      z, .found_it
-    
-    ld      de, 3               ; Each entry is 3 bytes
-    add     ix, de
-    jr      .search_loop
+.found:
+        ; --- 3. Execute Drawing logic ---
+        ld      d, (ix+1)              ; rel_x
+        ld      e, (ix+2)              ; rel_y
+        
+        push    de
+        call    update_flasher_coords  ; Uses current_floor_x/y set above!
+        call    erase_center_pixel     ; Remove dot
+        pop     de
+        call    draw_visited_room      ; Draw border
+        
+        ld      b, 10
+        call    wait_frames            ; Pause to show progress
 
-.found_it:
-    ; --- 1. Target the Dot ---
-    ld      d, (ix+1)           ; Get rel_x from table
-    ld      e, (ix+2)           ; Get rel_y from table
-    
-    ; We MUST manually match the "+1" used in draw_unvisited_room
-    ;inc     d                   ; D = rel_x + 1
-    ;inc     e                   ; E = rel_y + 1
-    
-    push    de                  ; Save for later border drawing
-    call    update_flasher_coords ; Set address for erasure
-
-    ; --- 2. Erase the Dot ---
-    call    erase_center_pixel  ; Scrub the unvisited dot
-
-    ; --- 3. Draw the Border ---
-    pop     de                  ; Get rel_x+1, rel_y+1 back
-    ;dec     d                   ; Revert to original rel_x
-    ;dec     e                   ; Revert to original rel_y
-    
-    call    draw_visited_room   ; Draw the 8-pixel hollow frame
-
-    ; --- 4. Pause to see the result ---
-    ld      b, 15               ; Wait about 1/3rd of a second
-    call    wait_frames         ;
-.id_not_found:
-    pop     hl                  ; Restore sequence pointer
-    inc     hl                  ; Move to next Room ID in sequence
-    jr      .next_demo_id
+.not_found:
+        pop     hl
+        inc     hl
+        jr      .next_id
 
 
 
@@ -3874,7 +3866,66 @@ wait_frames:
         djnz    wait_frames ; Decrement B and jump back if not zero
         ret
 
+; =============================================================================
+; update_replay_offsets
+; -----------------------------------------------------------------------------
+; DESCRIPTION:
+;    Sets the screen anchors for the Game Over "Quest So Far" display.
+;    Unlike the side-panel version, this uses the center-screen coordinates.
+;
+; INPUT:
+;    A = Current Floor ID (floor_gf, floor_bm, etc.)
+;
+; OUTPUT:
+;    Updates (current_floor_x) and (current_floor_y)
+; =============================================================================
+update_replay_offsets:
+        cp      floor_gf
+        jr      z, .set_rgf
+        cp      floor_f1
+        jr      z, .set_rf1
+        cp      floor_at
+        jr      z, .set_rat
+        cp      floor_bm
+        jr      z, .set_rbm
+        cp      floor_cv
+        jp      z, .set_rcv
+        ret
 
+.set_rgf:
+        ld      a, go_mapgf_x
+        ld      (current_floor_x), a
+        ld      a, go_mapgf_y
+        ld      (current_floor_y), a
+        ret         
+
+.set_rf1:
+        ld      a, go_mapf1_x
+        ld      (current_floor_x), a
+        ld      a, go_mapf1_y
+        ld      (current_floor_y), a
+        ret
+
+.set_rat:
+        ld      a, go_mapat_x
+        ld      (current_floor_x), a
+        ld      a, go_mapat_y
+        ld      (current_floor_y), a
+        ret
+
+.set_rbm:
+        ld      a, go_mapbm_x
+        ld      (current_floor_x), a
+        ld      a, go_mapbm_y
+        ld      (current_floor_y), a
+        ret
+
+.set_rcv:
+        ld      a, go_mapcv_x
+        ld      (current_floor_x), a
+        ld      a, go_mapcv_y
+        ld      (current_floor_y), a
+        ret
 
 
 
@@ -6282,14 +6333,14 @@ check_floor:
 
         ld      a, (player_room)
         cp      e                   ; Is this our room?
-        jr      z, .found
+        jr      z, .cffound
 
         inc     hl                  ; Skip Room ID
         inc     hl                  ; Skip Address Low
         inc     hl                  ; Skip Address High
         jr      .cfloop
 
-.found:
+.cffound:
         inc     hl                  ; Move to Map Address Low
         ld      e, (hl)
         inc     hl

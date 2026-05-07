@@ -3802,6 +3802,8 @@ demo_ids:
     db  &00, &01, &02, &03, &04, &05, &06, &07, &00, &FF
 
 run_replay_demo:
+        ld      a, &FF                 ; Force a mismatch
+        ld      (current_floor), a     ; The "Dirty" flag
         ld      hl, room_history       ; Start of the actual path taken
 
 .next_id:

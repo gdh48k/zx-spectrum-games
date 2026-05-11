@@ -3697,7 +3697,7 @@ colour_maps_block:
 
                 call    draw_all_maps_manual
 
-                call    run_replay_demo
+                call    run_replay
                 
 loc_8C4A:
                 call    loc_94A1              
@@ -3801,7 +3801,7 @@ draw_minimap_unvisited:
 demo_ids:
     db  &00, &01, &02, &03, &04, &05, &06, &07, &00, &FF
 
-run_replay_demo:
+run_replay:
         ld      a, &FF                 ; Force a mismatch
         ld      (current_floor), a     ; The "Dirty" flag
         ld      hl, room_history       ; Start of the actual path taken
@@ -3837,23 +3837,112 @@ run_replay_demo:
         jr      .search
 
 .found:
-        ; --- 3. Execute Drawing logic ---
-        ld      d, (ix+1)              ; rel_x
-        ld      e, (ix+2)              ; rel_y
-        
-        push    de
-        call    update_flasher_coords  ; Uses current_floor_x/y set above!
-        call    erase_center_pixel     ; Remove dot
+        ; --- 1. Extract Room Coordinates ---
+        ld      d, (ix+1)              ; D = rel_x
+        ld      e, (ix+2)              ; E = rel_y
+
+        ; --- 2. THE IMPACT (Solid Stage) ---
+        ; Note: This only looks solid on FIRST visits because 
+        ; the background dot is already there.
+        push    de                     
+        call    draw_visited_room      ; Draw 8-pixel border
         pop     de
-        call    draw_visited_room      ; Draw border
+
+        ; Visual pause to see the room being added to the trail
+        ld      b, 12                  
+        call    wait_frames
+
+        ; --- 3. THE TRANSITION (Hollow Stage) ---
+        ld      a, e
+        inc     a                      ; Y + 1
+        ld      h, a
+        ld      a, d
+        inc     a                      ; X + 1
+        ld      l, a
+        call    erase_pixel_at_coords  ; Punch the center hole
         
-        ld      b, 10
-        call    wait_frames            ; Pause to show progress
+        ld      b, 2
+        call    wait_frames
 
 .not_found:
         pop     hl
         inc     hl
         jr      .next_id
+
+
+;----------------------------------------------------------
+; plot_center_pixel_safe
+; Input: H=rel_y, L=rel_x 
+; Purpose: Sets center bit using Game Over anchors.
+;----------------------------------------------------------
+plot_center_pixel_safe:
+        ld      c, l                ; Save rel_x
+        ld      b, h                ; Save rel_y
+
+        ; --- Calculate Absolute Y ---
+        ld      a, (map_anchor_y) 
+        ld      hl, current_floor_y
+        add     a, (hl)           
+        add     a, b                
+        ld      d, a                
+
+        ; --- Calculate Absolute X ---
+        ld      a, (map_anchor_x) 
+        ld      hl, current_floor_x
+        add     a, (hl)           
+        add     a, c                
+        ld      l, a                
+        ld      h, d                
+
+        call    pixel_address       ; Returns HL=Addr, B=Bit
+        
+        ; --- Set the Pixel ---
+        ld      a, &80
+        inc     b
+.loop:  dec     b
+        jr      z, .done
+        rrca
+        jr      .loop
+.done:  or      (hl)                ; Force bit to 1 (Draw)
+        ld      (hl), a
+        ret
+
+;----------------------------------------------------------
+; erase_pixel_at_coords
+; Input: H=rel_y, L=rel_x (Calculates using CURRENT anchors)
+;----------------------------------------------------------
+erase_pixel_at_coords:
+        ld      c, l                ; Save rel_x in C
+        ld      b, h                ; Save rel_y in B
+
+        ; --- 1. Calculate Absolute Y ---
+        ld      a, (map_anchor_y) 
+        ld      hl, current_floor_y
+        add     a, (hl)           
+        add     a, b                ; Anchor + Nudge + Rel_Y
+        ld      d, a                ; D = Final Absolute Y
+
+        ; --- 2. Calculate Absolute X ---
+        ld      a, (map_anchor_x) 
+        ld      hl, current_floor_x
+        add     a, (hl)           
+        add     a, c                ; Anchor + Nudge + Rel_X
+        ld      l, a                ; L = Final Absolute X
+        ld      h, d                ; H = Final Absolute Y
+
+        call    pixel_address       ; Returns HL=Addr, B=Bit
+        
+        ; --- 3. The Mask Logic ---
+        ld      a, &80
+        inc     b
+.eploop:  dec     b
+        jr      z, .epdone
+        rrca
+        jr      .eploop
+.epdone:  cpl
+        and     (hl)
+        ld      (hl), a
+        ret
 
 
 
@@ -3867,6 +3956,8 @@ wait_frames:
         halt                ; Wait for the VSync interrupt
         djnz    wait_frames ; Decrement B and jump back if not zero
         ret
+
+
 
 ; =============================================================================
 ; update_replay_offsets
@@ -4075,10 +4166,12 @@ loc_8D5B:
 
 ; copy initial game state to working state area
 reset_game_state:
+                
                 ld      hl, player_init      ; initial game state
                 ld      de, player           ; working game state
                 ld      bc, &1570            ; 0x10000-player, rather than real init data size!
                 ldir
+                
 
                 xor     a
                 ld      (acg_key_flag), a ; <--- MANUALLY RESET OUR FLAG
@@ -4093,7 +4186,18 @@ reset_game_state:
                 ld      a, &FF
                 ld      (last_room_saved), a
                 ret  
-                
+
+                ; --- Brute Force History Wipe ---
+        ld      hl, room_history
+        ld      (hl), &FF            ; Set the first byte to "End of List"
+        ld      de, room_history + 1
+        ld      bc, 49               ; Wipe the remaining 49 slots
+        ldir                         ; Smear &FF to the end
+        
+        xor     a
+        ld      (history_count), a   ; Reset the index to the start
+
+
 
 
 
@@ -7050,11 +7154,26 @@ update_flasher_coords:
     ld      (pixel_shift_save), a       ; Store the shift bit
     ret
 
-;----------------------------------------------------------
+; =============================================================================
 ; erase_center_pixel
-; Forces the bit at the saved minimap address to 0 (Hollow)
-; Corrupts: AF, BC, HL
-;----------------------------------------------------------
+; -----------------------------------------------------------------------------
+; DESCRIPTION:
+;    Surgically clears (sets to 0) a single pixel using background variables.
+;    This is a "Passive" routine: it relies entirely on 'update_flasher_coords'
+;    having been called previously to set the target address and bitmask.
+;
+; STRATEGY:
+;    Retrieves the saved screen address and bit-shift value. It creates an
+;    inverse bitmask (CPL) to "punch a hole" in the existing screen byte 
+;    without affecting neighboring pixels.
+;
+; INPUT:
+;    (pixel_addr_save)  - 16-bit destination memory address
+;    (pixel_shift_save) - Bit position (0-7)
+;
+; CORRUPTS: 
+;    AF, BC, HL
+; =============================================================================
 erase_center_pixel:
         ld      hl, (pixel_addr_save)
         ld      a, h
@@ -7076,7 +7195,26 @@ erase_center_pixel:
         and     (hl)         ; Force our bit to 0, leave others alone 🧹
         ld      (hl), a      ; Write it back to the screen
         ret
-        
+  
+; =============================================================================
+; draw_new_center_pixel
+; -----------------------------------------------------------------------------
+; DESCRIPTION:
+;    Surgically sets (sets to 1) a single pixel at a specific memory location.
+;    Unlike 'draw_pixel', this does NOT calculate coordinates; it requires
+;    the memory address and bit-shift to be provided directly in registers.
+;
+; USAGE:
+;    Ideal for high-speed loops or interrupt routines where the address math
+;    has already been performed and stored.
+;
+; INPUT:
+;    HL = Pre-calculated Screen Memory Address
+;    B  = Bit-shift value (0 = bit 7, 7 = bit 0)
+;
+; CORRUPTS: 
+;    AF, B (HL is preserved)
+; =============================================================================      
  draw_new_center_pixel:
     ; HL = screen address, B = shift (Passed from caller)
     ld      a, &80               ; Start with leftmost bit

@@ -3838,28 +3838,33 @@ run_replay:
 
 .found:
         ; --- 1. Extract Room Coordinates ---
-        ld      d, (ix+1)              ; D = rel_x
-        ld      e, (ix+2)              ; E = rel_y
+        ld      d, (ix+1)              ; rel_x
+        ld      e, (ix+2)              ; rel_y
 
-        ; --- 2. THE IMPACT (Solid Stage) ---
-        ; Note: This only looks solid on FIRST visits because 
-        ; the background dot is already there.
-        push    de                     
-        call    draw_visited_room      ; Draw 8-pixel border
+        ; --- 1. HOLLOW (Border Only) ---
+        push    de
+        call    draw_visited_room      ; Draw the perimeter
         pop     de
 
-        ; Visual pause to see the room being added to the trail
-        ld      b, 12                  
+        ld      b, 5                   ; Pause: User sees hollow square
         call    wait_frames
 
-        ; --- 3. THE TRANSITION (Hollow Stage) ---
+        ; --- 2. FILLED (The "Pop") ---
+        push    de
+        call    draw_room_center       ; Plot just the (+1, +1) pixel
+        pop     de
+
+        ld      b, 10                  ; Pause: User sees solid block
+        call    wait_frames
+
+        ; --- 3. HOLLOW (The Trail) ---
         ld      a, e
         inc     a                      ; Y + 1
         ld      h, a
         ld      a, d
         inc     a                      ; X + 1
         ld      l, a
-        call    erase_pixel_at_coords  ; Punch the center hole
+        call    erase_pixel_at_coords  ; Punch the hole
         
         ld      b, 2
         call    wait_frames
@@ -3871,41 +3876,17 @@ run_replay:
 
 
 ;----------------------------------------------------------
-; plot_center_pixel_safe
-; Input: H=rel_y, L=rel_x 
-; Purpose: Sets center bit using Game Over anchors.
+; draw_room_center (The "px1y1" logic)
+; Input: D=rel_x, E=rel_y
 ;----------------------------------------------------------
-plot_center_pixel_safe:
-        ld      c, l                ; Save rel_x
-        ld      b, h                ; Save rel_y
-
-        ; --- Calculate Absolute Y ---
-        ld      a, (map_anchor_y) 
-        ld      hl, current_floor_y
-        add     a, (hl)           
-        add     a, b                
-        ld      d, a                
-
-        ; --- Calculate Absolute X ---
-        ld      a, (map_anchor_x) 
-        ld      hl, current_floor_x
-        add     a, (hl)           
-        add     a, c                
-        ld      l, a                
-        ld      h, d                
-
-        call    pixel_address       ; Returns HL=Addr, B=Bit
-        
-        ; --- Set the Pixel ---
-        ld      a, &80
-        inc     b
-.loop:  dec     b
-        jr      z, .done
-        rrca
-        jr      .loop
-.done:  or      (hl)                ; Force bit to 1 (Draw)
-        ld      (hl), a
-        ret
+draw_room_center:
+        ld      a, e
+        inc     a               ; Y + 1
+        ld      h, a
+        ld      a, d
+        inc     a               ; X + 1
+        ld      l, a
+        jp      draw_pixel      ; Jump to your standard pixel plotter
 
 ;----------------------------------------------------------
 ; erase_pixel_at_coords
@@ -4185,7 +4166,7 @@ reset_game_state:
                 ; Reset the "Last Room" so the minimap redraws fresh
                 ld      a, &FF
                 ld      (last_room_saved), a
-                ret  
+                 ret  
 
                 ; --- Brute Force History Wipe ---
         ld      hl, room_history

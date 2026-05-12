@@ -4166,17 +4166,17 @@ reset_game_state:
                 ; Reset the "Last Room" so the minimap redraws fresh
                 ld      a, &FF
                 ld      (last_room_saved), a
-                 ret  
+                
 
                 ; --- Brute Force History Wipe ---
-        ld      hl, room_history
-        ld      (hl), &FF            ; Set the first byte to "End of List"
-        ld      de, room_history + 1
-        ld      bc, 49               ; Wipe the remaining 49 slots
-        ldir                         ; Smear &FF to the end
+                ld      hl, room_history
+                ld      (hl), &FF            ; Set the first byte to "End of List"
+                ld      de, room_history + 1
+                ld      bc, 49               ; Wipe the remaining 49 slots
+                ldir                         ; Smear &FF to the end
         
-        xor     a
-        ld      (history_count), a   ; Reset the index to the start
+                xor     a
+                ld      (history_count), a   ; Reset the index to the start
 
 
 

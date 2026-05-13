@@ -4175,7 +4175,7 @@ reset_game_state:
                 ld      bc, 49               ; Wipe the remaining 49 slots
                 ldir                         ; Smear &FF to the end
         
-                ; Kill the stale pointer so 'erase_center_pixel' does nothing on the first frame
+                ; Kill the stale pointer so 'erase_center_pixel' doesn't remove last game room
                 xor     a
                 ld      (pixel_addr_save), a
                 ld      (pixel_addr_save+1), a
@@ -5986,6 +5986,7 @@ minimap_gf:
         db  &04, 12,  9
         db  &19, 15,  9
         db  &00, 18,  9
+        db  &8E, 21,  9      ; ADDED: Right of Room 00
 
         ; --- ROW 4 (Y=12) ---
         db  &0F,  3, 12
@@ -6244,9 +6245,9 @@ minimap_at:
         db  &29, 15,  9      ; col 5
 
         ; --- ROW 4 (Shifted +3) ---
-        db  &7A,  0, 12      ; col 0
+        db  &7C,  0, 12      ; col 0
         db  &7B,  3, 12      ; col 1
-        db  &7C,  6, 12      ; col 2
+        db  &7A,  6, 12      ; col 2
         db  &7E, 15, 12      ; col 5
 
         db  &FF              ; end marker      

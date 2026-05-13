@@ -4175,8 +4175,14 @@ reset_game_state:
                 ld      bc, 49               ; Wipe the remaining 49 slots
                 ldir                         ; Smear &FF to the end
         
+                ; Kill the stale pointer so 'erase_center_pixel' does nothing on the first frame
                 xor     a
-                ld      (history_count), a   ; Reset the index to the start
+                ld      (pixel_addr_save), a
+                ld      (pixel_addr_save+1), a
+                ; Reset the index to the start
+                ld    (history_count), a   
+
+                ret  
 
 
 
@@ -6825,8 +6831,69 @@ draw_unvisited_room:
         inc     h                    ; H = rel_y + 1
         ld      l, d
         inc     l                    ; L = rel_x + 1
-        jp      draw_pixel         ; tail call
+        jp      draw_pixel           ; tail call
 
+
+
+;----------------------------------------------------------
+; draw_visited_room_NEW
+; Purpose: Draws a hollow 3x3 square border on the minimap.
+; Input:   D = relative x, E = relative y
+; Logic:   Uses the current map anchors and floor offsets
+;          to plot 8 individual pixels around a center.
+; Corrupts: AF, AF', HL
+;----------------------------------------------------------
+draw_visited_room_NEW:
+        ; --- Top Row (y+0) ---
+        ld      h, e                    ; H = rel_y
+        ld      l, d                    ; L = rel_x
+        call    draw_pixel              ; Plot (0,0)
+        ld      h, e                    ; H = rel_y
+        ld      a, d                    ; A = rel_x
+        inc     a                       ; A = rel_x + 1
+        ld      l, a                    ; L = rel_x + 1
+        call    draw_pixel              ; Plot (1,0)
+        ld      h, e                    ; H = rel_y
+        ld      a, d                    ; A = rel_x
+        add     a, 2                    ; A = rel_x + 2
+        ld      l, a                    ; L = rel_x + 2
+        call    draw_pixel              ; Plot (2,0)
+
+        ; --- Middle Row (y+1) ---
+        ld      a, e                    ; A = rel_y
+        inc     a                       ; A = rel_y + 1
+        ld      h, a                    ; H = rel_y + 1
+        ld      l, d                    ; L = rel_x
+        call    draw_pixel              ; Plot (0,1)
+        ld      a, e                    ; A = rel_y (reload)
+        inc     a                       ; A = rel_y + 1
+        ld      h, a                    ; H = rel_y + 1
+        ld      a, d                    ; A = rel_x
+        add     a, 2                    ; A = rel_x + 2
+        ld      l, a                    ; L = rel_x + 2
+        call    draw_pixel              ; Plot (2,1)
+
+        ; --- Bottom Row (y+2) ---
+        ld      a, e                    ; A = rel_y
+        add     a, 2                    ; A = rel_y + 2
+        ld      h, a                    ; H = rel_y + 2
+        ld      l, d                    ; L = rel_x
+        call    draw_pixel              ; Plot (0,2)
+        ld      a, e                    ; A = rel_y (reload)
+        add     a, 2                    ; A = rel_y + 2
+        ld      h, a                    ; H = rel_y + 2
+        ld      a, d                    ; A = rel_x
+        inc     a                       ; A = rel_x + 1
+        ld      l, a                    ; L = rel_x + 1
+        call    draw_pixel              ; Plot (1,2)
+        ld      a, e                    ; A = rel_y (reload)
+        add     a, 2                    ; A = rel_y + 2
+        ld      h, a                    ; H = rel_y + 2
+        ld      a, d                    ; A = rel_x
+        add     a, 2                    ; A = rel_x + 2
+        ld      l, a                    ; L = rel_x + 2
+        call    draw_pixel              ; Plot (2,2)
+        ret
 ;----------------------------------------------------------
 ; draw_visited_room
 ; Hollow 3x3 square border — 8 pixels
@@ -7218,29 +7285,31 @@ erase_center_pixel:
 ;----------------------------------------------------------
 ; check_visited
 ; A = room_id
-; Returns Z=1 if visited, Z=0 if not visited
+; Returns Z=1 if bit is 0 (Unvisited), Z=0 if bit is 1 (Visited)
 ; Corrupts: AF, BC, HL
 ; Safe: DE preserved throughout
 ;----------------------------------------------------------
 check_visited:
-        ;xor     a      ; Force Z=1 (Unvisited)
-        ;ret            ; This should force EVERY room to be a dot
         ld      c, a
         srl     c
         srl     c
         srl     c                    ; C = room_id / 8 (byte index)
         ld      b, 0
         ld      hl, visited_rooms
-        add     hl, bc               ; HL = byte containing room's bit
+        add     hl, bc               ; HL = pointer to specific bit-byte
+        
+        ; Calculate BIT opcode: %01bbb110 (where bbb is bit 0-7)
         rlca
         rlca
         rlca
-        and     &38
-        or      &46                  ; BIT n,(HL) opcode base
-        ld      (check_bit+1), a     ; self-modify operand byte
+        and     &38                  ; Mask for bits 3,4,5 of opcode
+        or      &46                  ; Combine with BIT base opcode (&46)
+        
+        ; STALE STATE RISK: This modifies code at address check_bit+1
+        ld      (check_bit+1), a     ; Patch the BIT instruction below
 check_bit:
-        bit     0, (hl)              ; patched at runtime — tests correct bit
-        ret                          ; Z=1 unvisited, Z=0 visited
+        bit     0, (hl)              ; Tests bit; Result: Z=1 (Unvisited), Z=0 (Visited)
+        ret
 
 
 
@@ -9529,6 +9598,7 @@ time_yx         equ     &5ed0
 minimap_yx      equ     &98c8            ; The "Master" Coordinate
 minimap_y       equ     high(minimap_yx) ; Extract &98 (152)
 minimap_x       equ     low(minimap_yx)  ; Extract &C8 (200)
+
 
 ; --- Global Anchor Variables ---
 map_anchor_x:    db 0    ; This will hold our "Live" X (e.g., 200 or 10)

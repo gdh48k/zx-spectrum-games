@@ -1563,7 +1563,7 @@ reset_menu:
                 ld      (charset_addr), hl
                 ld      hl, main_menu_data
                 ld      (current_menu), hl
-                ld      (hl), 0              ; clear main_menu_selection
+                ;ld      (hl), 0              ; clear main_menu_selection
 
 init_menu:
                 call    clear_screen         ; clear display, attributes, and set black border

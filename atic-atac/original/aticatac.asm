@@ -3797,13 +3797,11 @@ draw_minimap_unvisited:
 
 
 
-; --- Demo Mockup Path ---
-demo_ids:
-    db  &00, &01, &02, &03, &04, &05, &06, &07, &00, &FF
-
 run_replay:
         ld      a, &FF                 ; Force a mismatch
         ld      (current_floor), a     ; The "Dirty" flag
+        ld      hl, 0
+        ld      (minimap_ptr),  hl
         ld      hl, room_history       ; Start of the actual path taken
 
 .next_id:

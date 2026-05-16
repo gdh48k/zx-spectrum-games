@@ -3650,8 +3650,11 @@ floor_ptrs_table:
         dw  minimap_bm    ; (Floor 1)
         dw  minimap_cv    ; Bottom (Floor 0)
 
-room_history:       defs 50, &FF    ; 50-room buffer
+replay_max          equ    5
+room_history:       defs replay_max 
+                    defb &FF    ; 
 history_count:      defb 0          ; Current index/total rooms logged
+
 
 
 
@@ -3800,14 +3803,22 @@ draw_minimap_unvisited:
 run_replay:
         ld      a, &FF                 ; Force a mismatch
         ld      (current_floor), a     ; The "Dirty" flag
-        ld      hl, 0
+        ld      hl, minimap_gf
         ld      (minimap_ptr),  hl
+        
+        ; --- New Safe Loop Setup ---
+        ld      a, (history_count)     ; Get exactly how many rooms were logged
+        and     a                      ; Is it 0?
+        ret     z                      ; If no rooms logged, exit immediately
+        ld      b, a                   ; Put the total count into B for counting down
+        
         ld      hl, room_history       ; Start of the actual path taken
 
 .next_id:
-        ld      a, (hl)
-        cp      &FF                    ; End of history?
-        ret     z
+        push    bc                     ; Save our loop counter (B)
+        ld      a, (hl)                ; Get the Room ID
+        
+        ; --- REMOVED: cp &FF / ret z ---
 
         push    hl                     ; Save history pointer
         
@@ -3868,9 +3879,14 @@ run_replay:
         call    wait_frames
 
 .not_found:
-        pop     hl
-        inc     hl
-        jr      .next_id
+        pop     hl                     ; Restore history pointer
+        inc     hl                     ; Point to next history slot
+        
+        pop     bc                     ; Restore clean loop counter
+        djnz    .next_id               ; <-- FIX: Decrement B and loop until B = 0
+        
+        ret                            ; Exit function safely!
+        
 
 
 ;----------------------------------------------------------
@@ -4170,7 +4186,7 @@ reset_game_state:
                 ld      hl, room_history
                 ld      (hl), &FF            ; Set the first byte to "End of List"
                 ld      de, room_history + 1
-                ld      bc, 49               ; Wipe the remaining 49 slots
+                ld      bc, replay_max       ; 
                 ldir                         ; Smear &FF to the end
         
                 ; Kill the stale pointer so 'erase_center_pixel' doesn't remove last game room
@@ -6697,7 +6713,7 @@ update_minimap:
     
     ; --- Check if History is full ---
     ld      a, (history_count)
-    cp      50                  ; Check against the new 50-room limit
+    cp      replay_max          ; Check against the limit
     jr      nc, .history_full   ; If count >= 50, stop logging
 
     ; --- Append to History ---

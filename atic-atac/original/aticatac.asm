@@ -3600,28 +3600,26 @@ chicken_entity: db  0, 0, 0, 0, 0, 0, 0, 0
 ; --- GAME OVER LAYOUT EQUATES (H=Y, L=X) ---
 
 go_title_yx     equ     &1028    ; Y=16,  X=72  (Row 2,  Col 9)
-;go_acgcap_yx    equ     &2828    ; Y=40,  X=40  (Row 5,  Col 5)
-;go_itemscap_yx  equ     &5028    ; Y=80,  X=40  (Row 10, Col 5)
-;go_floorcap_yx  equ     &7828    ; Y=120, X=40  (Row 15, Col 5)
 
-go_scorecap_yx  equ     &2888    ; Y=40,  X=136 (Row 5,  Col 17)
-go_timecap_yx   equ     &3088    ; Y=48,  X=136 (Row 6,  Col 17)
-go_roomscap_yx  equ     &3888    ; Y=56,  X=136 (Row 7,  Col 17)
+; --- MAP REPLAY BLOCK (Moved right below Title) ---
+go_minimap_yx    equ     &2830    ; Y=40,  X=48  (Row 5,  Col 6)
+go_minimap_y     equ     high(go_minimap_yx)
+go_minimap_x     equ     low(go_minimap_yx)
 
-go_score_yx:    equ     &28B8    ; Y=40,  X=184 (Row 5,  Col 23)
-go_time_yx:     equ     &30B8    ; Y=48,  X=184 (Row 6,  Col 23)
-go_rooms_yx:    equ     &38B8    ; Y=56,  X=184 (Row 7,  Col 23)
+; --- LOWER BLOCK (Moved below the Map Replay, starting at Row 12 / Y=96) ---
+go_acgkey_yx      equ     &7638    ; Y = 118 pixels, X = 56 pixels (&38)
+go_acgkey_attr_yx equ     &6038    ; Y = 96 pixels,  X = 56 pixels (&38)
 
-go_acgkey_yx    equ     &3E40   ; Y=46,  X=40  (Row 5,  Col 5)
-go_acgkey_attr_yx    equ     &2740    ; Y=30,  X=40  (Row 5,  Col 5)
+go_scorecap_yx   equ     &6088    ; Y=96,  X=136 (Row 12, Col 17)
+go_timecap_yx    equ     &6888    ; Y=104, X=136 (Row 13, Col 17)
+go_roomscap_yx   equ     &7088    ; Y=112, X=136 (Row 14, Col 17)
 
-
-go_minimap_yx   equ    &5030 
-go_minimap_y    equ    high(go_minimap_yx)
-go_minimap_x    equ    low(go_minimap_yx)
+go_score_yx      equ     &60B8    ; Y=96,  X=184 (Row 12, Col 23)
+go_time_yx       equ     &68B8    ; Y=104, X=184 (Row 13, Col 23)
+go_rooms_yx      equ     &70B8    ; Y=112, X=184 (Row 14, Col 23)
 
 
-
+; --- MAP STACK RELATIVE OFFSETS (Unchanged) ---
 go_mapcv_y      equ     2 
 go_mapcv_x      equ     0
 go_mapbm_y      equ     2
@@ -3815,61 +3813,17 @@ run_replay:
         ld      hl, room_history       ; Start of the actual path taken
 
 .next_id:
-        ;push    bc                     ; Save our loop counter (B)
         ld      a, (hl)                ; Get the Room ID
-        
-        ; --- REMOVED: cp &FF / ret z ---
-
         push    hl                     ; Save history pointer
         
         ; --- 1. Identify Floor & Set Replay Anchors ---
         ; We use the Room ID (A) to update our pointers and screen positions
+        
         push    af
-        ld      (player_room), a       ; Temporarily set player_room for check_floor
+        ld      (player_room), a        ; Temporarily set player_room for check_floor
 
-        ; --- PROTOTYPE INSERTION ---
-        call    check_floor_proto       ; Test our new list first
-        jr      c, .proto_success       ; If carry is set, bypass the old lookup!
-        
-        ; --- Fallback to old code for non-GF rooms ---
-        ld      a, (player_room)        ; Restore Room ID for old routine
-        call    check_floor            ; Returns Floor ID in A, Pointer in DE
-        jr      .offsets_join
+        call    check_floor             
 
-.proto_success:
-        ld      (current_floor), a      ; Sync the engine state with Floor ID
-        
-        ; --- Route Pointer based on Floor ID (A) ---
-        cp      2
-        jr      z, .pset_gf              ; Floor 2
-        jr      c, .below_gf            ; Floors 0 and 1
-        
-        ; --- Upper Floors ---
-        cp      4
-        jr      z, .pset_at              ; Floor 4
-        
-        ld      de, minimap_f1          ; Must be Floor 3
-        jr      .store_ptr
-.pset_at:
-        ld      de, minimap_at
-        jr      .store_ptr
-
-        ; --- Lower Floors ---
-.below_gf:
-        and     a                       ; Is it Floor 0?
-        jr      z, .pset_cv
-        
-        ld      de, minimap_bm          ; Must be Floor 1
-        jr      .store_ptr
-.pset_cv:
-        ld      de, minimap_cv
-        jr      .store_ptr
-.pset_gf:
-        ld      de, minimap_gf          ; Floor 2
-
-.store_ptr:
-        ld      (minimap_ptr), de
-        
 .offsets_join:
         call    update_replay_offsets  ; Set the GO anchors (NOT side panel)
         pop     af
@@ -3881,15 +3835,15 @@ run_replay:
 .search:
         ld      a, (ix+0)
         cp      &FF
-        jr      z, .not_found
+        jr      z, .dmnot_found
         cp      c
-        jr      z, .found
+        jr      z, .dmfound
         
         ld      de, 3
         add     ix, de
         jr      .search
 
-.found:
+.dmfound:
         ; --- 1. Extract Room Coordinates ---
         ld      d, (ix+1)              ; rel_x
         ld      e, (ix+2)              ; rel_y
@@ -3932,7 +3886,7 @@ run_replay:
         ld      b, 2
         call    wait_frames
 
-.not_found:
+.dmnot_found:
         pop     hl                     ; Restore history pointer
         inc     hl                     ; Point to next history slot
         
@@ -3942,10 +3896,7 @@ run_replay:
         ld      (history_count), a     ; Write back to RAM
         jp      nz, .next_id           ; Jump if rooms remain (Bypasses DJNZ limits
 
-        ;pop     bc                     ; Restore clean loop counter
-        ;djnz    .next_id               ; <-- FIX: Decrement B and loop until B = 0
-        
-        ret                            ; Exit function safely!
+        ret                            
         
 
 
@@ -6558,7 +6509,7 @@ check_floor_live:
         ; A holds the new Floor ID
         ld      hl, current_floor
         cp      (hl)                    ; Compare new Floor ID with existing RAM state
-        jr      z, .no_change           ; If identical, skip change logic
+        jr      z, .lno_change           ; If identical, skip change logic
         
         ; --- Floor Changed! ---
         ld      (current_floor), a      ; Update current floor ID
@@ -6566,7 +6517,7 @@ check_floor_live:
         scf                             ; Set Carry Flag (Trigger redraw)
         ret
 
-.no_change:
+.lno_change:
         or      a                       ; Clear Carry Flag (Stay on same floor)
         ret
 
@@ -6584,6 +6535,100 @@ check_floor_proto:
 
         ; --- 1. Check Attic (Floor 4) ---
         ld      hl, proto_at_rooms
+.psearch_at:
+        ld      a, (hl)
+        cp      &FF
+        jr      z, .ptry_f1
+        cp      b
+        jr      z, .pfound_at
+        inc     hl
+        jr      .psearch_at
+.pfound_at:
+        ld      a, 4
+        scf
+        ret
+
+        ; --- 2. Check First Floor (Floor 3) ---
+.ptry_f1:
+        ld      hl, proto_f1_rooms
+.psearch_f1:
+        ld      a, (hl)
+        cp      &FF
+        jr      z, .try_gf
+        cp      b
+        jr      z, .pfound_f1
+        inc     hl
+        jr      .psearch_f1
+.pfound_f1:
+        ld      a, 3
+        scf
+        ret
+
+        ; --- 3. Check Ground Floor (Floor 2) ---
+.ptry_gf:
+        ld      hl, proto_gf_rooms
+.psearch_gf:
+        ld      a, (hl)
+        cp      &FF
+        jr      z, .ptry_bm
+        cp      b
+        jr      z, .pfound_gf
+        inc     hl
+        jr      .psearch_gf
+.pfound_gf:
+        ld      a, 2
+        scf
+        ret
+
+        ; --- 4. Check Basement (Floor 1) ---
+.ptry_bm:
+        ld      hl, proto_bm_rooms
+.psearch_bm:
+        ld      a, (hl)
+        cp      &FF
+        jr      z, .try_cv
+        cp      b
+        jr      z, .pfound_bm
+        inc     hl
+        jr      .psearch_bm
+.pfound_bm:
+        ld      a, 1
+        scf
+        ret
+
+        ; --- 5. Check Cavern (Floor 0) ---
+.ptry_cv:
+        ld      hl, proto_cv_rooms
+.psearch_cv:
+        ld      a, (hl)
+        cp      &FF
+        jr      z, .not_found_anywhere
+        cp      b
+        jr      z, .pfound_cv
+        inc     hl
+        jr      .psearch_cv
+.pfound_cv:
+        ld      a, 0
+        scf
+        ret
+
+.not_found_anywhere:
+        or      a                       ; Clear Carry Flag (Safety Fallback)
+        ret
+
+; =============================================================================
+; check_floor
+; Purpose: Consolidated 5-floor look-up using compact lists.
+;          Updates (minimap_ptr) and (current_floor).
+; Output:  Returns Carry Flag Set (C) ONLY if the floor has changed.
+; Corrupts: AF, BC, DE, HL
+; =============================================================================
+check_floor:
+        ld      a, (player_room)
+        ld      b, a                    ; B = Target Room ID
+
+        ; --- 1. Check Attic (Floor 4) ---
+        ld      hl, proto_at_rooms
 .search_at:
         ld      a, (hl)
         cp      &FF
@@ -6593,9 +6638,9 @@ check_floor_proto:
         inc     hl
         jr      .search_at
 .found_at:
-        ld      a, 4
-        scf
-        ret
+        ld      c, 4                    ; C = Floor ID
+        ld      de, minimap_at          ; DE = Layout Pointer
+        jr      .check_for_changes
 
         ; --- 2. Check First Floor (Floor 3) ---
 .try_f1:
@@ -6609,9 +6654,9 @@ check_floor_proto:
         inc     hl
         jr      .search_f1
 .found_f1:
-        ld      a, 3
-        scf
-        ret
+        ld      c, 3
+        ld      de, minimap_f1
+        jr      .check_for_changes
 
         ; --- 3. Check Ground Floor (Floor 2) ---
 .try_gf:
@@ -6625,9 +6670,9 @@ check_floor_proto:
         inc     hl
         jr      .search_gf
 .found_gf:
-        ld      a, 2
-        scf
-        ret
+        ld      c, 2
+        ld      de, minimap_gf
+        jr      .check_for_changes
 
         ; --- 4. Check Basement (Floor 1) ---
 .try_bm:
@@ -6641,9 +6686,9 @@ check_floor_proto:
         inc     hl
         jr      .search_bm
 .found_bm:
-        ld      a, 1
-        scf
-        ret
+        ld      c, 1
+        ld      de, minimap_bm
+        jr      .check_for_changes
 
         ; --- 5. Check Cavern (Floor 0) ---
 .try_cv:
@@ -6651,112 +6696,36 @@ check_floor_proto:
 .search_cv:
         ld      a, (hl)
         cp      &FF
-        jr      z, .not_found_anywhere
+        jr      z, .not_found           ; Safety exit if room missing entirely
         cp      b
         jr      z, .found_cv
         inc     hl
         jr      .search_cv
 .found_cv:
-        ld      a, 0
-        scf
-        ret
+        ld      c, 0
+        ld      de, minimap_cv
 
-.not_found_anywhere:
-        or      a                       ; Clear Carry Flag (Safety Fallback)
-        ret
-
-;----------------------------------------------------------
-; check_floor
-; Purpose: Looks up the map pointer for the current room.
-;          Sets Carry Flag (C=1) if the floor has changed.
-; Corrupts: AF, DE, HL
-;----------------------------------------------------------
-check_floor:
-        ld      a, (player_room)
-        ld      hl, room_floor_lookup
-.cfloop:
-        ld      e, (hl)             ; Get Room ID
-        ld      a, e
-        cp      &FF                 ; End of table?
-        ret     z                   ; Return if not found
-
-        ld      a, (player_room)
-        cp      e                   ; Is this our room?
-        jr      z, .cffound
-
-        inc     hl                  ; Skip Room ID
-        inc     hl                  ; Skip Address Low
-        inc     hl                  ; Skip Address High
-        jr      .cfloop
-
-.cffound:
-        inc     hl                  ; Move to Map Address Low
-        ld      e, (hl)
-        inc     hl
-        ld      d, (hl)             ; DE now holds the Map Address (e.g., minimap_gf)
-
-        
-        ; Test for Ground Floor
-        ld      hl, minimap_gf
-        or      a                   ; <--- CHANGE: Clear Carry without wiping A
-        sbc     hl, de              ; Compare map address to DE
-        jr      nz, .f1_chk        ; If no match, move to next check
-        
-        ld      a, floor_gf         ; <--- CHANGE: Load ID ONLY if it's a match
-        jr      .id_done
-
-.f1_chk:
-        ; Test for Floor 1 
-        ld      hl, minimap_f1
-        or      a                   ; <--- CHANGE: Clear Carry without wiping A
-        sbc     hl, de              ; Compare map address to DE
-        jr      nz, .at_chk         ; If no match, move to next check
-        ld      a, floor_f1         
-        jr      .id_done
-
-.at_chk:
-        ld      hl, minimap_at      ; Comparison for Attic
-        or      a
-        sbc     hl, de
-        jr      nz, .bm_chk
-        ld      a, floor_at
-        jr      .id_done
-
-.bm_chk:
-        ld      hl, minimap_bm      ; Comparison for Basement
-        or      a
-        sbc     hl, de
-        jr      nz, .cv_chk
-        ld      a, floor_bm
-        jr      .id_done
-
-.cv_chk:
-        ld      hl, minimap_cv      ; Comparison for Caverns
-        or      a
-        sbc     hl, de
-        jr      nz, .unknown        ; Safety fall-through
-        ld      a, floor_cv
-        jr      .id_done
-
-.unknown:
-        ld      a, &FF              ; If we can't identify the floor, 
-        jr      .id_done            ; use &FF to force a redraw/fail-safe
-
-        
-.id_done:
-        ; --- Change Detection ---
+        ; =====================================================================
+        ; SHARED FLOOR CHANGE DETECTION SECTION
+        ; =====================================================================
+.check_for_changes:
         ld      hl, current_floor
-        cp      (hl)                
-        ret     z                   
+        ld      a, c                    ; A = New Floor ID (0-4)
+        cp      (hl)                    ; Compare with old Floor ID in RAM
+        jr      z, .no_change           ; If identical, skip updates
 
-        ; --- Floor Changed! ---
-        ;ld      b, (hl)
-        ld      (current_floor), a  
-        ld      (minimap_ptr), de 
+        ; --- Floor Change Detected! ---
+        ld      (hl), a                 ; Store new Floor ID to (current_floor)
+        ld      (minimap_ptr), de       ; Store new pointer to (minimap_ptr)
+        scf                             ; Set Carry Flag = "Floor Changed"
+        ret
 
-        
-        ;call    update_floor_offsets 
-        scf                         
+.no_change:
+        or      a                       ; Clear Carry Flag = "Same Floor"
+        ret
+
+.not_found:
+        or      a                       ; Complete lookup failure safety exit
         ret
 
 ; Updates the floor-specific nudges based on current floor ID in A
@@ -6980,11 +6949,11 @@ update_minimap:
     ; --- 2. Floor Swap Check ---
     ; We check for a floor change BEFORE erasing or searching.
     push    af                    ; Save new Room ID for later
-    ;call    check_floor           ; Updates (minimap_ptr), returns Carry if changed
+    call    check_floor           ; Updates (minimap_ptr), returns Carry if changed
     
 
     ; --- NEW PROTO INTEGRATION ---
-    call    check_floor_live      ; Compact list scan with change detection
+    ;call    check_floor_live      ; Compact list scan with change detection
 
     jr      nc, .no_floor_swap    ; If NC, we are still on the same floor
 
@@ -10115,7 +10084,7 @@ colour_acg_key:
                 call    xy_to_attr          
                 ld      a, (acg_key_flag)
                 bit     0, a                
-                ld      a, dark_blue        
+                ld      a, bright_white_bl        
                 jr      z, .fill_1
                 ld      a, bright_yellow    
 .fill_1:        ld      bc, &0204           
@@ -10130,7 +10099,7 @@ colour_acg_key:
                 call    xy_to_attr
                 ld      a, (acg_key_flag)
                 bit     1, a
-                ld      a, dark_blue
+                ld      a, bright_white_bl 
                 jr      z, .fill_2
                 ld      a, bright_yellow
 .fill_2:        ld      bc, &0204           
@@ -10144,7 +10113,7 @@ colour_acg_key:
                 call    xy_to_attr
                 ld      a, (acg_key_flag)
                 bit     2, a
-                ld      a, dark_blue
+                ld      a, bright_white_bl 
                 jr      z, .fill_3
                 ld      a, bright_yellow
 .fill_3:        ld      bc, &0204           

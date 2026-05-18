@@ -3826,7 +3826,32 @@ run_replay:
         ; We use the Room ID (A) to update our pointers and screen positions
         push    af
         ld      (player_room), a       ; Temporarily set player_room for check_floor
+
+        ; --- PROTOTYPE INSERTION ---
+        call    check_floor_proto       ; Test our new list first
+        jr      c, .proto_success       ; If carry is set, bypass the old lookup!
+        
+        ; --- Fallback to old code for non-GF rooms ---
+        ld      a, (player_room)        ; Restore Room ID for old routine
         call    check_floor            ; Returns Floor ID in A, Pointer in DE
+        jr      .offsets_join
+
+.proto_success:
+        ; A contains either 01h (Basement) or 02h (Ground Floor) here
+        ld      (current_floor), a      ; <--- FIX: Update engine state!
+        
+        cp      2
+        jr      z, .pset_gf
+        
+        ld      de, minimap_bm          ; Must be Floor 1 (Basement)
+        jr      .store_ptr
+.pset_gf:
+        ld      de, minimap_gf          ; Floor 2 (Ground Floor)
+
+.store_ptr:
+        ld      (minimap_ptr), de
+        
+.offsets_join:
         call    update_replay_offsets  ; Set the GO anchors (NOT side panel)
         pop     af
         
@@ -6442,6 +6467,69 @@ room_floor_lookup:
         db &7E, LOW minimap_at, HIGH minimap_at
 
         db &FF ; Terminator
+
+ ; --- Parallel Prototype Data ---
+proto_gf_rooms:
+        db &00, &01, &02, &03, &04, &05, &06, &07
+        db &08, &09, &0A, &0B, &0C, &0D, &0E, &0F
+        db &10, &11, &12, &13, &14, &15, &16, &17
+        db &18, &19, &6B, &6C, &6D, &6E, &6F, &70
+        db &71, &72, &73, &8E
+        db &FF                         ; End of Ground Floor List
+
+proto_bm_rooms:
+        db &1A, &1B, &1C, &56, &57, &58, &59, &5A
+        db &5B, &5C, &5D, &5E, &5F, &60, &61, &62
+        db &63, &64, &65, &66, &67, &68, &69, &6A
+        db &FF                         ; End of Basement List
+        
+; =============================================================================
+; check_floor_proto
+; Input:  A = Room ID to test
+; Output: If Ground Floor: A = 02h, Carry Flag Set (C)
+;         If Other Floor:  Carry Flag Cleared (NC)
+; Registers Smashed: HL, B
+; =============================================================================
+check_floor_proto:
+        ld      b, a                    ; Save target Room ID in B
+        ld      hl, proto_gf_rooms      ; Point to our new prototype list
+
+; --- Check Ground Floor ---
+        ld      hl, proto_gf_rooms
+.search_gf:
+        ld      a, (hl)
+        cp      &FF
+        jr      z, .try_basement        ; Not on GF, check Basement
+        cp      b
+        jr      z, .found_gf
+        inc     hl
+        jr      .search_gf
+
+.found_gf:
+        ld      a, 2                    ; Floor 2 = Ground Floor
+        scf                             ; Success (Carry Set)
+        ret
+
+        ; --- Check Basement ---
+.try_basement:
+        ld      hl, proto_bm_rooms
+.search_bm:
+        ld      a, (hl)
+        cp      &FF
+        jr      z, .not_in_proto        ; Not in either list, drop to old code
+        cp      b
+        jr      z, .found_bm
+        inc     hl
+        jr      .search_bm
+
+.found_bm:
+        ld      a, 1                    ; Floor 1 = Basement
+        scf                             ; Success (Carry Set)
+        ret
+
+.not_in_proto:
+        or      a                       ; Fallback (Carry Clear)
+        ret
 
 ;----------------------------------------------------------
 ; check_floor

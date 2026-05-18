@@ -6518,7 +6518,60 @@ proto_cv_rooms: ; --- Cavern (Floor 0) ---
         db &4C, &4D, &4E, &4F, &50, &51, &52, &53, &54, &55, &74, &8F, &90, &91
         db &92, &93, &94
         db &FF                         ; End Marker
+ 
+
+; =============================================================================
+; check_floor_live
+; Purpose: Drop-in replacement for legacy check_floor using compact lists.
+;          Updates (minimap_ptr). Returns Carry Flag (C) ONLY if floor changed.
+; Corrupts: AF, DE, HL
+; =============================================================================
+check_floor_live:
+        ld      a, (player_room)
+        call    check_floor_proto       ; Returns Floor ID in A (0-4)
         
+        ; --- Translate Floor ID (A) to Pointer (DE) ---
+        cp      2
+        jr      z, .lset_gf             ; Floor 2
+        jr      c, .lbelow_gf           ; Floors 0 and 1
+        
+        cp      4
+        jr      z, .lset_at             ; Floor 4
+        ld      de, minimap_f1          ; Floor 3
+        jr      .lcheck_change
+.lset_at:
+        ld      de, minimap_at          ; Floor 4
+        jr      .lcheck_change
+.lbelow_gf:
+        and     a                       ; Floor 0?
+        jr      z, .lset_cv
+        ld      de, minimap_bm          ; Floor 1
+        jr      .lcheck_change
+.lset_cv:
+        ld      de, minimap_cv          ; Floor 0
+        jr      .lcheck_change
+.lset_gf:
+        ld      de, minimap_gf          ; Floor 2
+
+.lcheck_change:
+        ; DE now holds the target layout pointer
+        ; A holds the new Floor ID
+        ld      hl, current_floor
+        cp      (hl)                    ; Compare new Floor ID with existing RAM state
+        jr      z, .no_change           ; If identical, skip change logic
+        
+        ; --- Floor Changed! ---
+        ld      (current_floor), a      ; Update current floor ID
+        ld      (minimap_ptr), de       ; Update drawing pointer
+        scf                             ; Set Carry Flag (Trigger redraw)
+        ret
+
+.no_change:
+        or      a                       ; Clear Carry Flag (Stay on same floor)
+        ret
+
+
+
 ; =============================================================================
 ; check_floor_proto (Final Game-Over Version)
 ; Input:  A = Room ID to test
@@ -6927,7 +6980,12 @@ update_minimap:
     ; --- 2. Floor Swap Check ---
     ; We check for a floor change BEFORE erasing or searching.
     push    af                    ; Save new Room ID for later
-    call    check_floor           ; Updates (minimap_ptr), returns Carry if changed
+    ;call    check_floor           ; Updates (minimap_ptr), returns Carry if changed
+    
+
+    ; --- NEW PROTO INTEGRATION ---
+    call    check_floor_live      ; Compact list scan with change detection
+
     jr      nc, .no_floor_swap    ; If NC, we are still on the same floor
 
     ; ==========================================================

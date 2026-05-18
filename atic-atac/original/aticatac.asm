@@ -3599,24 +3599,29 @@ chicken_entity: db  0, 0, 0, 0, 0, 0, 0, 0
 
 ; --- GAME OVER LAYOUT EQUATES (H=Y, L=X) ---
 
-go_title_yx     equ     &1028    ; Y=16,  X=72  (Row 2,  Col 9)
+go_title_yx       equ     &1028    ; Y=16,  X=72  (Row 2,  Col 9)
 
 ; --- MAP REPLAY BLOCK (Moved right below Title) ---
-go_minimap_yx    equ     &2830    ; Y=40,  X=48  (Row 5,  Col 6)
-go_minimap_y     equ     high(go_minimap_yx)
-go_minimap_x     equ     low(go_minimap_yx)
+go_minimap_yx     equ     &2830    ; Y=40,  X=48  (Row 5,  Col 6)
+go_minimap_y      equ     high(go_minimap_yx)
+go_minimap_x      equ     low(go_minimap_yx)
 
-; --- LOWER BLOCK (Moved below the Map Replay, starting at Row 12 / Y=96) ---
-go_acgkey_yx      equ     &7638    ; Y = 118 pixels, X = 56 pixels (&38)
-go_acgkey_attr_yx equ     &6038    ; Y = 96 pixels,  X = 56 pixels (&38)
+; --- ITEM REPLAY MIDDLE BLOCK (Row 11 / Upward from Row 12 Boundary) ---
+go_replay_items_yx equ    &6030    ; Y=96,  X=48  (Draws UPWARD into Row 11)
 
-go_scorecap_yx   equ     &6088    ; Y=96,  X=136 (Row 12, Col 17)
-go_timecap_yx    equ     &6888    ; Y=104, X=136 (Row 13, Col 17)
-go_roomscap_yx   equ     &7088    ; Y=112, X=136 (Row 14, Col 17)
+; --- LOWER BLOCK (Shifted down 40 pixels / Starts at Row 17) ---
+go_acgkey_yx      equ     &9E38    ; Y=158, X=56  (Draws 22 pixels UPWARD to Y=136)
+go_acgkey_attr_yx equ     &8838    ; Y=136, X=56  (Row 17, Col 7 - Attribute top edge)
 
-go_score_yx      equ     &60B8    ; Y=96,  X=184 (Row 12, Col 23)
-go_time_yx       equ     &68B8    ; Y=104, X=184 (Row 13, Col 23)
-go_rooms_yx      equ     &70B8    ; Y=112, X=184 (Row 14, Col 23)
+; --- STATS CAPTIONS (Shifted down 40 pixels to match Y=136 baseline) ---
+go_scorecap_yx    equ     &8888    ; Y=136, X=136 (Row 17, Col 17)
+go_timecap_yx     equ     &9088    ; Y=144, X=136 (Row 18, Col 17)
+go_roomscap_yx    equ     &9888    ; Y=152, X=136 (Row 19, Col 17)
+
+; --- STATS NUMBERS (Shifted down 40 pixels to match Y=136 baseline) ---
+go_score_yx       equ     &88B8    ; Y=136, X=184 (Row 17, Col 23)
+go_time_yx        equ     &90B8    ; Y=144, X=184 (Row 18, Col 23)
+go_rooms_yx       equ     &98B8    ; Y=152, X=184 (Row 19, Col 23)
 
 
 ; --- MAP STACK RELATIVE OFFSETS (Unchanged) ---
@@ -3642,16 +3647,35 @@ gameover_msg:   db  &47                       ; bright white
 
 
 floor_ptrs_table:
-        dw  minimap_at    ; Top (Floor 4)
-        dw  minimap_f1    ; (Floor 3)
-        dw  minimap_gf    ; (Floor 2)
-        dw  minimap_bm    ; (Floor 1)
-        dw  minimap_cv    ; Bottom (Floor 0)
+                dw  minimap_at    ; Top (Floor 4)
+                dw  minimap_f1    ; (Floor 3)
+                dw  minimap_gf    ; (Floor 2)
+                dw  minimap_bm    ; (Floor 1)
+                dw  minimap_cv    ; Bottom (Floor 0)
 
-replay_max:         equ  255        ; Maximum rooms replayed
-room_history:       defs replay_max 
-                    defb &FF     
-history_count:      defb 0          ; Current index/total rooms logged
+replay_max:     equ  255        ; Maximum rooms replayed
+room_history:   defs replay_max 
+                defb &FF     
+history_count:  defb 0          ; Current index/total rooms logged
+
+item_max        equ     12
+
+item_history:
+                dw      green_key       ; First item collected
+                dw      crucafix        ; Second item collected
+                dw      coin            ; Third item collected
+                dw      green_key       ; First item collected
+                dw      crucafix        ; Second item collected
+                dw      coin            ; Third item collected
+                dw      green_key       ; First item collected
+                dw      crucafix        ; Second item collected
+                dw      coin            ; Third item collected
+                dw      green_key       ; First item collected
+                dw      crucafix        ; Second item collected
+                dw      coin            ; Third item collected
+                
+
+item_count:     defb    10            ; Force the counter to 3 items
 
 
 
@@ -3662,8 +3686,6 @@ game_over:
                 ld      a, go_minimap_y    
                 ld      (map_anchor_y), a  
 
-
-                ;call    clear_play_area      ; clear screen and attrs of play area
                 call    clear_screen
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
@@ -3692,13 +3714,15 @@ colour_stats_block:
 colour_maps_block:
                 ld      hl, go_minimap_yx ; ; 
                 call    xy_to_attr          ; Convert to Attribute Address
-                ld      bc, &1604           ; 5 columns wide, 5 rows high
+                ld      bc, &1608         ; 5 columns wide, 5 rows high
                 ld      a, bright_white              
                 call    fill_bc_hl_a        ; Fill the area
 
                 call    draw_all_maps_manual
 
                 call    run_replay
+
+                call    replay_item_history
                 
 loc_8C4A:
                 call    loc_94A1              
@@ -4026,6 +4050,64 @@ update_replay_offsets:
         ld      (current_floor_y), a
         ret
 
+; =============================================================================
+; Routine: replay_item_history
+; Purpose: Pure visual plot of collected item graphics in monochrome white
+; =============================================================================
+replay_item_history:
+                ld      a, (item_count)
+                and     a
+                ret     z                       ; Skip if 0 items
+
+                ld      b, a                    ; B = Loop counter
+                ld      hl, item_history        ; Item tracking array
+                ld      ix, entity_to_draw      ; Engine scratchpad
+                
+                ; --- HARDCODED BASE POSITION ---
+                ; D = Y-pixel (96), E = X-pixel (48)
+                ld      de, &6030               ; High byte (&60) = 96, Low byte (&30) = 48
+
+loop_items:
+                ; 1. Safe 16-bit extraction using DE as a vehicle to protect HL
+                ld      a, (hl)                 ; Low byte of structure pointer
+                inc     hl
+                ld      c, (hl)                 ; High byte of structure pointer
+                inc     hl
+                
+                push    hl                      ; Save array position pointer
+                push    bc                      ; Save structure pointer high byte & loop counter
+                push    de                      ; Save current X/Y pixel rendering position
+
+                ; Move the extracted pointer into HL for reading
+                ld      l, a
+                ld      h, c                    ; HL now safely points to the item structure
+
+                ; 2. Extract Sprite Graphic ID (Offset 0)
+                ld      a, (hl)                 
+                ld      (ix+0), a               
+
+                ; 3. Inject current pixel positions into the render block
+                pop     de                      ; Get pixel coordinates back
+                push    de                      ; Save an active copy for horizontal stepping
+                ld      (ix+3), e               ; Set X Pixel
+                ld      (ix+4), d               ; Set Y Pixel
+
+                ; 4. Render Item Pixels
+                call    draw_entity           
+
+                ; --- ITERATE POSITION AND COUNTERS ---
+                pop     de                      ; Restore pixel coordinates
+                pop     bc                      ; Restore loop tracking variables
+                pop     hl                      ; Restore array position tracking pointer
+
+                ; Step X coordinate 16 pixels to the right for the next item
+                ld      a, e
+                add     a, 16                  
+                ld      e, a                    
+
+                dec     b                       
+                jr      nz, loop_items
+                ret
 
 
 
@@ -10084,7 +10166,7 @@ colour_acg_key:
                 call    xy_to_attr          
                 ld      a, (acg_key_flag)
                 bit     0, a                
-                ld      a, bright_white_bl        
+                ld      a, dark_blue        
                 jr      z, .fill_1
                 ld      a, bright_yellow    
 .fill_1:        ld      bc, &0204           
@@ -10099,7 +10181,7 @@ colour_acg_key:
                 call    xy_to_attr
                 ld      a, (acg_key_flag)
                 bit     1, a
-                ld      a, bright_white_bl 
+                ld      a, dark_blue 
                 jr      z, .fill_2
                 ld      a, bright_yellow
 .fill_2:        ld      bc, &0204           
@@ -10113,7 +10195,7 @@ colour_acg_key:
                 call    xy_to_attr
                 ld      a, (acg_key_flag)
                 bit     2, a
-                ld      a, bright_white_bl 
+                ld      a, dark_blue 
                 jr      z, .fill_3
                 ld      a, bright_yellow
 .fill_3:        ld      bc, &0204           

@@ -3650,9 +3650,9 @@ floor_ptrs_table:
         dw  minimap_bm    ; (Floor 1)
         dw  minimap_cv    ; Bottom (Floor 0)
 
-replay_max          equ    5
+replay_max:         equ  255        ; Maximum rooms replayed
 room_history:       defs replay_max 
-                    defb &FF    ; 
+                    defb &FF     
 history_count:      defb 0          ; Current index/total rooms logged
 
 
@@ -6698,7 +6698,7 @@ clear_minimap:
 ; 6. Draw the visited room box and set up the new pixel for the flasher.
 ;------------------------------------------------------------------------------
 
-um_marker db '999'
+;um_marker db '999'
 update_minimap:
     ; --- 1. The Gatekeeper ---
     ld      a, (player_room)

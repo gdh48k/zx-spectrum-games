@@ -3855,7 +3855,12 @@ run_replay:
         call    draw_visited_room      ; Draw the perimeter
         pop     de
 
-        ld      b, 5                   ; Pause: User sees hollow square
+        ; --- AUDIO ADDITION 1 ---
+        push    de                      ; Guard registers from sound routine
+        call    walk_sound              ; Plays click (takes approx 4 frames of CPU time)
+        pop     de
+
+        ld      b, 1                    ; ADJUSTED: Reduced from 5 to 1 (Sound handles the rest!)
         call    wait_frames
 
         ; --- 2. FILLED (The "Pop") ---
@@ -3863,7 +3868,12 @@ run_replay:
         call    draw_room_center       ; Plot just the (+1, +1) pixel
         pop     de
 
-        ld      b, 10                  ; Pause: User sees solid block
+        ; --- AUDIO ADDITION 2 ---
+        push    de
+        call    walk_sound              ; Plays alternating step click
+        pop     de
+
+        ld      b, 6                    ; ADJUSTED: Reduced from 10 to 6 to absorb the beep time
         call    wait_frames
 
         ; --- 3. HOLLOW (The Trail) ---

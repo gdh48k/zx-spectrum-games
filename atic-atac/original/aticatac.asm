@@ -3837,16 +3837,35 @@ run_replay:
         jr      .offsets_join
 
 .proto_success:
-        ; A contains either 01h (Basement) or 02h (Ground Floor) here
-        ld      (current_floor), a      ; <--- FIX: Update engine state!
+        ld      (current_floor), a      ; Sync the engine state with Floor ID
         
+        ; --- Route Pointer based on Floor ID (A) ---
         cp      2
-        jr      z, .pset_gf
+        jr      z, .pset_gf              ; Floor 2
+        jr      c, .below_gf            ; Floors 0 and 1
         
-        ld      de, minimap_bm          ; Must be Floor 1 (Basement)
+        ; --- Upper Floors ---
+        cp      4
+        jr      z, .pset_at              ; Floor 4
+        
+        ld      de, minimap_f1          ; Must be Floor 3
+        jr      .store_ptr
+.pset_at:
+        ld      de, minimap_at
+        jr      .store_ptr
+
+        ; --- Lower Floors ---
+.below_gf:
+        and     a                       ; Is it Floor 0?
+        jr      z, .pset_cv
+        
+        ld      de, minimap_bm          ; Must be Floor 1
+        jr      .store_ptr
+.pset_cv:
+        ld      de, minimap_cv
         jr      .store_ptr
 .pset_gf:
-        ld      de, minimap_gf          ; Floor 2 (Ground Floor)
+        ld      de, minimap_gf          ; Floor 2
 
 .store_ptr:
         ld      (minimap_ptr), de
@@ -6468,67 +6487,129 @@ room_floor_lookup:
 
         db &FF ; Terminator
 
- ; --- Parallel Prototype Data ---
-proto_gf_rooms:
-        db &00, &01, &02, &03, &04, &05, &06, &07
-        db &08, &09, &0A, &0B, &0C, &0D, &0E, &0F
-        db &10, &11, &12, &13, &14, &15, &16, &17
-        db &18, &19, &6B, &6C, &6D, &6E, &6F, &70
-        db &71, &72, &73, &8E
-        db &FF                         ; End of Ground Floor List
+; =============================================================================
+; COMPACT COMPRESSED ROOM LISTS (1 Byte Per Room + End Marker)
+; Total Footprint: 112 rooms + 5 markers = 117 bytes
+; =============================================================================
+proto_at_rooms: ; --- Attic (Floor 4) ---
+        db &2F, &27, &28, &29, &2A, &2B, &2C, &2D, &2E, &75, &76, &77, &78, &79
+        db &7A, &7B, &7C, &7D, &7E
+        db &FF                         ; End Marker
 
-proto_bm_rooms:
-        db &1A, &1B, &1C, &56, &57, &58, &59, &5A
-        db &5B, &5C, &5D, &5E, &5F, &60, &61, &62
-        db &63, &64, &65, &66, &67, &68, &69, &6A
-        db &FF                         ; End of Basement List
+proto_f1_rooms: ; --- First Floor (Floor 3) ---
+        db &26, &7F, &80, &81, &82, &83, &84, &85, &86, &87, &88, &89, &8A, &8B
+        db &8C, &8D, &1E, &1F, &20, &21, &22, &23, &24, &25
+        db &FF                         ; End Marker
+
+proto_gf_rooms: ; --- Ground Floor (Floor 2) ---
+        db &00, &01, &02, &03, &04, &05, &06, &07, &08, &09, &0A, &0B, &0C, &0D
+        db &0E, &0F, &10, &11, &12, &13, &14, &15, &16, &17, &18, &19, &6B, &6C
+        db &6D, &6E, &6F, &70, &71, &72, &73, &8E
+        db &FF                         ; End Marker
+
+proto_bm_rooms: ; --- Basement (Floor 1) ---
+        db &1A, &1B, &1C, &56, &57, &58, &59, &5A, &5B, &5C, &5D, &5E, &5F, &60
+        db &61, &62, &63, &64, &65, &66, &67, &68, &69, &6A
+        db &FF                         ; End Marker
+
+proto_cv_rooms: ; --- Cavern (Floor 0) ---
+        db &1D, &30, &31, &32, &33, &34, &35, &36, &37, &38, &39, &3A, &3B, &3C
+        db &3D, &3E, &3F, &40, &41, &42, &43, &44, &45, &46, &47, &48, &4A, &4B
+        db &4C, &4D, &4E, &4F, &50, &51, &52, &53, &54, &55, &74, &8F, &90, &91
+        db &92, &93, &94
+        db &FF                         ; End Marker
         
 ; =============================================================================
-; check_floor_proto
+; check_floor_proto (Final Game-Over Version)
 ; Input:  A = Room ID to test
-; Output: If Ground Floor: A = 02h, Carry Flag Set (C)
-;         If Other Floor:  Carry Flag Cleared (NC)
+; Output: If found: A = Floor ID (00h to 04h), Carry Flag Set (C)
+;         If fatal error: Carry Flag Cleared (NC)
 ; Registers Smashed: HL, B
 ; =============================================================================
 check_floor_proto:
-        ld      b, a                    ; Save target Room ID in B
-        ld      hl, proto_gf_rooms      ; Point to our new prototype list
+        ld      b, a                    ; B = Target Room ID
 
-; --- Check Ground Floor ---
+        ; --- 1. Check Attic (Floor 4) ---
+        ld      hl, proto_at_rooms
+.search_at:
+        ld      a, (hl)
+        cp      &FF
+        jr      z, .try_f1
+        cp      b
+        jr      z, .found_at
+        inc     hl
+        jr      .search_at
+.found_at:
+        ld      a, 4
+        scf
+        ret
+
+        ; --- 2. Check First Floor (Floor 3) ---
+.try_f1:
+        ld      hl, proto_f1_rooms
+.search_f1:
+        ld      a, (hl)
+        cp      &FF
+        jr      z, .try_gf
+        cp      b
+        jr      z, .found_f1
+        inc     hl
+        jr      .search_f1
+.found_f1:
+        ld      a, 3
+        scf
+        ret
+
+        ; --- 3. Check Ground Floor (Floor 2) ---
+.try_gf:
         ld      hl, proto_gf_rooms
 .search_gf:
         ld      a, (hl)
         cp      &FF
-        jr      z, .try_basement        ; Not on GF, check Basement
+        jr      z, .try_bm
         cp      b
         jr      z, .found_gf
         inc     hl
         jr      .search_gf
-
 .found_gf:
-        ld      a, 2                    ; Floor 2 = Ground Floor
-        scf                             ; Success (Carry Set)
+        ld      a, 2
+        scf
         ret
 
-        ; --- Check Basement ---
-.try_basement:
+        ; --- 4. Check Basement (Floor 1) ---
+.try_bm:
         ld      hl, proto_bm_rooms
 .search_bm:
         ld      a, (hl)
         cp      &FF
-        jr      z, .not_in_proto        ; Not in either list, drop to old code
+        jr      z, .try_cv
         cp      b
         jr      z, .found_bm
         inc     hl
         jr      .search_bm
-
 .found_bm:
-        ld      a, 1                    ; Floor 1 = Basement
-        scf                             ; Success (Carry Set)
+        ld      a, 1
+        scf
         ret
 
-.not_in_proto:
-        or      a                       ; Fallback (Carry Clear)
+        ; --- 5. Check Cavern (Floor 0) ---
+.try_cv:
+        ld      hl, proto_cv_rooms
+.search_cv:
+        ld      a, (hl)
+        cp      &FF
+        jr      z, .not_found_anywhere
+        cp      b
+        jr      z, .found_cv
+        inc     hl
+        jr      .search_cv
+.found_cv:
+        ld      a, 0
+        scf
+        ret
+
+.not_found_anywhere:
+        or      a                       ; Clear Carry Flag (Safety Fallback)
         ret
 
 ;----------------------------------------------------------

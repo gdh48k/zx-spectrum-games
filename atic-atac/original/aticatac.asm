@@ -3810,12 +3810,12 @@ run_replay:
         ld      a, (history_count)     ; Get exactly how many rooms were logged
         and     a                      ; Is it 0?
         ret     z                      ; If no rooms logged, exit immediately
-        ld      b, a                   ; Put the total count into B for counting down
+        ;ld      b, a                   ; Put the total count into B for counting down
         
         ld      hl, room_history       ; Start of the actual path taken
 
 .next_id:
-        push    bc                     ; Save our loop counter (B)
+        ;push    bc                     ; Save our loop counter (B)
         ld      a, (hl)                ; Get the Room ID
         
         ; --- REMOVED: cp &FF / ret z ---
@@ -3892,8 +3892,14 @@ run_replay:
         pop     hl                     ; Restore history pointer
         inc     hl                     ; Point to next history slot
         
-        pop     bc                     ; Restore clean loop counter
-        djnz    .next_id               ; <-- FIX: Decrement B and loop until B = 0
+        ; --- RAM-Based Destruction Loop ---
+        ld      a, (history_count)
+        dec     a                      ; Subtract 1 from total rooms remaining
+        ld      (history_count), a     ; Write back to RAM
+        jp      nz, .next_id           ; Jump if rooms remain (Bypasses DJNZ limits
+
+        ;pop     bc                     ; Restore clean loop counter
+        ;djnz    .next_id               ; <-- FIX: Decrement B and loop until B = 0
         
         ret                            ; Exit function safely!
         
@@ -6039,7 +6045,7 @@ minimap_gf:
         ; --- ROW 8 (Y=24) ---
         db  &70,  2, 24
 
-        
+        db  &FF              ; End of ground floor         
 
         ; --- IRREGULAR MEDIEVAL BORDER (Offset Adjusted) ---
         
@@ -6096,7 +6102,7 @@ minimap_gf:
         ;db  &00,  1, 27      ; . # #
         ;db  &00,  2, 27
 
-        db  &FF              ; End of ground floor 
+        
 
 
 
@@ -6144,7 +6150,7 @@ minimap_f1:
 minimap_bm:
         ; --- ROW 0 ---
         db  &67,  3,  0
-        db  &68, 12,  0
+        db  &68, 15,  0
 
         ; --- ROW 1 ---
         db  &69,  0,  3

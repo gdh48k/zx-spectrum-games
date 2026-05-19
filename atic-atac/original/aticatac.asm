@@ -3608,6 +3608,7 @@ go_minimap_x      equ     low(go_minimap_yx)
 
 ; --- ITEM REPLAY MIDDLE BLOCK (Row 11 / Upward from Row 12 Boundary) ---
 go_replay_items_yx equ    &6030    ; Y=96,  X=48  (Draws UPWARD into Row 11)
+go_items_attr_yx equ      &4a30
 
 ; --- LOWER BLOCK (Shifted down 40 pixels / Starts at Row 17) ---
 go_acgkey_yx      equ     &9E38    ; Y=158, X=56  (Draws 22 pixels UPWARD to Y=136)
@@ -3675,7 +3676,7 @@ item_history:
                 dw      coin            ; Third item collected
                 
 
-item_count:     defb    10            ; Force the counter to 3 items
+item_count:     defb    10           
 
 
 
@@ -3714,15 +3715,22 @@ colour_stats_block:
 colour_maps_block:
                 ld      hl, go_minimap_yx ; ; 
                 call    xy_to_attr          ; Convert to Attribute Address
-                ld      bc, &1608         ; 5 columns wide, 5 rows high
+                ld      bc, &1604         ; 5 columns wide, 5 rows high
                 ld      a, bright_white              
+                call    fill_bc_hl_a        ; Fill the area
+
+colour_items_block:
+                ld      hl, go_items_attr_yx ; ; 
+                call    xy_to_attr          ; Convert to Attribute Address
+                ld      bc, &1603         ; 5 columns wide, 5 rows high
+                ld      a, bright_white_bl              
                 call    fill_bc_hl_a        ; Fill the area
 
                 call    draw_all_maps_manual
 
                 call    run_replay
 
-                call    replay_item_history
+                call    replay_item_history 
                 
 loc_8C4A:
                 call    loc_94A1              
@@ -4051,64 +4059,112 @@ update_replay_offsets:
         ret
 
 ; =============================================================================
-; Routine: replay_item_history
-; Purpose: Pure visual plot of collected item graphics in monochrome white
+; Routine:  replay_item_history & replay_item_attrs
+; Baseline: Restored to working layout from image_30f0eb.png
 ; =============================================================================
 replay_item_history:
                 ld      a, (item_count)
                 and     a
-                ret     z                       ; Skip if 0 items
+                ret     z                       ; Exit if 0 items collected
 
                 ld      b, a                    ; B = Loop counter
-                ld      hl, item_history        ; Item tracking array
-                ld      ix, entity_to_draw      ; Engine scratchpad
-                
-                ; --- HARDCODED BASE POSITION ---
-                ; D = Y-pixel (96), E = X-pixel (48)
-                ld      de, &6030               ; High byte (&60) = 96, Low byte (&30) = 48
+                ld      c, 6                    ; C = Starting Attribute Column (6)
+                ld      hl, item_history        ; HL = Head of array
+                ld      de, &5830               ; Original Y/X layout from image_30f0eb.png
 
 loop_items:
-                ; 1. Safe 16-bit extraction using DE as a vehicle to protect HL
-                ld      a, (hl)                 ; Low byte of structure pointer
-                inc     hl
-                ld      c, (hl)                 ; High byte of structure pointer
-                inc     hl
-                
-                push    hl                      ; Save array position pointer
-                push    bc                      ; Save structure pointer high byte & loop counter
-                push    de                      ; Save current X/Y pixel rendering position
+                push    bc                      ; [Stack 1] Save Loop/Column
+                push    de                      ; [Stack 2] Save Pixel X/Y
+                push    hl                      ; [Stack 3] Save history pointer
 
-                ; Move the extracted pointer into HL for reading
-                ld      l, a
-                ld      h, c                    ; HL now safely points to the item structure
+                ; --- 1. EXTRACT POINTER TO ITEM STRUCTURE ---
+                ld      a, (hl)
+                inc     hl
+                ld      h, (hl)
+                ld      l, a                    ; HL points directly to item data
 
-                ; 2. Extract Sprite Graphic ID (Offset 0)
-                ld      a, (hl)                 
+                ; --- 2. POPULATE WORKSPACE WITH TARGET DATA ---
+                ld      ix, entity_to_draw      
+                ld      a, (hl)                 ; Offset 0: Graphic ID
                 ld      (ix+0), a               
 
-                ; 3. Inject current pixel positions into the render block
-                pop     de                      ; Get pixel coordinates back
-                push    de                      ; Save an active copy for horizontal stepping
-                ld      (ix+3), e               ; Set X Pixel
-                ld      (ix+4), d               ; Set Y Pixel
-
-                ; 4. Render Item Pixels
-                call    draw_entity           
-
-                ; --- ITERATE POSITION AND COUNTERS ---
-                pop     de                      ; Restore pixel coordinates
-                pop     bc                      ; Restore loop tracking variables
-                pop     hl                      ; Restore array position tracking pointer
-
-                ; Step X coordinate 16 pixels to the right for the next item
+                ld      a, d                    
+                ld      (ix+4), a               ; Original working baseline
                 ld      a, e
-                add     a, 16                  
+                ld      (ix+3), a               ; Current X pixel
+
+                ; --- 3. EXTRACT COLOR & MASK TO BLACK PAPER ---
+                inc     hl
+                inc     hl
+                inc     hl
+                inc     hl                      ; Advance to Offset 4 (Color Attribute)
+                ld      a, (hl)                 ; Read native attribute
+                
+                and     &07                     ; Keep Ink colors only
+                or      &40                     ; Bright bit on (Paper is Black)
+                ld      (ix+5), a               ; Store attribute in workspace
+
+                ; --- 4. RENDER SPRITE PIXELS ---
+                call    draw_entity             ; Draw pixel image onto screen
+
+                ; --- 5. RE-ALIGN STACKS AND PAINT ATTRIBUTES ---
+                pop     hl                      
+                pop     de                      
+                pop     bc                      
+                push    bc                      
+                push    de                      
+                push    hl                      
+
+                ;call    replay_item_attrs       ; Color block placement fix
+
+                pop     hl                      
+                pop     de                      
+                pop     bc                      
+
+                ; --- 6. ADVANCE LAYOUT STRIDE ---
+                inc     hl                      ; Next item address in history
+                inc     hl                      
+
+                ld      a, e
+                add     a, 16                   ; Shift X pixel 16 units right
                 ld      e, a                    
 
-                dec     b                       
-                jr      nz, loop_items
+                inc     c
+                inc     c                       ; Shift Attribute Column 2 cells right
+
+                djnz    loop_items              
                 ret
 
+; =============================================================================
+; Inputs:   C = Active Column Tracker, (ix+5) = Attribute color byte
+; Updates:  Targets Character Rows 11, 12, 13 to clear the map area perfectly.
+; =============================================================================
+replay_item_attrs:
+                ld      a, (ix+5)               ; A = Masked Attribute Byte
+                ld      e, c
+                ld      d, 0                    ; DE = Column offset
+
+                ; --- ROW 11 ---
+                ld      hl, &5960               ; Moved down to align with sprites
+                add     hl, de                  
+                ld      (hl), a                 
+                inc     hl
+                ld      (hl), a                 
+
+                ; --- ROW 12 ---
+                ld      hl, &5980               
+                add     hl, de
+                ld      (hl), a                 
+                inc     hl
+                ld      (hl), a                 
+
+                ; --- ROW 13 ---
+                ld      hl, &59A0               
+                add     hl, de
+                ld      (hl), a                 
+                inc     hl
+                ld      (hl), a                 
+                ret
 
 
 ; food item handler

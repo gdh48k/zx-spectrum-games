@@ -3676,9 +3676,56 @@ item_history:
                 dw      coin            ; Third item collected
                 
 
-item_count:     defb    10           
+item_count:     defb    2          
 
+; =============================================================================
+; Module:   draw_items
+; Flow:     Iterates through item_history and blits monochrome pixels.
+; =============================================================================
+draw_items:
+                ld      a, (item_count)
+                and     a
+                ret     z                       
 
+                ld      b, a                    ; B = Loop counter
+                ld      hl, item_history        
+                ld      ix, entity_to_draw      
+                
+                ; ROCK-SOLID VERTICAL/HORIZONTAL ALIGNMENT BASELINE
+                ld      de, &5830               ; D = &58 (Y Pixel), E = &30 (X Pixel)
+
+.pixel_loop:
+                ld      a, (hl)                 ; Extract low byte of pointer
+                inc     hl
+                ld      c, (hl)                 ; Extract high byte of pointer
+                inc     hl
+                
+                push    hl                      ; [Stack 1] Save history array pointer
+                push    bc                      ; [Stack 2] Save Loop Counter (B)
+                push    de                      ; [Stack 3] Save Screen Coordinates
+
+                ld      l, a
+                ld      h, c                    ; HL = Direct pointer to item data结构
+
+                ld      a, (hl)                 ; Offset 0: Sprite ID
+                ld      (ix+0), a               
+                
+                ld      (ix+3), e               ; Set X
+                ld      (ix+4), d               ; Set Y
+
+                call    draw_entity             ; Draw white pixels cleanly
+
+                pop     de                      
+                pop     bc                      
+                pop     hl                      
+
+                ; Stride advancement
+                ld      a, e
+                add     a, 16                   ; Shift X pixel 16 units right
+                ld      e, a                    
+
+                djnz    .pixel_loop             
+                ret
 
 
 game_over:
@@ -3730,7 +3777,14 @@ colour_items_block:
 
                 call    run_replay
 
-                call    replay_item_history 
+                call    draw_items
+
+                ;ld      hl, go_items_attr_yx ; ; 
+                ;call    xy_to_attr          ; Convert to Attribute Address
+                ;ld      bc, &0203         ; 5 columns wide, 5 rows high
+                ;ld      a, bright_yellow              
+                ;call    fill_bc_hl_a        ; Fill the area          
+                
                 
 loc_8C4A:
                 call    loc_94A1              

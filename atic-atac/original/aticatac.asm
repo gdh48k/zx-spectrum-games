@@ -3731,31 +3731,33 @@ add_history:
 
 
 draw_items_test:
-                ;ld      a, (item_count)
-                ;and     a
-                ;ret     z                       ; Return if no items to draw
-
                 ld      ix, entity_to_draw
-                ld      hl, item_history        ; Start at first item
                 
-                ; --- ITEM 1: Test the adjusted ID logic ---
-                ld      a, &80                 ; Load ID
+                ; --- ITEM 1: Key (&80) ---
+                ld      a, &80                  ; ID
                 inc     a                       ; Apply +1 offset
-                ld      (ix+0), a               
+                ld      (ix+0), a               ; Set Index
+                ld      a, bright_yellow_gr     ; Hardcoded Attribute (Bright White)
+                ld      (ix+5), a               ; Set Attribute at IX+5
                 ld      (ix+3), 120             ; X
-                ld      (ix+4), 91              ; Y
-                call    draw_entity             
+                ld      (ix+4), 95              ; Y
                 
-                ; --- ITEM 2: Test the history pointer advance ---
-                ld      de, 4                   ; Move to next item in history
-                add     hl, de                  
+                           
+                call    draw_entity             ; Render graphic
+                call    set_entity_attrs        ; Apply color
                 
-                ld      a, &81                 ; Load next ID
+                ; --- ITEM 2: Wine (&81) ---
+                ld      a, &81                  ; ID
                 inc     a                       ; Apply +1 offset
-                ld      (ix+0), a
-                ld      (ix+3), 160             ; Offset X to avoid overlap
-                ld      (ix+4), 91              ; Keep same Y
+                ld      (ix+0), a               ; Set Index
+                ld      a, bright_yellow_gr                 ; Hardcoded Attribute (Yellow)
+                ld      (ix+5), a               ; Set Attribute at IX+5
+                ld      (ix+3), 160             ; X
+                ld      (ix+4), 95              ; Y
+                
+                
                 call    draw_entity             
+                call    set_entity_attrs        
                 
                 ret
 

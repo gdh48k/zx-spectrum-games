@@ -2029,7 +2029,23 @@ clear_play_area:
                 ld      bc, &18c0            ; 24x192
                 xor     a
 
-; fill C rows of B columns of value A at address HL
+; =============================================================================
+; Routine: fill_bc_hl_a
+; Description: Fills a rectangular block of memory in the attribute file.
+; 
+; Inputs:
+;   HL = Target attribute start address
+;   B  = Width (in bytes/columns)
+;   C  = Height (in rows)
+;   A  = Attribute value to fill (INK/PAPER/BRIGHT/FLASH)
+;
+; Corruption Warning:
+;   This routine uses recursion for row advancement. 
+;   1. Ensure stack space is sufficient for the height (C).
+;   2. Row stride is hardcoded to 32 bytes (Spectrum attribute map width).
+;   3. Incorrect B or C values will cause memory corruption outside 
+;      the attribute file (&5800-&5AFF).
+; =============================================================================
 fill_bc_hl_a:
                 push    bc
                 push    hl
@@ -3607,7 +3623,7 @@ go_minimap_y      equ     high(go_minimap_yx)
 go_minimap_x      equ     low(go_minimap_yx)
 
 ; --- ITEM REPLAY MIDDLE BLOCK (Row 11 / Upward from Row 12 Boundary) ---
-go_replay_items_yx equ    &6030    ; Y=96,  X=48  (Draws UPWARD into Row 11)
+go_replay_items_yx equ    &5c30    ; Y=96,  X=48  (Draws UPWARD into Row 11)
 go_items_attr_yx equ      &4a30
 
 ; --- LOWER BLOCK (Shifted down 40 pixels / Starts at Row 17) ---
@@ -3659,73 +3675,160 @@ room_history:   defs replay_max
                 defb &FF     
 history_count:  defb 0          ; Current index/total rooms logged
 
+; =============================================================================
+; New Item History Storage
+; =============================================================================
 item_max        equ     12
+item_history:   defs    item_max * 4    ; Flat buffer: 48 bytes total
+item_count:     db      0               ; Number of items currently stored
 
-item_history:
-                dw      green_key       ; First item collected
-                dw      crucafix        ; Second item collected
-                dw      coin            ; Third item collected
-                dw      green_key       ; First item collected
-                dw      crucafix        ; Second item collected
-                dw      coin            ; Third item collected
-                dw      green_key       ; First item collected
-                dw      crucafix        ; Second item collected
-                dw      coin            ; Third item collected
-                dw      green_key       ; First item collected
-                dw      crucafix        ; Second item collected
-                dw      coin            ; Third item collected
-                
-
-item_count:     defb    2          
+; Structure per slot (4 bytes):
+; Offset +0: Reserved (or Spare)
+; Offset +1: Reserved (or Spare)
+; Offset +2: Sprite ID
+; Offset +3: Attribute Byte         
 
 ; =============================================================================
 ; Module:   draw_items
 ; Flow:     Iterates through item_history and blits monochrome pixels.
 ; =============================================================================
+
+; =============================================================================
+; add_history: Captures entity data directly into the flat buffer
+; Input: IX = Pointer to entity structure
+; =============================================================================
+add_history:
+    ld      a, (item_count)
+    cp      item_max            ; Limit check
+    ret     nc                  
+
+    ; Calculate index: HL = (item_count * 4) + item_history
+    ld      l, a
+    ld      h, 0
+    add     hl, hl              ; * 2
+    add     hl, hl              ; * 4
+    ld      de, item_history
+    add     hl, de              ; HL points to the specific 4-byte slot
+
+    ; Base+0, Base+1: Skip or store extra info if needed
+    inc     hl
+    inc     hl
+
+    ; Base+2: Store Sprite ID from (ix+0)
+    ld      a, (ix+0)
+    ld      (hl), a             
+    inc     hl
+
+    ; Base+3: Store Attribute from (ix+5)
+    ld      a, (ix+5)
+    ld      (hl), a             
+
+    ; Increment counter
+    ld      hl, item_count
+    inc     (hl)
+    ret
+
+
+
+draw_items_test:
+                ;ld      a, (item_count)
+                ;and     a
+                ;ret     z                       ; Return if no items to draw
+
+                ld      ix, entity_to_draw
+                ld      hl, item_history        ; Start at first item
+                
+                ; --- ITEM 1: Test the adjusted ID logic ---
+                ld      a, &80                 ; Load ID
+                inc     a                       ; Apply +1 offset
+                ld      (ix+0), a               
+                ld      (ix+3), 120             ; X
+                ld      (ix+4), 91              ; Y
+                call    draw_entity             
+                
+                ; --- ITEM 2: Test the history pointer advance ---
+                ld      de, 4                   ; Move to next item in history
+                add     hl, de                  
+                
+                ld      a, &81                 ; Load next ID
+                inc     a                       ; Apply +1 offset
+                ld      (ix+0), a
+                ld      (ix+3), 160             ; Offset X to avoid overlap
+                ld      (ix+4), 91              ; Keep same Y
+                call    draw_entity             
+                
+                ret
+
+; =============================================================================
+; =============================================================================
+; Routine: draw_items
+; Flow:    Iterates through item_history and renders items at fixed intervals.
+;          Uses existing entity workspace (ix) and draw_entity logic.
+; =============================================================================
 draw_items:
                 ld      a, (item_count)
                 and     a
-                ret     z                       
+                ret     z                       ; Return if no items to draw
 
                 ld      b, a                    ; B = Loop counter
-                ld      hl, item_history        
-                ld      ix, entity_to_draw      
-                
-                ; ROCK-SOLID VERTICAL/HORIZONTAL ALIGNMENT BASELINE
-                ld      de, &5830               ; D = &58 (Y Pixel), E = &30 (X Pixel)
+                ld      hl, item_history        ; Base of history list
+                ld      ix, entity_to_draw      ; Engine's workspace
 
 .pixel_loop:
-                ld      a, (hl)                 ; Extract low byte of pointer
-                inc     hl
-                ld      c, (hl)                 ; Extract high byte of pointer
-                inc     hl
+                push    bc                      ; Save Loop Counter
+                push    hl                      ; Save history pointer
                 
-                push    hl                      ; [Stack 1] Save history array pointer
-                push    bc                      ; [Stack 2] Save Loop Counter (B)
-                push    de                      ; [Stack 3] Save Screen Coordinates
-
-                ld      l, a
-                ld      h, c                    ; HL = Direct pointer to item data结构
-
-                ld      a, (hl)                 ; Offset 0: Sprite ID
-                ld      (ix+0), a               
+                ; 1. Load Sprite ID from history and apply index adjustment
+                ld      a, (hl)                 ; Load raw ID
+                inc     a                       ; Apply +1 offset (verified for sprite table)
+                ld      (ix+0), a               ; Set Index in workspace
                 
-                ld      (ix+3), e               ; Set X
-                ld      (ix+4), d               ; Set Y
+                ; 2. Load and Sanitize Coordinates
+                ; Assuming history stores: [ID, Attr, X, Y]
+                ; We increment hl to get to X and Y
+                inc     hl                      ; Skip Attribute/Extra
+                inc     hl                      ; Point to X
+                ld      e, (hl)                 ; Load X
+                inc     hl                      ; Point to Y
+                ld      d, (hl)                 ; Load Y
+                
+                ; Boundary Check: Ensure Y is in the "Safe Zone" (e.g., > 64, < 176)
+                ; This prevents the "Half-Axe" clipping issue
+                ld      a, d
+                cp      64                      ; Check against min Y
+                jr      nc, .y_ok
+                ld      d, 64                   ; Clamp to min Y
+.y_ok:
+                ld      (ix+3), e               ; Set X in workspace
+                ld      (ix+4), d               ; Set Y in workspace
 
-                call    draw_entity             ; Draw white pixels cleanly
+                ; 3. Draw using native engine
+                ld      (ix+1), 0               ; Clear workspace internals
+                ld      (ix+2), 0
+                call    draw_entity             
 
-                pop     de                      
-                pop     bc                      
-                pop     hl                      
+                ; 4. Restore state
+                pop     hl                      ; Restore history pointer
+                pop     bc                      ; Restore Loop Counter
 
-                ; Stride advancement
-                ld      a, e
-                add     a, 16                   ; Shift X pixel 16 units right
-                ld      e, a                    
+                ; 5. Advance history pointer
+                ; Items have 4 bytes: [ID, Attr, X, Y]
+                ld      de, 4
+                add     hl, de                  ; Standard Z80 addition
 
-                djnz    .pixel_loop             
+                djnz    .pixel_loop             ; Loop until all items drawn
                 ret
+
+; =============================================================================
+; Test: Two-Color Dual-Stamp
+; =============================================================================
+colour_items_stable:
+    ld      hl, go_items_attr_yx ; ; 
+                call    xy_to_attr          ; Convert to Attribute Address
+                ld      bc, &1603         
+                ld      a, bright_white_bl              
+                call    fill_bc_hl_a        ; Fill the area
+    ret
 
 
 game_over:
@@ -3775,9 +3878,10 @@ colour_items_block:
 
                 call    draw_all_maps_manual
 
-                call    run_replay
+                ;call    run_replay
 
-                call    draw_items
+                call    draw_items_test
+                ;call    colour_items_stable
 
                 ;ld      hl, go_items_attr_yx ; ; 
                 ;call    xy_to_attr          ; Convert to Attribute Address
@@ -4394,11 +4498,19 @@ reset_game_state:
         
                 ; Kill the stale pointer so 'erase_center_pixel' doesn't remove last game room
                 xor     a
-                ld      (pixel_addr_save), a
-                ld      (pixel_addr_save+1), a
+                ld      (pixel_addr_save),  a
+                ld      (pixel_addr_save+1),a
                 ; Reset the index to the start
-                ld    (history_count), a   
-
+                ld    (history_count),      a   
+                ld    (item_count),         a
+                ; --- Clean Item History Buffer ---
+                ld      hl, item_history        ; Point to start of buffer
+                ld      (hl), a                 ; Set first byte to 0
+                ld      de, item_history    ; Point to second byte
+                ld      bc, (item_max * 4)  ; Remaining size of buffer
+                ldir
+                
+                
                 ret  
 
 
@@ -5384,6 +5496,8 @@ update_acg_flag:
                 ; ---------------------------------- 
 
 update_inv:     
+                call add_history
+
                 ; --- 1. WIND UP THE AMNESIA TIMER ---
                 ; This gives us ~0.2s to move away from the dropped item
                 ld      a, 10
@@ -10242,10 +10356,9 @@ draw_key_loop:
                 ; 2. Assign coordinates/colour
                 ld      (ix+3), e    ; X coordinate (from E)
                 ld      (ix+4), d    ; Y coordinate (from D)
-                ;ld      (ix+5), &47  ; Bright white
+                
 
                 ; 3. Render
-                ;call    clear_sprite ; Removed for optimisation
                 call    draw_entity 
 
                 pop     de      ; Restore current Y,X

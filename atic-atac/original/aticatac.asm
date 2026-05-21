@@ -3699,8 +3699,8 @@ item_count:     db      0               ; Number of items currently stored
 ; =============================================================================
 add_history:
     ld      a, (item_count)
-    cp      item_max            ; Limit check
-    ret     nc                  
+    cp      item_max
+    ret     nc
 
     ; Calculate index: HL = (item_count * 4) + item_history
     ld      l, a
@@ -3708,21 +3708,17 @@ add_history:
     add     hl, hl              ; * 2
     add     hl, hl              ; * 4
     ld      de, item_history
-    add     hl, de              ; HL points to the specific 4-byte slot
+    add     hl, de              ; HL points to the start of the 4-byte slot
 
-    ; Base+0, Base+1: Skip or store extra info if needed
-    inc     hl
-    inc     hl
-
-    ; Base+2: Store Sprite ID from (ix+0)
+    ; Base+0: Store Sprite ID from (ix+0)
     ld      a, (ix+0)
     ld      (hl), a             
     inc     hl
 
-    ; Base+3: Store Attribute from (ix+5)
+    ; Base+1: Store Attribute from (ix+5)
     ld      a, (ix+5)
     ld      (hl), a             
-
+    
     ; Increment counter
     ld      hl, item_count
     inc     (hl)
@@ -3731,36 +3727,28 @@ add_history:
 
 
 draw_items_test:
+                ld      a, (item_count)
+                and     a                       ; Sets Zero flag if item_count is 0
+                ret     z                       ; Exit immediately if no items
+
+
                 ld      ix, entity_to_draw
+                ld      hl, item_history        ; Point to your data
                 
-                ; --- ITEM 1: Key (&80) ---
-                ld      a, &80                  ; ID
-                inc     a                       ; Apply +1 offset
-                ld      (ix+0), a               ; Set Index
-                ld      a, bright_yellow_gr     ; Hardcoded Attribute (Bright White)
-                ld      (ix+5), a               ; Set Attribute at IX+5
-                ld      (ix+3), 120             ; X
-                ld      (ix+4), 95              ; Y
-                
-                           
-                call    draw_entity             ; Render graphic
-                call    set_entity_attrs        ; Apply color
-                
-                ; --- ITEM 2: Wine (&81) ---
-                ld      a, &81                  ; ID
-                inc     a                       ; Apply +1 offset
-                ld      (ix+0), a               ; Set Index
-                ld      a, bright_yellow_gr                 ; Hardcoded Attribute (Yellow)
-                ld      (ix+5), a               ; Set Attribute at IX+5
-                ld      (ix+3), 160             ; X
-                ld      (ix+4), 95              ; Y
-                
-                
+                ; --- ITEM 1: Read from memory instead of hardcoding ---
+                ld      a, (hl)                 ; Get ID
+                ;inc     a                       ; Offset
+                ld      (ix+0), a               
+                inc     hl                      ; Point to Attr
+                ld      a, (hl)                 ; Get Attr
+                ld      (ix+5), a               
+                ld      (ix+3), 120             ; Keep coords hardcoded for now
+                ld      (ix+4), 95
                 call    draw_entity             
                 call    set_entity_attrs        
                 
+                                ; ... (repeat for item 2) ...
                 ret
-
 ; =============================================================================
 ; =============================================================================
 ; Routine: draw_items
@@ -5134,7 +5122,7 @@ enter_room:
                 call    visit_room           ; mark room A as visited
                 call    clear_play_area      ; clear screen and attrs of play area
                 call    draw_room_frame      ; draw lines that make up outer room frame
-                ;call    draw_panel_attrs     ; draw side-panel colours, which follow room colour
+                call    draw_panel_attrs     ; draw side-panel colours, which follow room colour
                 call    draw_inventory       ; draw any items in player inventory
                 call    entry_sound          ; room entry sound effect
                 jp      main_loop

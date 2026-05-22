@@ -3955,6 +3955,9 @@ draw_all_maps_manual:
         ld      hl, minimap_at
         call    draw_single_map_no_inc
 
+        ld      hl, minimap_gf          
+        ld      (minimap_ptr),  hl      ; default minimap_ptr for next game
+
         ret
 
 ; --- Helper: Draw without auto-incrementing X ---
@@ -6070,6 +6073,7 @@ gf_doors:
 ; --- Random Start Room Mod ---
 
 start_room_mod:
+                
                 ; --- Check if Mod 6 (Bit 4) is active ---
                 ld      a, (mod_selection)
                 and     16                  ; Mask Bit 4 (%00010000)

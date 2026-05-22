@@ -3728,55 +3728,55 @@ add_history:
 
 draw_items_test:
                 ld      a, (item_count)
-                and     a                       ; Sets Zero flag if item_count is 0
-                ret     z                       ; Exit immediately if no items
+                and     a                       ; Check if item_count is 0
+                ret     z                       
 
                 ld      ix, entity_to_draw
-                ld      hl, item_history
-                ld      de, go_replay_items_yx        
+                ld      hl, item_history        ; Initialize Pointer
+                ld      de, go_replay_items_yx  ; Initialize Coordinates
+                ld      b, a                    ; B = loop counter
 
-                ; --- ITEM 1: Read from memory ---
-                ld      a, (hl)                 ; Get ID
-                ld      (ix+0), a               
-                inc     hl                      ; Point to Attr
-                ld      a, (hl)                 ; Get Attr
-                ld      (ix+5), a               
-                ld      (ix+3), e               ; Set X
-                ld      (ix+4), d               ; Set Y
-                call    draw_entity             
-                call    set_entity_attrs        
-                
-                ; --- ITEM 2: Check for second item ---
-                ld      a, (item_count)
-                cp      2                       ; Only proceed if count >= 2
-                ret     c                       
+.items_loop:
+                ; --- Iterate (Draw) ---
+                push    hl
+                push    bc                      ; Save counter
+                push    de                      ; Save current coordinates
 
-                inc     hl                      ; Point to Item 2 ID
-                
-                ; --- Offset the second item ---
-                ; Adjust this offset based on your layout
-                ld      hl, item_history
-                ld      bc, 4                   
-                add     hl, bc                  ; (If item_history structure requires)
-                
-                ; Update coordinates for second item
-                ld      de, go_replay_items_yx
-                ld      a, e                    ; Load X into A
-                add     a, 16                   ; Add offset
-                ld      e, a                    ; Store back in E
-                
-                
-                ; --- Draw Item 2 ---
+                ; Read ID and Attr from HL
                 ld      a, (hl)                 ; Get ID
-                ld      (ix+0), a               
-                inc     hl                      ; Point to Attr
+                ld      (ix+0), a
+                inc     hl
                 ld      a, (hl)                 ; Get Attr
-                ld      (ix+5), a               
-                ld      (ix+3), e               ; Set X
-                ld      (ix+4), d               ; Set Y
-                call    draw_entity             
-                call    set_entity_attrs        
+                ld      (ix+5), a
+                
+                ; Set X and Y
+                ld      (ix+3), e
+                ld      (ix+4), d
+
+                call    draw_entity
+                call    set_entity_attrs
+
+                ; --- Update (Prepare for next) ---
+                pop     de                      ; Restore coords
+                pop     bc                      ; Restore counter
+                pop     hl                      ; Restore item_history
+                
+                ; Move HL to next 4-byte slot (inc 4 times from Attr)
+                inc     hl
+                inc     hl
+                inc     hl
+                inc     hl
+                
+                ; Update X coord for next iteration
+                ld      a, e
+                add     a, 16
+                ld      e, a
+
+                djnz    .items_loop                   ; Decrement and repeat
                 ret
+
+
+
 ; =============================================================================
 ; =============================================================================
 ; Routine: draw_items

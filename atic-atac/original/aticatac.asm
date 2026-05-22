@@ -3731,23 +3731,51 @@ draw_items_test:
                 and     a                       ; Sets Zero flag if item_count is 0
                 ret     z                       ; Exit immediately if no items
 
-
                 ld      ix, entity_to_draw
-                ld      hl, item_history        ; Point to your data
-                
-                ; --- ITEM 1: Read from memory instead of hardcoding ---
+                ld      hl, item_history
+                ld      de, go_replay_items_yx        
+
+                ; --- ITEM 1: Read from memory ---
                 ld      a, (hl)                 ; Get ID
-                ;inc     a                       ; Offset
                 ld      (ix+0), a               
                 inc     hl                      ; Point to Attr
                 ld      a, (hl)                 ; Get Attr
                 ld      (ix+5), a               
-                ld      (ix+3), 120             ; Keep coords hardcoded for now
-                ld      (ix+4), 95
+                ld      (ix+3), e               ; Set X
+                ld      (ix+4), d               ; Set Y
                 call    draw_entity             
                 call    set_entity_attrs        
                 
-                                ; ... (repeat for item 2) ...
+                ; --- ITEM 2: Check for second item ---
+                ld      a, (item_count)
+                cp      2                       ; Only proceed if count >= 2
+                ret     c                       
+
+                inc     hl                      ; Point to Item 2 ID
+                
+                ; --- Offset the second item ---
+                ; Adjust this offset based on your layout
+                ld      hl, item_history
+                ld      bc, 4                   
+                add     hl, bc                  ; (If item_history structure requires)
+                
+                ; Update coordinates for second item
+                ld      de, go_replay_items_yx
+                ld      a, e                    ; Load X into A
+                add     a, 16                   ; Add offset
+                ld      e, a                    ; Store back in E
+                
+                
+                ; --- Draw Item 2 ---
+                ld      a, (hl)                 ; Get ID
+                ld      (ix+0), a               
+                inc     hl                      ; Point to Attr
+                ld      a, (hl)                 ; Get Attr
+                ld      (ix+5), a               
+                ld      (ix+3), e               ; Set X
+                ld      (ix+4), d               ; Set Y
+                call    draw_entity             
+                call    set_entity_attrs        
                 ret
 ; =============================================================================
 ; =============================================================================

@@ -1747,7 +1747,7 @@ print_text:
 
 start_game:
                 call    clear_game_data      ; clear 5E10-5FFF
-                ld      a, 0                 ; 3 lives on startup
+                ld      a, 3                 ; 3 lives on startup
                 ld      (lives), a
                 ld      hl, food_items
                 ld      (food_ptr), hl
@@ -1875,7 +1875,8 @@ loc_7E55:
                 call    replenish_food       ; periodically replenish consumed food
                 ld      a, (player_room)
                 cp      &8e                  ; end room?
-                jp      z, game_complete     ; congratulate player on completion
+                ;jp      z, game_complete     ; congratulate player on completion
+                jp      z, game_over
                 jp      main_loop
 
 process_action:
@@ -3615,7 +3616,7 @@ chicken_entity: db  0, 0, 0, 0, 0, 0, 0, 0
 
 ; --- GAME OVER LAYOUT EQUATES (H=Y, L=X) ---
 
-go_title_yx       equ     &1028    ; Y=16,  X=72  (Row 2,  Col 9)
+go_title_yx       equ     &1008    ; Y=16,  X=72  (Row 2,  Col 9)
 
 ; --- MAP REPLAY BLOCK (Moved right below Title) ---
 go_minimap_yx     equ     &2830    ; Y=40,  X=48  (Row 5,  Col 6)
@@ -3659,8 +3660,12 @@ go_mapat_x      equ     &98
 
 
 gameover_msg:   db  &47                       ; bright white
-                db  "Q U E S T   S O   F A " 
+                db  "   Q U E S T   S O   F A " 
                 db  &d2
+
+complete_msg:   db  &47                       ; bright white
+                db  "C O N G R A T U L A T I O N " 
+                db  &d3
 
 
 floor_ptrs_table:
@@ -3859,9 +3864,17 @@ game_over:
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
                 
-                ld      hl, go_title_yx      
-                ld      de, gameover_msg
-                call    colour_text          ; colour 'game over' text
+
+                ld      hl, go_title_yx
+                ld      a, (player_room)
+                cp      &8e
+                ld      de, complete_msg    ; Default to completion
+                jr      z, go_title         ; If room is 8e, jump to print
+                ld      de, gameover_msg    ; Otherwise, use game over msg
+
+go_title:       call    colour_text
+                      
+      
 
                 ld      de, go_acgkey_yx
                 call    draw_acg_key

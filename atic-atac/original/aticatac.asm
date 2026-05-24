@@ -3640,6 +3640,7 @@ go_roomscap_yx    equ     &9888    ; Y=152, X=136 (Row 19, Col 17)
 go_score_yx       equ     &88B8    ; Y=136, X=184 (Row 17, Col 23)
 go_time_yx        equ     &90B8    ; Y=144, X=184 (Row 18, Col 23)
 go_rooms_yx       equ     &98B8    ; Y=152, X=184 (Row 19, Col 23)
+go_slash_yx       equ     &98D0    ; Y=152, X=188 (Row 19, Col 27)
 
 
 ; --- MAP STACK RELATIVE OFFSETS (Unchanged) ---
@@ -3909,7 +3910,7 @@ colour_stats_block:
                 ld      hl, go_score_yx      
                 call    xy_to_attr          ; Get attribute start address
                 ld      a, &45              ; Bright Cyan
-                ld      bc, &0503           ; 5 wide by 3 tall
+                ld      bc, &0603           ; 5 wide by 3 tall
                 call    fill_bc_hl_a        ; Paint the entire rectangle      
                 
                 
@@ -6252,7 +6253,19 @@ game_stats:
                 call    xy_to_display        ; convert coords in HL to display address in HL
                 ld      de, visited_number
                 ld      b, 1
-                jp      print_bcd_bytes      ; print B BCD bytes at DE
+                call    print_bcd_bytes         ; Print number, HL advances
+
+
+                ld      hl, go_slash_yx        ; Use your specific XY coordinates
+                ld      de, slash_148_indices  ; Point to the index-mapped data
+                call    colour_text            ; Show the text at the position
+                ret
+
+slash_148_indices:
+                db      &45                     ; Color Attribute
+                db      10, 1, 4                ; Indices for /, 1, 4
+                db      8 | &80                 ; Index for 8, terminate with bit 7 se
+
 
 time_msg:       db  &45                       ; bright cyan
                 db  'TIME    '
@@ -13299,7 +13312,7 @@ charset:        db  0, 0, 0, 0, 0, 0, 0, 0    ; space
                 db  0, 0, 0, 0, 0, 0, &20, &20 ; ,
                 db  0, 0, 0, &7e, &7e, 0, 0, 0 ; -
                 db  0, 0, 0, 0, 0, 0, &18, &18 ; .
-                db  &0c, &0c, &18, &18, &30, &30, &60, &60 ; /
+slash:          db  &0c, &0c, &18, &18, &30, &30, &60, &60 ; /
 
 digit_charset:  db  &7c, &fe, &c6, &c6, &c6, &fe, &7c, 0 ; 0
                 db  &18, &38, &58, &18, &18, &18, &3c, 0 ; 1
@@ -13311,7 +13324,7 @@ digit_charset:  db  &7c, &fe, &c6, &c6, &c6, &fe, &7c, 0 ; 0
                 db  &fe, &fc, &0c, &18, &18, &30, &30, 0 ; 7
                 db  &7c, &fe, &c6, &7c, &c6, &fe, &7c, 0 ; 8
                 db  &7c, &fe, &c6, &7e, 6, &fe, &7c, 0 ; 9
-                db  0, 0, 0, 0, 0, 0, 0, 0
+                db  &0c, &0c, &18, &18, &30, &30, &60, &60 ; /
                 db  0, 0, 0, 0, 0, 0, 0, 0
                 db  0, 0, 0, 0, 0, 0, 0, 0
                 db  0, 0, 0, 0, 0, 0, 0, 0

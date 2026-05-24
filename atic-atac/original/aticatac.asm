@@ -131,7 +131,7 @@ clock_hours:    db  0
 clock_minutes:  db  0
 clock_seconds:  db  0
 visited_rooms:  ds  20                        ; visit rooms bit array
-visited_percent:db  0
+visited_number: db  0
 food_ptr:       dw  0
 
 
@@ -6250,7 +6250,7 @@ game_stats:
                 
                 ld      hl, go_rooms_yx      ; percent at 128,96
                 call    xy_to_display        ; convert coords in HL to display address in HL
-                ld      de, visited_percent
+                ld      de, visited_number
                 ld      b, 1
                 jp      print_bcd_bytes      ; print B BCD bytes at DE
 
@@ -7931,7 +7931,7 @@ loc_96E1:
                 dec     c
                 jr      nz, loc_96D2
                 ;inc     a                    ; add 1% to total
-                ld      (visited_percent), a
+                ld      (visited_number), a
                 ret
 game_complete:
                 ld      hl, player           ; congratulate player on completion

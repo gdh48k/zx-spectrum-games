@@ -1747,7 +1747,7 @@ print_text:
 
 start_game:
                 call    clear_game_data      ; clear 5E10-5FFF
-                ld      a, 3                 ; 3 lives on startup
+                ld      a, 0                 ; 3 lives on startup
                 ld      (lives), a
                 ld      hl, food_items
                 ld      (food_ptr), hl
@@ -3901,15 +3901,15 @@ colour_maps_block:
                 call    fill_bc_hl_a        ; Fill the area
 
 colour_items_block:
-                ld      hl, go_items_attr_yx ; ; 
+                ld      hl, go_items_attr_yx ;  
                 call    xy_to_attr          ; Convert to Attribute Address
                 ld      bc, &1603         ; 5 columns wide, 5 rows high
                 ld      a, bright_white_bl              
-                call    fill_bc_hl_a        ; Fill the area
+                ;call    fill_bc_hl_a        ; Fill the area
 
                 call    draw_all_maps_manual
 
-                ;call    run_replay
+                call    run_replay
 
                 call    draw_items_test
                 ;call    colour_items_stable
@@ -4023,6 +4023,7 @@ draw_minimap_unvisited:
 
 
 run_replay:
+        ei
         ld      a, &FF                 ; Force a mismatch
         ld      (current_floor), a     ; The "Dirty" flag
         ld      hl, minimap_gf

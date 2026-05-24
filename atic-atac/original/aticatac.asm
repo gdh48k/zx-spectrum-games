@@ -3855,11 +3855,7 @@ colour_items_stable:
 
 
 game_over:
-                ld      a, go_minimap_x
-                ld      (map_anchor_x), a  
-                ld      a, go_minimap_y    
-                ld      (map_anchor_y), a  
-
+                
                 call    clear_screen
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
@@ -3873,8 +3869,32 @@ game_over:
                 ld      de, gameover_msg    ; Otherwise, use game over msg
 
 go_title:       call    colour_text
-                      
+
+                                            ; Colour_maps_block
+                ld      hl, go_minimap_yx 
+                call    xy_to_attr         
+                ld      bc, &1604           ; width x height
+                ld      a, bright_white              
+                call    fill_bc_hl_a       
       
+
+
+
+                ld      a, go_minimap_x
+                ld      (map_anchor_x), a  
+                ld      a, go_minimap_y    
+                ld      (map_anchor_y), a
+
+                call    draw_all_maps_manual
+
+                call    run_replay
+                  
+
+
+
+                call    draw_items_test
+
+
 
                 ld      de, go_acgkey_yx
                 call    draw_acg_key
@@ -3890,35 +3910,7 @@ colour_stats_block:
                 call    xy_to_attr          ; Get attribute start address
                 ld      a, &45              ; Bright Cyan
                 ld      bc, &0503           ; 5 wide by 3 tall
-                call    fill_bc_hl_a        ; Paint the entire rectangle
-                
-
-colour_maps_block:
-                ld      hl, go_minimap_yx ; ; 
-                call    xy_to_attr          ; Convert to Attribute Address
-                ld      bc, &1604         ; 5 columns wide, 5 rows high
-                ld      a, bright_white              
-                call    fill_bc_hl_a        ; Fill the area
-
-colour_items_block:
-                ld      hl, go_items_attr_yx ;  
-                call    xy_to_attr          ; Convert to Attribute Address
-                ld      bc, &1603         ; 5 columns wide, 5 rows high
-                ld      a, bright_white_bl              
-                ;call    fill_bc_hl_a        ; Fill the area
-
-                call    draw_all_maps_manual
-
-                call    run_replay
-
-                call    draw_items_test
-                ;call    colour_items_stable
-
-                ;ld      hl, go_items_attr_yx ; ; 
-                ;call    xy_to_attr          ; Convert to Attribute Address
-                ;ld      bc, &0203         ; 5 columns wide, 5 rows high
-                ;ld      a, bright_yellow              
-                ;call    fill_bc_hl_a        ; Fill the area          
+                call    fill_bc_hl_a        ; Paint the entire rectangle      
                 
                 
 loc_8C4A:

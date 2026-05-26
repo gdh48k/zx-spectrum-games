@@ -6279,6 +6279,9 @@ game_stats:
                 ld      b, 1
                 call    print_bcd_bytes         ; Print number, HL advances
 
+                ld      de, slash_16
+                call    print_slash_max
+
                 ret
 
 
@@ -6300,6 +6303,9 @@ print_slash_max:
 .last_char:     and     &7f             ; Strip the terminator bit
                 call    print_char      ; Print final character, HL auto-advances
                 ret
+
+slash_16:
+                db    10, 1, 134    ; 134 is 6 + 128 (the terminator)
 
 slash_148:
                 db    10, 1, 4, 136   ; 128 is &80 (the terminator)

@@ -3735,7 +3735,7 @@ add_history:
 
 
 
-draw_items_test:
+draw_items:
                 ld      a, (item_count)
                 and     a                       ; Check if item_count is 0
                 ret     z                       
@@ -3764,6 +3764,10 @@ draw_items_test:
 
                 call    draw_entity
                 call    set_entity_attrs
+                
+                call drop_sound
+                ld      b, 8            ; Adjust this value to set the gap between items
+                call    wait_frames     ; Absorb some of the sound time
 
                 ; --- Update (Prepare for next) ---
                 pop     de                      ; Restore coords
@@ -3785,77 +3789,6 @@ draw_items_test:
                 ret
 
 
-
-; =============================================================================
-; =============================================================================
-; Routine: draw_items
-; Flow:    Iterates through item_history and renders items at fixed intervals.
-;          Uses existing entity workspace (ix) and draw_entity logic.
-; =============================================================================
-draw_items:
-                ld      a, (item_count)
-                and     a
-                ret     z                       ; Return if no items to draw
-
-                ld      b, a                    ; B = Loop counter
-                ld      hl, item_history        ; Base of history list
-                ld      ix, entity_to_draw      ; Engine's workspace
-
-.pixel_loop:
-                push    bc                      ; Save Loop Counter
-                push    hl                      ; Save history pointer
-                
-                ; 1. Load Sprite ID from history and apply index adjustment
-                ld      a, (hl)                 ; Load raw ID
-                inc     a                       ; Apply +1 offset (verified for sprite table)
-                ld      (ix+0), a               ; Set Index in workspace
-                
-                ; 2. Load and Sanitize Coordinates
-                ; Assuming history stores: [ID, Attr, X, Y]
-                ; We increment hl to get to X and Y
-                inc     hl                      ; Skip Attribute/Extra
-                inc     hl                      ; Point to X
-                ld      e, (hl)                 ; Load X
-                inc     hl                      ; Point to Y
-                ld      d, (hl)                 ; Load Y
-                
-                ; Boundary Check: Ensure Y is in the "Safe Zone" (e.g., > 64, < 176)
-                ; This prevents the "Half-Axe" clipping issue
-                ld      a, d
-                cp      64                      ; Check against min Y
-                jr      nc, .y_ok
-                ld      d, 64                   ; Clamp to min Y
-.y_ok:
-                ld      (ix+3), e               ; Set X in workspace
-                ld      (ix+4), d               ; Set Y in workspace
-
-                ; 3. Draw using native engine
-                ld      (ix+1), 0               ; Clear workspace internals
-                ld      (ix+2), 0
-                call    draw_entity             
-
-                ; 4. Restore state
-                pop     hl                      ; Restore history pointer
-                pop     bc                      ; Restore Loop Counter
-
-                ; 5. Advance history pointer
-                ; Items have 4 bytes: [ID, Attr, X, Y]
-                ld      de, 4
-                add     hl, de                  ; Standard Z80 addition
-
-                djnz    .pixel_loop             ; Loop until all items drawn
-                ret
-
-; =============================================================================
-; Test: Two-Color Dual-Stamp
-; =============================================================================
-colour_items_stable:
-    ld      hl, go_items_attr_yx ; ; 
-                call    xy_to_attr          ; Convert to Attribute Address
-                ld      bc, &1603         
-                ld      a, bright_white_bl              
-                call    fill_bc_hl_a        ; Fill the area
-    ret
 
 
 game_over:
@@ -3896,7 +3829,7 @@ go_title:       call    colour_text
 
                 call    game_stats           ; show game statistics
 
-                call    draw_items_test
+                call    draw_items
 
 
 

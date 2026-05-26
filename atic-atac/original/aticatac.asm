@@ -3635,6 +3635,7 @@ go_acgkey_attr_yx equ     &8838    ; Y=136, X=56  (Row 17, Col 7 - Attribute top
 go_scorecap_yx    equ     &8888    ; Y=136, X=136 (Row 17, Col 17)
 go_timecap_yx     equ     &9088    ; Y=144, X=136 (Row 18, Col 17)
 go_roomscap_yx    equ     &9888    ; Y=152, X=136 (Row 19, Col 17)
+go_itemcap_yx     equ     &A088    ; Y=160, X=136 (Row 20, Col 17)
 
 ; --- STATS NUMBERS (Shifted down 40 pixels to match Y=136 baseline) ---
 go_score_yx       equ     &88B8    ; Y=136, X=184 (Row 17, Col 23)
@@ -6256,10 +6257,42 @@ game_stats:
                 call    print_bcd_bytes         ; Print number, HL advances
 
 
-                ld      hl, go_slash_yx        ; Use your specific XY coordinates
-                ld      de, slash_148_indices  ; Point to the index-mapped data
-                call    colour_text            ; Show the text at the position
+                ;ld      hl, go_slash_yx        ; Use your specific XY coordinates
+                ;ld      de, slash_148_indices  ; Point to the index-mapped data
+                ;call    colour_text            ; Show the text at the position
+                
+
+                ld      de, slash_148
+                call    print_slash_max
+
+                ;ld      hl, go_itemcap_yx            
+                ;ld      de, item_msg
+                ;call    colour_text          ; show a line of text, first byte is attr
+
                 ret
+
+
+
+; DE = Address of index-based string (e.g., slash_148_indices)
+; HL = Starting screen pixel address (provided by xy_to_display)
+print_slash_max:
+                ld      a, (de)         ; Get index from string
+                bit     7, a            ; Check for terminator bit (bit 7 set)
+                jr      nz, .last_char  ; If bit 7 is set, this is the last character
+                
+                push    de              ; Save string pointer
+                call    print_char      ; Draw at (HL), HL auto-advances to next char cell
+                pop     de              ; Restore string pointer
+                
+                inc     de              ; Move to next index in string
+                jr      print_slash_max ; Loop back
+
+.last_char:     and     &7f             ; Strip the terminator bit
+                call    print_char      ; Print final character, HL auto-advances
+                ret
+
+slash_148:
+                db    10, 1, 4, 136   ; 128 is &80 (the terminator)
 
 slash_148_indices:
                 db      &45                     ; Color Attribute
@@ -6278,6 +6311,10 @@ score_msg:      db  &45                       ; bright cyan
 
 percent_msg:    db  &45                       ; bright cyan
                 db  'ROOM'
+                db  &D3
+
+item_msg:       db  &45                       ; bright cyan
+                db  'ITEM'
                 db  &D3
 
 ;----------------------------------------------------------

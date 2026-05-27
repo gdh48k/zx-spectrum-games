@@ -1875,8 +1875,8 @@ loc_7E55:
                 call    replenish_food       ; periodically replenish consumed food
                 ld      a, (player_room)
                 cp      &8e                  ; end room?
-                ;jp      z, game_complete     ; congratulate player on completion
-                jp      z, game_over
+                jp      z, game_complete     ; congratulate player on completion
+                ;jp      z, game_over
                 jp      main_loop
 
 process_action:
@@ -3616,7 +3616,7 @@ chicken_entity: db  0, 0, 0, 0, 0, 0, 0, 0
 
 ; --- GAME OVER LAYOUT EQUATES (H=Y, L=X) ---
 
-go_title_yx       equ     &1008    ; Y=16,  X=72  (Row 2,  Col 9)
+go_title_yx       equ     &1028    ; Y=16,  X=72  (Row 2,  Col 9)
 
 ; --- MAP REPLAY BLOCK (Moved right below Title) ---
 go_minimap_yx     equ     &2830    ; Y=40,  X=48  (Row 5,  Col 6)
@@ -3668,8 +3668,8 @@ gameover_msg:   db  &47                       ; bright white
                 db  &d2
 
 complete_msg:   db  &47                       ; bright white
-                db  "C O N G R A T U L A T I O N " 
-                db  &d3
+                db  "   Y O U   M A D E   I T " 
+                db  &a1 ; points to '!'
 
 
 floor_ptrs_table:
@@ -3794,20 +3794,20 @@ draw_items:
 game_over:
                 
                 call    clear_screen
-                ld      a, 02
-                out     (&fe), a
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
                 
 
                 ld      hl, go_title_yx
-                ld      a, (player_room)
-                cp      &8e
                 ld      de, complete_msg    ; Default to completion
-                jr      z, go_title         ; If room is 8e, jump to print
-                ld      de, gameover_msg    ; Otherwise, use game over msg
+                call    colour_text
 
-go_title:       call    colour_text
+                ld      a, go_minimap_x
+                ld      (map_anchor_x), a  
+                ld      a, go_minimap_y    
+                ld      (map_anchor_y), a
+
+                call    draw_all_maps_manual
 
                                             ; Colour_maps_block
                 ld      hl, go_minimap_yx 
@@ -3816,15 +3816,6 @@ go_title:       call    colour_text
                 ld      a, bright_white              
                 call    fill_bc_hl_a       
       
-
-
-
-                ld      a, go_minimap_x
-                ld      (map_anchor_x), a  
-                ld      a, go_minimap_y    
-                ld      (map_anchor_y), a
-
-                call    draw_all_maps_manual
 
                 call    run_replay
                   
@@ -3841,15 +3832,9 @@ go_title:       call    colour_text
                 ld      hl, go_acgkey_attr_yx     
                 call    colour_acg_key
 
-                
-                
-
-colour_stats_block:
-                ld      hl, go_score_yx      
-                call    xy_to_attr          ; Get attribute start address
-                ld      a, &45              ; Bright Cyan
-                ld      bc, &0604           ; 5 wide by 3 tall
-                call    fill_bc_hl_a        ; Paint the entire rectangle      
+    
+        
+ 
                 
                 
 loc_8C4A:
@@ -6151,7 +6136,8 @@ h_acg_exit:
                 ld      a, (acg_key_flag)   ; Get the collection state
                 and     7                   ; Isolate bits 0, 1, and 2
                 cp      7                   ; All three parts present?
-                jr      nz, loc_963B        ; If not, show "blocked" message/sfx
+                ; COMMENTED OUT FOR TEST PURPOSES
+                ;jr      nz, loc_963B        ; If not, show "blocked" message/sfx
 
                 ; --- SUCCESS: OPEN DOOR ---
                 call    enter_door          ; Trigger the door transition
@@ -6218,6 +6204,13 @@ game_stats:
 
                 ld      de, slash_16
                 call    print_slash_max
+
+                                            ; colour_stats_block:
+                ld      hl, go_score_yx      
+                call    xy_to_attr          ; Get attribute start address
+                ld      a, &45              ; Bright Cyan
+                ld      bc, &0604           ; 5 wide by 3 tall
+                call    fill_bc_hl_a        ; Paint the entire rectangle 
 
                 ret
 
@@ -7934,19 +7927,16 @@ loc_96E1:
                 pop     bc
                 dec     c
                 jr      nz, loc_96D2
-                ;inc     a                    ; add 1% to total
                 ld      (visited_number), a
                 ret
 game_complete:
+                call    clear_side_panel
                 ld      hl, player           ; congratulate player on completion
                 call    draw_entity_hl       ; undraw player
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
-                ld      hl, &2040            ; congratulations at 64,32
-                ld      de, congrat_msg
-                call    colour_text          ; show a line of text, first byte is attr
-                ld      hl, &3040            ; escaped message at 64,48
-                ld      de, escape_msg
+                ld      hl, go_title_yx
+                ld      de, complete_msg 
                 call    colour_text          ; show a line of text, first byte is attr
                 call    game_stats           ; show game statistics
                 jp      loc_8C4A
@@ -7958,6 +7948,15 @@ congrat_msg:    db  &47
 escape_msg:     db  &47
                 db  'YOU HAVE ESCAPE'
                 db  &c4
+
+clear_side_panel:
+
+                ld      hl, display+24
+                ld      bc, &08c0            ; 24x192
+                xor     a
+
+                call    fill_bc_hl_a
+                return
 
 chk_trap_exit:
                 ld      bc, &1818            ; 24x24
@@ -13316,7 +13315,7 @@ digit_charset:  db  &7c, &fe, &c6, &c6, &c6, &fe, &7c, 0 ; 0
                 db  &7c, &fe, &c6, &7c, &c6, &fe, &7c, 0 ; 8
                 db  &7c, &fe, &c6, &7e, 6, &fe, &7c, 0 ; 9
                 db  &0c, &0c, &18, &18, &30, &30, &60, &60 ; /
-                db  0, 0, 0, 0, 0, 0, 0, 0
+                db  &18, &18, &18, &18, &18, 0, &18, &18 ; !
                 db  0, 0, 0, 0, 0, 0, 0, 0
                 db  0, 0, 0, 0, 0, 0, 0, 0
                 db  0, 0, 0, 0, 0, 0, 0, 0

@@ -3709,7 +3709,7 @@ item_count:     db      0               ; Number of items currently stored
 add_history:
     ld      a, (item_count)
     cp      item_max
-    ret     nc
+    ret     nc                  ; return if item_count >= item_max
 
     ; Calculate index: HL = (item_count * 4) + item_history
     ld      l, a
@@ -3766,7 +3766,7 @@ draw_items:
                 call    set_entity_attrs
                 
                 call drop_sound
-                ld      b, 8            ; Adjust this value to set the gap between items
+                ld      b, 8             ; Adjust this value to set the gap between items
                 call    wait_frames     ; Absorb some of the sound time
 
                 ; --- Update (Prepare for next) ---
@@ -3794,6 +3794,8 @@ draw_items:
 game_over:
                 
                 call    clear_screen
+                ld      a, 02
+                out     (&fe), a
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
                 
@@ -3853,6 +3855,8 @@ colour_stats_block:
 loc_8C4A:
                 call    loc_94A1              
                 jp      reset_menu
+
+
 
 
 
@@ -6298,13 +6302,14 @@ minimap_ptr:      dw  minimap_gf    ; 2-byte pointer to current floor table
 ;minimap_x         equ     200  ; *** Top half #2 ***
 ;minimap_y         equ     48  
 
-gf_offset_x       equ     8
+gf_offset_x       equ     10
 gf_offset_y       equ     5
 f1_offset_x       equ     13
 f1_offset_y       equ     7
 at_offset_x       equ     13
 at_offset_y       equ     11
-bm_offset_x       equ     12
+bm_offset_x       equ     10
+
 bm_offset_y       equ     9
 cv_offset_x       equ     6
 cv_offset_y       equ     6

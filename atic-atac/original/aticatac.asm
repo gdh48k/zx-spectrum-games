@@ -3625,25 +3625,27 @@ go_minimap_y      equ     high(go_minimap_yx)
 go_minimap_x      equ     low(go_minimap_yx)
 
 ; --- ITEM REPLAY MIDDLE BLOCK (Row 11 / Upward from Row 12 Boundary) ---
-go_replay_items_yx equ    &5c30    ; Y=96,  X=48  (Draws UPWARD into Row 11)
+go_replay_items_yx equ    &5c48    ; Y=96,  X=48  (Draws UPWARD into Row 11)
 go_items_attr_yx equ      &4a30
 
 ; --- LOWER BLOCK (Shifted down 40 pixels / Starts at Row 17) ---
-go_acgkey_yx      equ     &9E38    ; Y=158, X=56  (Draws 22 pixels UPWARD to Y=136)
-go_acgkey_attr_yx equ     &8838    ; Y=136, X=56  (Row 17, Col 7 - Attribute top edge)
+;go_acgkey_yx      equ     &9E38    ; Y=158, X=56  (Draws 22 pixels UPWARD to Y=136)
+;go_acgkey_attr_yx equ     &8838    ; Y=136, X=56  (Row 17, Col 7 - Attribute top edge)
+
+go_acgkey_yx        equ     &6EA0    ; Y=110, X=160
+go_acgkey_attr_yx   equ     &58A0    ; Y=88,  X=160
 
 ; --- STATS CAPTIONS (Shifted down 40 pixels to match Y=136 baseline) ---
-go_scorecap_yx    equ     &8888    ; Y=136, X=136 (Row 17, Col 17)
-go_timecap_yx     equ     &9088    ; Y=144, X=136 (Row 18, Col 17)
-go_roomscap_yx    equ     &9888    ; Y=152, X=136 (Row 19, Col 17)
-go_itemcap_yx     equ     &A088    ; Y=160, X=136 (Row 20, Col 17)
+go_scorecap_yx    equ     &8898    ; Y=136, X=136 (Row 17, Col 17)
+go_timecap_yx     equ     &9098    ; Y=144, X=136 (Row 18, Col 17)
+go_roomscap_yx    equ     &9898    ; Y=152, X=136 (Row 19, Col 17)
+go_itemcap_yx     equ     &A098    ; Y=160, X=136 (Row 20, Col 17)
 
 ; --- STATS NUMBERS (Shifted down 40 pixels to match Y=136 baseline) ---
-go_score_yx       equ     &88B8    ; Y=136, X=184 (Row 17, Col 23)
-go_time_yx        equ     &90B8    ; Y=144, X=184 (Row 18, Col 23)
-go_rooms_yx       equ     &98B8    ; Y=152, X=184 (Row 19, Col 23)
-go_slash_yx       equ     &98D0    ; Y=152, X=188 (Row 19, Col 27)
-go_items_yx       equ     &A0B8    ; Y=160, X=184 (Row 20, Col 23)
+go_score_yx       equ     &88c8    ; Y=136, X=184 (Row 17, Col 23)
+go_time_yx        equ     &90c8    ; Y=144, X=184 (Row 18, Col 23)
+go_rooms_yx       equ     &98c8    ; Y=152, X=184 (Row 19, Col 23)
+go_items_yx       equ     &A0c8    ; Y=160, X=184 (Row 20, Col 23)
 
 
 
@@ -3698,10 +3700,6 @@ item_count:     db      0               ; Number of items currently stored
 ; Offset +2: Sprite ID
 ; Offset +3: Attribute Byte         
 
-; =============================================================================
-; Module:   draw_items
-; Flow:     Iterates through item_history and blits monochrome pixels.
-; =============================================================================
 
 ; =============================================================================
 ; add_history: Captures entity data directly into the flat buffer
@@ -3737,56 +3735,73 @@ add_history:
 
 
 draw_items:
-                ld      a, (item_count)
+                ld      a, (item_count)         ; Load count of items
                 and     a                       ; Check if item_count is 0
-                ret     z                       
+                ret     z                       ; Return if empty
 
-                ld      ix, entity_to_draw
-                ld      hl, item_history        ; Initialize Pointer
-                ld      de, go_replay_items_yx  ; Initialize Coordinates
-                ld      b, a                    ; B = loop counter
+                ld      ix, entity_to_draw      ; Point to active entity buffer
+                ld      hl, item_history        ; Initialize Pointer to item data
+                ld      de, go_replay_items_yx  ; Initialize starting screen coords
+                ld      b, a                    ; B = total item counter
+                ld      c, 0                    ; C = row item counter (0-3)
 
 .items_loop:
-                ; --- Iterate (Draw) ---
-                push    hl
-                push    bc                      ; Save counter
+                push    hl                      ; Save history pointer
+                push    bc                      ; Save counters
                 push    de                      ; Save current coordinates
 
-                ; Read ID and Attr from HL
-                ld      a, (hl)                 ; Get ID
-                ld      (ix+0), a
+                ; Populate index registers with item's id, coords, and color
+                ld      a, (hl)                 ; Get item sprite ID
+                ld      (ix+0), a               ; Store ID
                 inc     hl
-                ld      a, (hl)                 ; Get Attr
-                ld      (ix+5), a
+                ld      a, (hl)                 ; Get item attribute
+                ld      (ix+5), a               ; Store Attr
                 
-                ; Set X and Y
-                ld      (ix+3), e
-                ld      (ix+4), d
+                ; Set X and Y coordinates
+                ld      (ix+3), e               ; Set X
+                ld      (ix+4), d               ; Set Y
 
-                call    draw_entity
-                call    set_entity_attrs
+                call    draw_entity             ; Render entity
+                call    set_entity_attrs        ; Apply colors
+                call    drop_sound              ; Play sound
                 
-                call drop_sound
-                ld      b, 8             ; Adjust this value to set the gap between items
-                call    wait_frames     ; Absorb some of the sound time
+                ld      b, 8                    ; Wait duration
+                call    wait_frames
 
-                ; --- Update (Prepare for next) ---
                 pop     de                      ; Restore coords
-                pop     bc                      ; Restore counter
-                pop     hl                      ; Restore item_history
+                pop     bc                      ; Restore counters (B=total, C=row)
+                pop     hl                      ; Restore history pointer
                 
-                ; Move HL to next 4-byte slot (inc 4 times from Attr)
+                ; Move HL to next 4-byte slot in history
                 inc     hl
                 inc     hl
                 inc     hl
                 inc     hl
                 
-                ; Update X coord for next iteration
-                ld      a, e
-                add     a, 16
-                ld      e, a
+                ; --- Grid Logic ---
+                inc     c                       ; Increment row item counter
+                ld      a, c
+                cp      3                       ; Have we drawn 3 items?
+                jr      nz, .same_row           ; If not, continue on same row
 
-                djnz    .items_loop                   ; Decrement and repeat
+                ; New Row Logic
+                ld      c, 0                    ; Reset row counter
+                ld      a, e                    ; Load current X
+                sub     48                      ; X = X - 96 (return to start)
+                ld      e, a                    ; Update X
+                ld      a, d                    ; Load current Y
+                add     a, 24                   ; Y = Y + 32 (move down)
+                ld      d, a                    ; Update Y
+                jr      .continue
+
+.same_row:
+                ; Same Row Logic
+                ld      a, e                    ; Load current X
+                add     a, 24                   ; X = X + 24
+                ld      e, a                    ; Update X
+
+.continue:
+                djnz    .items_loop             ; Decrement total counter and loop
                 ret
 
 
@@ -3846,27 +3861,27 @@ game_story:
                 ld      hl, go_acgkey_attr_yx     
                 push    hl              ; Save anchor
                 call    colour_acg_key1
-                cp      bright_yellow   ; Check result
-                call    z, inventory_sound
-                call    nz, weapon_pop
-                ld      b, 10                   ; 10 frames delay
+                ;cp      bright_yellow
+                call    inventory_sound
+                ;call    nz, weapon_pop
+                ld      b, 20                   ; 10 frames delay
                 call    wait_frames
                 
                 pop     hl              ; Restore anchor
                 push    hl
                 call    colour_acg_key2
-                cp      bright_yellow
-                call    z, inventory_sound
-                call    nz, weapon_pop
-                ld      b, 10                   ; 10 frames delay
+                ;cp      bright_yellow
+                call    inventory_sound
+                ;call    nz, weapon_pop
+                ld      b, 20                   ; 10 frames delay
                 call    wait_frames
                 
                 pop     hl              ; Restore anchor
                 call    colour_acg_key3
-                cp      bright_yellow
-                call    z, inventory_sound
-                call    nz, weapon_pop
-                ld      b, 10                   ; 10 frames delay
+                ;cp      bright_yellow
+                call    inventory_sound
+                ;call    nz, weapon_pop
+                ld      b, 20                   ; 10 frames delay
                 call    wait_frames
                 ret
 
@@ -6225,12 +6240,6 @@ game_stats:
                 ld      de, visited_number
                 ld      b, 1
                 call    print_bcd_bytes         ; Print number, HL advances
-
-
-                ;ld      hl, go_slash_yx        ; Use your specific XY coordinates
-                ;ld      de, slash_148_indices  ; Point to the index-mapped data
-                ;call    colour_text            ; Show the text at the position
-                
 
                 ld      de, slash_148
                 call    print_slash_max

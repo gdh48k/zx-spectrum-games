@@ -1771,6 +1771,8 @@ start_game:
                 ld      a, minimap_y         ; This is our 152 constant
                 ld      (map_anchor_y), a
                 call    draw_minimap
+                ld      hl, acg_attr_yx
+                call    colour_acg_key
                 jp      enter_room
 
 
@@ -3807,7 +3809,13 @@ loc_8C4A:
                 call    loc_94A1              
                 jp      reset_menu
 
-
+; -----------------------------------------------------------------------------
+; Purpose:  Handles the sequence of events for the Game Over / Complete screen.
+;           Includes map drawing, stats, and audio-synced key rendering.
+; Inputs:   None (Global states used).
+; Outputs:  Visual update to screen and audio trigger for keys.
+; Corrupts: AF, BC, DE, HL
+; -----------------------------------------------------------------------------
 
 game_story:
                 ld      a, go_minimap_x
@@ -3836,9 +3844,33 @@ game_story:
                 call    draw_acg_key
 
                 ld      hl, go_acgkey_attr_yx     
-                call    colour_acg_key
-
+                push    hl              ; Save anchor
+                call    colour_acg_key1
+                cp      bright_yellow   ; Check result
+                call    z, inventory_sound
+                call    nz, weapon_pop
+                ld      b, 10                   ; 10 frames delay
+                call    wait_frames
+                
+                pop     hl              ; Restore anchor
+                push    hl
+                call    colour_acg_key2
+                cp      bright_yellow
+                call    z, inventory_sound
+                call    nz, weapon_pop
+                ld      b, 10                   ; 10 frames delay
+                call    wait_frames
+                
+                pop     hl              ; Restore anchor
+                call    colour_acg_key3
+                cp      bright_yellow
+                call    z, inventory_sound
+                call    nz, weapon_pop
+                ld      b, 10                   ; 10 frames delay
+                call    wait_frames
                 ret
+
+               
 
     
         
@@ -10281,21 +10313,8 @@ draw_panel_attrs:
                 ;ld      a, (room_attr)
                 ;ld      bc, &0502            ; MOD: Change &0303 to &0502 for 2 (x) x 5 (y)
                 ;call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
-                ;inc     l
-                ;ld      (hl), a
-                ;add     hl, de
-                ;ld      bc, &0202             ; 2x2 (rosette tail)
-                ;call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
-                ;ld      hl, &98d0
-                ;call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ;pop     de
-                ;ld      (hl), e              ; rosette centre
-
-
-
-
-                ;ld      hl, acg_attr_yx     ; Use existing side panel coords
-                ;call    colour_acg_key
+                
+                
       
                 ld      hl, lives_attr_yx    ; MOD: Change &7fc8 to &86c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
@@ -10462,52 +10481,61 @@ draw_key_loop:
 
 
 
-; -----------------------------------------------------------
-; Helper Function: colour_acg_key
-; Input:  HL = Pointer to the YX coordinate table for the keys
-; Output: Updates attribute memory based on acg_key_flag
-; -----------------------------------------------------------
+; -----------------------------------------------------------------------------
+; Purpose:  Updates all three ACG key attributes based on their collection
+;           status. Provides modular entry points for individual updates.
+; Inputs:   (acg_key_flag) - Collection status bits 0, 1, and 2.
+;           HL             - Anchor YX coordinate for the key panel.
+; Outputs:  Updated attribute memory for all keys.
+; Corrupts: AF, BC, DE, HL
+; -----------------------------------------------------------------------------
 colour_acg_key:
-                ; --- Part 1 ---
-                push    hl                  ; Save anchor (Part 1 coords)
-                call    xy_to_attr          
-                ld      a, (acg_key_flag)
-                bit     0, a                
-                ld      a, dark_blue        
-                jr      z, .fill_1
-                ld      a, bright_yellow    
-.fill_1:        ld      bc, &0204           
-                call    fill_bc_hl_a
+                push    hl              ; Save anchor
+                call    colour_acg_key1
+                pop     hl              ; Restore anchor
+                push    hl
+                call    colour_acg_key2
+                pop     hl              ; Restore anchor
+                call    colour_acg_key3 ; No need to save/restore after last call
+                ret
 
-                ; --- Part 2 ---
-                pop     hl                  ; Restore anchor
-                push    hl                  ; Save anchor again
+colour_acg_key1:
+                call    xy_to_attr
+                ld      a, (acg_key_flag)
+                bit     0, a
+                ld      a, dark_blue
+                jr      z, .fill1
+                ld      a, bright_yellow
+.fill1:         ld      bc, &0204       ; 2w x 4h
+                call    fill_bc_hl_a
+                ret
+
+colour_acg_key2:
                 ld      a, l
-                add     a, 16               ; Offset X by 16 pixels
-                ld      l, a                ; Update HL (assumes same Y)
+                add     a, 16           ; Offset X by 16 pixels
+                ld      l, a
                 call    xy_to_attr
                 ld      a, (acg_key_flag)
                 bit     1, a
-                ld      a, dark_blue 
-                jr      z, .fill_2
+                ld      a, dark_blue
+                jr      z, .fill2
                 ld      a, bright_yellow
-.fill_2:        ld      bc, &0204           
+.fill2:         ld      bc, &0204
                 call    fill_bc_hl_a
+                ret
 
-                ; --- Part 3 ---
-                pop     hl                  ; Restore anchor
+colour_acg_key3:
                 ld      a, l
-                add     a, 32               ; Offset X by 32 pixels
+                add     a, 32           ; Offset X by 32 pixels
                 ld      l, a
                 call    xy_to_attr
                 ld      a, (acg_key_flag)
                 bit     2, a
-                ld      a, dark_blue 
-                jr      z, .fill_3
+                ld      a, dark_blue
+                jr      z, .fill3
                 ld      a, bright_yellow
-.fill_3:        ld      bc, &0204           
+.fill3:         ld      bc, &0204
                 call    fill_bc_hl_a
-                
                 ret
 
 

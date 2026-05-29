@@ -10198,32 +10198,52 @@ bright_magenta  equ      &43
 draw_panel_attrs:
 
 ; --- COLOUR BACKGROUND ---
-    ; Calculate contrast color once
-    ld a, (room_attr)
-    cpl
-    and 7
-    cp 2
-    jr nc, .got_color
-    ld a, &44
+                ; Calculate contrast color once
+                ld      a, (room_attr)
+                cpl
+                and     7
+                cp      2
+                jr      nc, .got_color
+                ld      a, &44
 .got_color:
-    ld e, a         ; E = attribute value
+                ld      e, a                    ; E = attribute value
 
-    ; 1. Top 3 rows (8 cols wide)
-    ld hl, panel_attr_yx
-    call xy_to_attr
-    ld bc, &0803    ; 
-    ld a, e
-    push af
-    call fill_bc_hl_a
+                ; 1. Top 3 rows (8 cols wide)
+                ld      hl, panel_attr_yx
+                call    xy_to_attr
+                ld      bc, &0803
+                ld      a, e
+                push    af
+                call    fill_bc_hl_a
+
+                ; 2. Bottom 5 rows (8 cols wide)
+                ld      hl, panel_attr_yx + &9800
+                call    xy_to_attr
+                ld      bc, &0805
+                pop     af
+                push    af
+                call    fill_bc_hl_a
+
+                ; 3. Middle 16 rows (edges only, starts at Row 3)
+                ; Row 3 starts at pixel 24 (&18).
+                ld      hl, panel_attr_yx + &1800
+                call    xy_to_attr
+                pop     af                      ; Restore color to A
+                ld      b, 16                   ; Use B for djnz loop counter
+
+.edge_loop:
+                ld      (hl), a                 ; Colour first char
+                push    hl
+                ld      de, 7
+                add     hl, de
+                ld      (hl), a                 ; Colour last char
+                pop     hl
+                ld      de, &0020               ; Move to next row
+                add     hl, de
+                djnz    .edge_loop              ; Decrement B, jump if not zero
 
 
-    ; 2. Bottom 5 rows (8 cols wide)
-    ; Offset: 32 bytes * 19 rows = 608 (&0260)
-    ld hl, panel_attr_yx + &9800            ; Offset 19 rows * 256 (&100) per ow = &1300 
-    call xy_to_attr
-    ld bc, &0805    ; C=5 rows, B=8 cols
-    pop af
-    call fill_bc_hl_a
+
                                              ; COLOUR BACKGROUND
                 ;ld      hl, panel_attr_yx
                 ;call    xy_to_attr           ; convert pixel coords in HL to attribute address
@@ -10327,8 +10347,8 @@ draw_panel_attrs:
                 ld      l, a
                 ld      (hl), bright_yellow
 .done_floors:
-
                 
+                                
                 ld      hl, time_cap_yx      ; MOD: Change &38c8 to &48c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0101            ; 6x1

@@ -10196,32 +10196,62 @@ bright_magenta  equ      &43
 
 
 draw_panel_attrs:
+
+; --- COLOUR BACKGROUND ---
+    ; Calculate contrast color once
+    ld a, (room_attr)
+    cpl
+    and 7
+    cp 2
+    jr nc, .got_color
+    ld a, &44
+.got_color:
+    ld e, a         ; E = attribute value
+
+    ; 1. Top 3 rows (8 cols wide)
+    ld hl, panel_attr_yx
+    call xy_to_attr
+    ld bc, &0803    ; 
+    ld a, e
+    push af
+    call fill_bc_hl_a
+
+
+    ; 2. Bottom 5 rows (8 cols wide)
+    ; Offset: 32 bytes * 19 rows = 608 (&0260)
+    ld hl, panel_attr_yx + &9800            ; Offset 19 rows * 256 (&100) per ow = &1300 
+    call xy_to_attr
+    ld bc, &0805    ; C=5 rows, B=8 cols
+    pop af
+    call fill_bc_hl_a
                                              ; COLOUR BACKGROUND
-                ld      hl, panel_attr_yx
-                call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ld      bc, &0818            ; 8x24
-                ld      a, (room_attr)
-                cpl                          ; invert for colour contrast
-                and     7
-                cp      2
-                jr      nc, loc_A255         ; red or brighter?
-                ld      a, &44               ; change blue to bright green
-loc_A255:
-                ld      e, a                 ; save attr value
-                ;push    de
-loc_A257:
-                push    bc
-                push    hl
-loc_A259:
-                ld      (hl), e              ; set panel attr
-                inc     l
-                djnz    loc_A259
-                pop     hl
-                ld      bc, &20              ; line pitch
-                add     hl, bc               ; down a row
-                pop     bc                   ;convert pixel coords in HL to attribute address
-                dec     c  
-                jr      nz, loc_A257
+                ;ld      hl, panel_attr_yx
+                ;call    xy_to_attr           ; convert pixel coords in HL to attribute address
+                ;ld      bc, &0818            ; 8x24
+                ;ld      a, (room_attr)
+                ;cpl                          ; invert for colour contrast
+                ;and     7
+                ;cp      2
+                ;jr      nc, loc_A255         ; red or brighter?
+                ;ld      a, &44               ; change blue to bright green
+;loc_A255:
+ ;               ld      e, a                 ; save attr value
+  ;              ;push    de
+;loc_A257:
+;                push    bc
+;                push    hl
+;loc_A259:
+;                ld      (hl), e              ; set panel attr
+;                inc     l
+;                djnz    loc_A259
+;                pop     hl
+;                ld      bc, &20              ; line pitch
+;                add     hl, bc               ; down a row
+;                pop     bc                   ;convert pixel coords in HL to attribute address
+;                dec     c  
+;                jr      nz, loc_A257
+
+
                 ;ld      hl, &90C8
                 ;call    xy_to_attr
                 ;                             ; COLOUR CHAR NAME

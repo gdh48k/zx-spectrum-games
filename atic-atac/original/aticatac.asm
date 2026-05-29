@@ -1876,7 +1876,6 @@ loc_7E55:
                 ld      a, (player_room)
                 cp      &8e                  ; end room?
                 jp      z, game_complete     ; congratulate player on completion
-                ;jp      z, game_over
                 jp      main_loop
 
 process_action:
@@ -3799,7 +3798,7 @@ game_over:
                 
 
                 ld      hl, go_title_yx
-                ld      de, complete_msg    ; Default to completion
+                ld      de, gameover_msg   ; Default to completion
                 call    colour_text
 
                 ld      a, go_minimap_x

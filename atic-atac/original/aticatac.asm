@@ -3663,7 +3663,7 @@ go_mapat_x      equ     &98
 
 
 gameover_msg:   db  &47                       ; bright white
-                db  "   Q U E S T   S O   F A " 
+                db  "Q U E S T   S O   F A " 
                 db  &d2
 
 complete_msg:   db  &47                       ; bright white
@@ -3801,6 +3801,15 @@ game_over:
                 ld      de, gameover_msg   ; Default to completion
                 call    colour_text
 
+                call    game_story
+
+loc_8C4A:
+                call    loc_94A1              
+                jp      reset_menu
+
+
+
+game_story:
                 ld      a, go_minimap_x
                 ld      (map_anchor_x), a  
                 ld      a, go_minimap_y    
@@ -3823,22 +3832,20 @@ game_over:
 
                 call    draw_items
 
-
-
                 ld      de, go_acgkey_yx
                 call    draw_acg_key
 
                 ld      hl, go_acgkey_attr_yx     
                 call    colour_acg_key
 
+                ret
+
     
         
  
                 
                 
-loc_8C4A:
-                call    loc_94A1              
-                jp      reset_menu
+
 
 
 
@@ -3901,8 +3908,7 @@ draw_single_map_no_inc:
 ; -----------------------------------------------------------------------------
 ; DESCRIPTION:
 ;    Iterates through a floor's room table and draws the "unvisited" version
-;    (a single center dot) for every defined room. This is used to create the
-;    background schematic for the Game Over "Quest So Far" replay.
+;    (a single center dot) for every defined room. 
 ;
 ; INPUT:
 ;    (minimap_ptr) = Pointer to the start of the floor's room table (e.g., minimap_gf)
@@ -4111,7 +4117,7 @@ wait_frames:
 ; update_replay_offsets
 ; -----------------------------------------------------------------------------
 ; DESCRIPTION:
-;    Sets the screen anchors for the Game Over "Quest So Far" display.
+;    Sets the screen anchors for the Game Over/Complete display.
 ;    Unlike the side-panel version, this uses the center-screen coordinates.
 ;
 ; INPUT:
@@ -5438,7 +5444,9 @@ update_acg_flag:
                 ld      (ix+5), a            ; Set the entity's attribute to "background"
                 call    set_entity_attrs2    ; Update attribute memory (removes the "ink")
 
-                call    draw_panel_attrs     ; Refresh side panel (Turns Blue to Yellow)
+                ;call    draw_panel_attrs     ; Refresh side panel (Turns Blue to Yellow)
+                ld      hl, acg_attr_yx
+                call    colour_acg_key
                 call    draw_inventory
 
                 ld      (ix+0), 0            ; *** IMPORTANT: Deactivate item in room buffer
@@ -7937,7 +7945,7 @@ game_complete:
                 ld      hl, go_title_yx
                 ld      de, complete_msg 
                 call    colour_text          ; show a line of text, first byte is attr
-                call    game_stats           ; show game statistics
+                call    game_story
                 jp      loc_8C4A
 
 congrat_msg:    db  &47
@@ -10071,7 +10079,7 @@ loc_A210:
 ; draw side panel background scroll
 draw_side_panel:
                                               ; Refactored code to draw side panel in two parts, header and body
-                                              ; Header is customised based on character selected
+;2345678901234567890123456789012345678901234567                                              ; Header is customised based on character selected
                 ld      a, (main_selection)
                 and     %00011000             ; Mask bits 3 and 4 - 000DD000, '00'=Knight, '01'=Wizard, '10'=Serf
 loc_chk_kni     cp      %00000000             ; Knight selected?
@@ -10200,47 +10208,43 @@ draw_panel_attrs:
                 ; Calculate contrast color once
                 ld      a, (room_attr)
                 cpl
-                and     7
-                cp      2
+                and     &07                     ; Mask color bits 0-2
+                cp      &02                     ; Threshold for contrast
                 jr      nc, .got_color
-                ld      a, &44
-.got_color:
-                ld      e, a                    ; E = attribute value
+                ld      a, &44                  ; Default contrast color
+.got_color:     ld      e, a
 
-                ; 1. Top 3 rows (8 cols wide)
+                ; 1. Top header (8 cols wide)
                 ld      hl, panel_attr_yx
                 call    xy_to_attr
-                ld      bc, &0803
+                ld      bc, &0803               ; 8 columns by 3 rows
                 ld      a, e
                 push    af
                 call    fill_bc_hl_a
 
-                ; 2. Bottom 5 rows (8 cols wide)
-                ld      hl, panel_attr_yx + &9800
+                ; 2. Bottom footer (8 cols wide)
+                ld      hl, panel_attr_yx + &9800; Offset to footer region
                 call    xy_to_attr
-                ld      bc, &0805
+                ld      bc, &0805               ; 8 columns by 5 rows
                 pop     af
                 push    af
                 call    fill_bc_hl_a
 
-                ; 3. Middle 16 rows (edges only, starts at Row 3)
-                ; Row 3 starts at pixel 24 (&18).
-                ld      hl, panel_attr_yx + &1800
+                ; 3. Side edges (16 rows)
+                ld      hl, panel_attr_yx + &1800; Offset to start of middle
                 call    xy_to_attr
-                pop     af                      ; Restore color to A
-                ld      b, 16                   ; Use B for djnz loop counter
+                pop     af
+                ld      b, 16                   ; 16 rows to process
 
-.edge_loop:
-                ld      (hl), a                 ; Colour first char
+.edge_loop:     ld      (hl), a
                 push    hl
-                ld      de, 7
+                ld      de, 7                   ; Offset to right edge
                 add     hl, de
-                ld      (hl), a                 ; Colour last char
+                ld      (hl), a
                 pop     hl
-                ld      de, &0020               ; Move to next row
+                ld      de, &0020               ; Row stride (32 bytes)
                 add     hl, de
-                djnz    .edge_loop              ; Decrement B, jump if not zero
-
+                djnz    .edge_loop
 
 
                                              ; COLOUR BACKGROUND
@@ -10290,8 +10294,8 @@ draw_panel_attrs:
 
 
 
-                ld      hl, acg_attr_yx     ; Use existing side panel coords
-                call    colour_acg_key
+                ;ld      hl, acg_attr_yx     ; Use existing side panel coords
+                ;call    colour_acg_key
       
                 ld      hl, lives_attr_yx    ; MOD: Change &7fc8 to &86c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address

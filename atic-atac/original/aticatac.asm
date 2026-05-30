@@ -3625,8 +3625,8 @@ go_minimap_y      equ     high(go_minimap_yx)
 go_minimap_x      equ     low(go_minimap_yx)
 
 ; --- ITEM REPLAY MIDDLE BLOCK (Row 11 / Upward from Row 12 Boundary) ---
-go_replay_items_yx equ    &5c48    ; Y=96,  X=48  (Draws UPWARD into Row 11)
-go_items_attr_yx equ      &4a30
+go_replay_items_yx  equ    &5c48    ; Y=96,  X=48  (Draws UPWARD into Row 11)
+go_items_attr_yx    equ      &4a30
 go_escapee_yx       equ     &6828            ; Y=104, X=40
 
 ; --- LOWER BLOCK (Shifted down 40 pixels / Starts at Row 17) ---
@@ -3638,15 +3638,15 @@ go_acgkey_attr_yx equ     &8838    ; Y=136, X=56  (Row 17, Col 7 - Attribute top
 
 ; --- STATS CAPTIONS (Shifted down 40 pixels to match Y=136 baseline) ---
 go_roomscap_yx    equ     &8898    ; Y=136, X=136 (Row 17, Col 17)
-go_itemcap_yx     equ     &9098    ; Y=144, X=136 (Row 18, Col 17)
-go_scorecap_yx    equ     &9898    ; Y=152, X=136 (Row 19, Col 17)
-go_timecap_yx     equ     &A098    ; Y=160, X=136 (Row 20, Col 17)
+go_itemcap_yx     equ     &A098    ; Y=144, X=136 (Row 18, Col 17)
+go_scorecap_yx    equ     &9098    ; Y=152, X=136 (Row 19, Col 17)
+go_timecap_yx     equ     &9898    ; Y=160, X=136 (Row 20, Col 17)
 
 ; --- STATS NUMBERS (Shifted down 40 pixels to match Y=136 baseline) ---
 go_rooms_yx       equ     &88c8    ; Y=136, X=184 (Row 17, Col 23)
-go_items_yx        equ     &90c8    ; Y=144, X=184 (Row 18, Col 23)
-go_score_yx       equ     &98c8    ; Y=152, X=184 (Row 19, Col 23)
-go_time_yx       equ     &A0c8    ; Y=160, X=184 (Row 20, Col 23)
+go_items_yx       equ     &A0c8    ; Y=144, X=184 (Row 18, Col 23)
+go_score_yx       equ     &90c8    ; Y=152, X=184 (Row 19, Col 23)
+go_time_yx        equ     &98c8    ; Y=160, X=184 (Row 20, Col 23)
 
 
 
@@ -3858,7 +3858,7 @@ game_story:
 
                 call    game_stats           ; show game statistics
 
-                call    draw_items
+                ;call    draw_items
 
                 ld      de, go_acgkey_yx
                 call    draw_acg_key
@@ -6246,12 +6246,12 @@ game_stats:
                 call    colour_text          ; show a line of text, first byte is attr
                 
                 ld      hl, go_roomscap_yx            ; percent header at 64,96
-                ld      de, percent_msg
+                ld      de, rooms_msg
                 call    colour_text          ; show a line of text, first byte is attr
 
-                ld      hl, go_itemcap_yx            
-                ld      de, item_msg
-                call    colour_text          ; show a line of text, first byte is attr
+                ;ld      hl, go_itemcap_yx            
+                ;ld      de, item_msg
+                ;call    colour_text          ; show a line of text, first byte is attr
                 
 ;display values using digit_charset
                 ld      hl, digit_charset
@@ -6272,19 +6272,21 @@ game_stats:
                 ld      de, slash_148
                 call    print_slash_max
 
-                ld      hl, go_items_yx      
-                call    xy_to_display        ; convert coords in HL to display address in HL
-                ld      de, item_count
-                ld      b, 1
-                call    print_bcd_bytes         ; Print number, HL advances
+                
+                ; add code for go_acg_yx
+                ;ld      hl, go_items_yx      
+                ;call    xy_to_display        ; convert coords in HL to display address in HL
+                ;ld      de, item_count
+                ;ld      b, 1
+                ;call    print_bcd_bytes         ; Print number, HL advances
 
-                ld      de, slash_16
-                call    print_slash_max
+                ;ld      de, slash_16
+                ;call    print_slash_max
 
                                             ; colour_stats_block:
-                ld      hl, go_score_yx      
+                ld      hl, go_rooms_yx      
                 call    xy_to_attr          ; Get attribute start address
-                ld      a, &45              ; Bright Cyan
+                ld      a, bright_white
                 ld      bc, &0604           ; 5 wide by 3 tall
                 call    fill_bc_hl_a        ; Paint the entire rectangle 
 
@@ -6327,11 +6329,11 @@ time_msg:       db  bright_cyan
                 db  '#  '
                 db  &a0
 
-score_msg:      db  bright_magenta 
+score_msg:      db  bright_cyan   
                 db  'SCOR'
                 db  &c5
 
-percent_msg:    db  bright_magenta                     
+rooms_msg:      db  bright_cyan                       
                 db  'ROOM'
                 db  &D3
 

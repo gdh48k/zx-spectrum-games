@@ -10150,8 +10150,7 @@ loc_A210:
 
 ; draw side panel background scroll
 draw_side_panel:
-                                              ; Refactored code to draw side panel in two parts, header and body
-;2345678901234567890123456789012345678901234567                                              ; Header is customised based on character selected
+                                              ; Header is customised based on character selected
                 ld      a, (main_selection)
                 and     %00011000             ; Mask bits 3 and 4 - 000DD000, '00'=Knight, '01'=Wizard, '10'=Serf
 loc_chk_kni     cp      %00000000             ; Knight selected?
@@ -10167,7 +10166,6 @@ loc_chk_ser     ld      de, panel_hdr_ser     ; DE = panel map for Serf
 draw_hdr        ld      hl, panel_chars       ; HL = panel graphics 
                 ld      (charset_addr), hl
                 ld      hl, &c0               ; H = 0 L = &c0 (192)  H,L = x, y
-;                ld      de, panel_data        
                 ld      bc, &0803             ; 8x3 colsxrows
                 call    loc_A228                  
 draw_bod:       ld      hl, panel_chars
@@ -11958,8 +11956,7 @@ g_apple:        db  &10
                 db  7, &7b
                 db  6, &3c
 
-marker          db 'panel_chars'
-
+; tile graphics
 panel_chars:    db  0, 0, 0, 0, 0, 0, 0, 0    ; 0
                 db  0, 0, 3, &0f, &1f, &3d, &7e, &79; 8
                 db  0, 0, &ff, &ff, &ff, &b4, &4a, 0; &10
@@ -12007,7 +12004,6 @@ panel_chars:    db  0, 0, 0, 0, 0, 0, 0, 0    ; 0
                 ;db  &fd, &c3, &df, &2f, &97, &eb, &77, &31; &0150 (2A)
                 db  &0e,  &0d,  &1a,  &1d,  &1b, &1d,  &37, &31 ; ****
                 db  &c2, &c1, &81, &81, 1, &fd, 5, 5; &0158 (2B)
-
                 db  &c0, &60, &60, &60, &30, &18, &0f, 7; &0160 (2C) ; BOTTOM EDGE OF SCROLL
                 db  &0,  &0,  &0,  &0,  0, 0,  &ff,  &ff
                 ;db  7, &0b, &1d, &1e, &0c, 0, 0, &ff; &0168 (2D)
@@ -12058,21 +12054,21 @@ knight_chars:   db  0,  0,  &60,  &E2,  &A7,  &3B,  &71,  &F2; &0278 START OF LE
                 db  &6B,  &FB,  &B3,  &33,  &73,  &B3,  &1B,  &F0; &02b8
                 db  &6,  &66,  &B6,  &36,  &36,  &35,  &26,  &44; &02c0 END OF LETTERING
                 db  &fe, &fe, &fe, &38, &38, &38, &38, 0; &02c8; T (&5A)
-                db  &7C,  &FE,  &F0,  &7C,  &1E,  &FE,  &7C ;S  (&5B)
+                db  &7C,  &FE,  &F0,  &7C,  &1E,  &FE,  &7C, &0 ;S  (&5B)
                 ;db  &7c, &7c, &38, &38, &38, &7c, &7c, 0; &02d0 M 
                 db  &82, &ee, &fe, &fe, &d6, &d6, &d6, 0; &02d8 E 
                 db  &f8, &f8, &e0, &fc, &e0, &fe, &fe, 0; &02e0 :  
                 db  0, &18, &18, 0, 0, &18, &18, 0; &02e8 :
-wizard_chars:   db  &0,  &0,  &6D,  &ED,  &36,  &36,  &36,  &36; &0278 
-                db  &0,  &0,  &80,  &80,  &C0,  &C0,  &C0,  &C0; &0280
-                db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0288
-                db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0290
-                db  &0,  &0,  &0,  &0,  &0,  &3,  &6,  &6; &0298
-                db  &3F,  &36,  &36,  &36,  &6D,  &7F,  &4D,  &0; &02a0
-                db  &D8,  &C1,  &DA,  &D8,  &98,  &99,  &9B,  &20; &02a8
-                db  &0,  &F3,  &34,  &61,  &C2,  &96,  &E3,  &0; &02b0
-                db  &0,  &8D,  &DE,  &6C,  &6C,  &EE,  &6C,  &0; &02b8
-                db  &6,  &8E,  &9E,  &26,  &66,  &6F,  &36,  &0; &02c0 
+wizard_chars:   db  &0,  &0,  &6D,  &ED,  &36,  &36,  &36,  &36; &0278 *5e
+                db  &0,  &0,  &80,  &80,  &C0,  &C0,  &C0,  &C0; &0280 *5f 
+                db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0288 *60
+                db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0290 *61
+                db  &0,  &0,  &0,  &0,  &0,  &3,  &6,  &6; &0298 *62
+                db  &3F,  &36,  &36,  &36,  &6D,  &7F,  &4D,  &0; &02a0 *63
+                db  &D8,  &C1,  &DA,  &D8,  &98,  &99,  &9B,  &20; &02a8 *64
+                db  &0,  &F3,  &34,  &61,  &C2,  &96,  &E3,  &0; &02b0 *65
+                db  &0,  &8D,  &DE,  &6C,  &6C,  &EE,  &6C,  &0; &02b8 *66
+                db  &6,  &8E,  &9E,  &26,  &66,  &6F,  &36,  &0; &02c0 *67
 serf_chars:     db  &0,  &0,  &0,  &1,  &2,  &2,  &7,  &5; &0278 
                 db  &0,  &0,  &84,  &E4,  &78,  &38,  &10,  &F8; &0280
                 db  &0,  &0,  &0,  &0,  &0,  &0,  &0,  &0; &0288
@@ -12085,7 +12081,7 @@ serf_chars:     db  &0,  &0,  &0,  &1,  &2,  &2,  &7,  &5; &0278
                 db  &60,  &0,  &C0,  &0,  &0,  &0,  &80,  &0; &02c0 
 
 
-
+; tile map
 panel_data:
 panel_hdr_kni:  db  1, 2, 3, 4, 5, 6, 7, 8    ; 0  
                 db  9, &4f, &50, &51, &52, &53, &0a, &0b; 8

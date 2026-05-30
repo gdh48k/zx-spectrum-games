@@ -3630,23 +3630,23 @@ go_items_attr_yx equ      &4a30
 go_escapee_yx       equ     &6828            ; Y=104, X=40
 
 ; --- LOWER BLOCK (Shifted down 40 pixels / Starts at Row 17) ---
-;go_acgkey_yx      equ     &9E38    ; Y=158, X=56  (Draws 22 pixels UPWARD to Y=136)
-;go_acgkey_attr_yx equ     &8838    ; Y=136, X=56  (Row 17, Col 7 - Attribute top edge)
+go_acgkey_yx      equ     &9E38    ; Y=158, X=56  (Draws 22 pixels UPWARD to Y=136)
+go_acgkey_attr_yx equ     &8838    ; Y=136, X=56  (Row 17, Col 7 - Attribute top edge)
 
-go_acgkey_yx        equ     &6EA0    ; Y=110, X=160
-go_acgkey_attr_yx   equ     &58A0    ; Y=88,  X=160
+;go_acgkey_yx        equ     &6EA0    ; Y=110, X=160
+;go_acgkey_attr_yx   equ     &58A0    ; Y=88,  X=160
 
 ; --- STATS CAPTIONS (Shifted down 40 pixels to match Y=136 baseline) ---
-go_scorecap_yx    equ     &8898    ; Y=136, X=136 (Row 17, Col 17)
-go_timecap_yx     equ     &9098    ; Y=144, X=136 (Row 18, Col 17)
-go_roomscap_yx    equ     &9898    ; Y=152, X=136 (Row 19, Col 17)
-go_itemcap_yx     equ     &A098    ; Y=160, X=136 (Row 20, Col 17)
+go_roomscap_yx    equ     &8898    ; Y=136, X=136 (Row 17, Col 17)
+go_itemcap_yx     equ     &9098    ; Y=144, X=136 (Row 18, Col 17)
+go_scorecap_yx    equ     &9898    ; Y=152, X=136 (Row 19, Col 17)
+go_timecap_yx     equ     &A098    ; Y=160, X=136 (Row 20, Col 17)
 
 ; --- STATS NUMBERS (Shifted down 40 pixels to match Y=136 baseline) ---
-go_score_yx       equ     &88c8    ; Y=136, X=184 (Row 17, Col 23)
-go_time_yx        equ     &90c8    ; Y=144, X=184 (Row 18, Col 23)
-go_rooms_yx       equ     &98c8    ; Y=152, X=184 (Row 19, Col 23)
-go_items_yx       equ     &A0c8    ; Y=160, X=184 (Row 20, Col 23)
+go_rooms_yx       equ     &88c8    ; Y=136, X=184 (Row 17, Col 23)
+go_items_yx        equ     &90c8    ; Y=144, X=184 (Row 18, Col 23)
+go_score_yx       equ     &98c8    ; Y=152, X=184 (Row 19, Col 23)
+go_time_yx       equ     &A0c8    ; Y=160, X=184 (Row 20, Col 23)
 
 
 
@@ -6322,20 +6322,20 @@ slash_148_indices:
                 db      8 | &80                 ; Index for 8, terminate with bit 7 se
 
 
-time_msg:       db  &45                       ; bright cyan
+time_msg:       db  bright_cyan
                 db  'TIME    '
                 db  '#  '
                 db  &a0
 
-score_msg:      db  &45                       ; bright cyan
+score_msg:      db  bright_magenta 
                 db  'SCOR'
                 db  &c5
 
-percent_msg:    db  &45                       ; bright cyan
+percent_msg:    db  bright_magenta                     
                 db  'ROOM'
                 db  &D3
 
-item_msg:       db  &45                       ; bright cyan
+item_msg:       db  bright_cyan                     
                 db  'ITEM'
                 db  &D3
 

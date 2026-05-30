@@ -3627,6 +3627,7 @@ go_minimap_x      equ     low(go_minimap_yx)
 ; --- ITEM REPLAY MIDDLE BLOCK (Row 11 / Upward from Row 12 Boundary) ---
 go_replay_items_yx equ    &5c48    ; Y=96,  X=48  (Draws UPWARD into Row 11)
 go_items_attr_yx equ      &4a30
+go_escapee_yx       equ     &6828            ; Y=104, X=40
 
 ; --- LOWER BLOCK (Shifted down 40 pixels / Starts at Row 17) ---
 ;go_acgkey_yx      equ     &9E38    ; Y=158, X=56  (Draws 22 pixels UPWARD to Y=136)
@@ -3833,6 +3834,10 @@ loc_8C4A:
 ; -----------------------------------------------------------------------------
 
 game_story:
+                
+                
+
+
                 ld      a, go_minimap_x
                 ld      (map_anchor_x), a  
                 ld      a, go_minimap_y    
@@ -3885,7 +3890,30 @@ game_story:
                 call    wait_frames
                 ret
 
-               
+; -------------------------------------------------------------------
+; Routine: draw_escapee
+; Flow:    Populates entity index with player's character type based on 
+;          the menu selection and renders it at the escapee coordinate.
+; Inputs:  Main_selection (for sprite type), go_escapee_yx (coords).
+; Outputs: Renders the player sprite to the screen.
+; -------------------------------------------------------------------                
+
+draw_escapee:
+                ld      ix, entity_to_draw      ; Point to active entity buffer
+                ld      a, (main_selection)     ; Load user character selection
+                rlca                            ; Shift for type extraction
+                and     &30                     ; Extract character type from menu
+                or      7                       ; Offset to first graphic
+
+                ld      (ix+0), a               ; Store character type ID
+                ld      (ix+5), &47             ; Set attribute: bright white
+                
+                ld      hl, go_escapee_yx       ; Load escapee coordinate pair
+                ld      (ix+3), l               ; Set X coordinate
+                ld      (ix+4), h               ; Set Y coordinate
+                
+                call    draw_entity             ; Render the character sprite
+                ret               
 
     
         
@@ -7979,8 +8007,11 @@ loc_96E1:
                 ret
 game_complete:
                 call    clear_side_panel
-                ld      hl, player           ; congratulate player on completion
+                ld      hl, player           
                 call    draw_entity_hl       ; undraw player
+
+                call    draw_escapee
+
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
                 ld      hl, go_title_yx

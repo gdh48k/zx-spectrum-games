@@ -3689,122 +3689,120 @@ room_history:   defs replay_max
 history_count:  defb 0          ; Current index/total rooms logged
 
 ; =============================================================================
-; New Item History Storage
+; Item History Storage
 ; =============================================================================
 item_max        equ     12
-item_history:   defs    item_max * 4    ; Flat buffer: 48 bytes total
-item_count:     db      0               ; Number of items currently stored
+item_history:   defs    item_max * 2    ; Compact buffer: 24 bytes total
+item_count:     db      0               
 
-; Structure per slot (4 bytes):
-; Offset +0: Reserved (or Spare)
-; Offset +1: Reserved (or Spare)
-; Offset +2: Sprite ID
-; Offset +3: Attribute Byte         
+; Structure per slot:
+; Offset +0: Sprite ID
+; Offset +1: Attribute Byte
 
 
-; =============================================================================
-; add_history: Captures entity data directly into the flat buffer
-; Input: IX = Pointer to entity structure
-; =============================================================================
+; -------------------------------------------------------------------
+; Routine: add_history
+; Flow:    Captures sprite ID and attribute from the entity buffer
+;          and stores them in the compact 2-byte item_history buffer.
+; Inputs:  IX = Pointer to entity structure.
+; Outputs: Updates item_history and increments item_count.
+; -------------------------------------------------------------------
 add_history:
-    ld      a, (item_count)
-    cp      item_max
-    ret     nc                  ; return if item_count >= item_max
+                ld      a, (item_count)         ; Load current item count
+                cp      item_max                ; Check if buffer is full
+                ret     nc                      ; Return if full
 
-    ; Calculate index: HL = (item_count * 4) + item_history
-    ld      l, a
-    ld      h, 0
-    add     hl, hl              ; * 2
-    add     hl, hl              ; * 4
-    ld      de, item_history
-    add     hl, de              ; HL points to the start of the 4-byte slot
+                ; Calculate index: HL = (item_count * 2) + item_history
+                ld      l, a                    ; L = item_count
+                ld      h, 0                    ; H = 0
+                add     hl, hl                  ; Multiply by 2
+                ld      de, item_history        ; Point to start of buffer
+                add     hl, de                  ; HL points to current slot
 
-    ; Base+0: Store Sprite ID from (ix+0)
-    ld      a, (ix+0)
-    ld      (hl), a             
-    inc     hl
+                ; Base+0: Store Sprite ID from (ix+0)
+                ld      a, (ix+0)               ; Get sprite ID
+                ld      (hl), a                 ; Store in buffer
+                inc     hl                      ; Advance to next byte
 
-    ; Base+1: Store Attribute from (ix+5)
-    ld      a, (ix+5)
-    ld      (hl), a             
-    
-    ; Increment counter
-    ld      hl, item_count
-    inc     (hl)
-    ret
-
+                ; Base+1: Store Attribute from (ix+5)
+                ld      a, (ix+5)               ; Get attribute
+                ld      (hl), a                 ; Store in buffer
+                
+                ; Increment item counter
+                ld      hl, item_count          ; Point to counter
+                inc     (hl)                    ; Add 1 to count
+                ret
 
 
+
+; -------------------------------------------------------------------
+; Routine: draw_items
+; Flow:    Reads sprite ID and attribute from 2-byte history slots,
+;          renders entities in a 4x3 grid, and plays a sound effect.
+; Inputs:  item_count, item_history buffer, go_replay_items_yx.
+; Outputs: Renders items to the screen buffer.
+; -------------------------------------------------------------------
 draw_items:
-                ld      a, (item_count)         ; Load count of items
-                and     a                       ; Check if item_count is 0
-                ret     z                       ; Return if empty
+                ld      a, (item_count)
+                and     a
+                ret     z                       ; Exit if no items to draw
 
-                ld      ix, entity_to_draw      ; Point to active entity buffer
-                ld      hl, item_history        ; Initialize Pointer to item data
-                ld      de, go_replay_items_yx  ; Initialize starting screen coords
-                ld      b, a                    ; B = total item counter
-                ld      c, 0                    ; C = row item counter (0-3)
+                ld      ix, entity_to_draw
+                ld      hl, item_history
+                ld      de, go_replay_items_yx
+                ld      b, a
+                ld      c, 0
 
 .items_loop:
-                push    hl                      ; Save history pointer
-                push    bc                      ; Save counters
-                push    de                      ; Save current coordinates
+                push    hl
+                push    bc
+                push    de
 
-                ; Populate index registers with item's id, coords, and color
-                ld      a, (hl)                 ; Get item sprite ID
-                ld      (ix+0), a               ; Store ID
+                ld      a, (hl)
+                ld      (ix+0), a               ; Offset +0: Sprite ID
                 inc     hl
-                ld      a, (hl)                 ; Get item attribute
-                ld      (ix+5), a               ; Store Attr
+                ld      a, (hl)
+                ld      (ix+5), a               ; Offset +5: Attribute
                 
-                ; Set X and Y coordinates
-                ld      (ix+3), e               ; Set X
-                ld      (ix+4), d               ; Set Y
+                ld      (ix+3), e               ; Offset +3: X coordinate
+                ld      (ix+4), d               ; Offset +4: Y coordinate
 
-                call    draw_entity             ; Render entity
-                call    set_entity_attrs        ; Apply colors
-                call    drop_sound              ; Play sound
+                call    draw_entity
+                call    set_entity_attrs
+                call    drop_sound
                 
-                ld      b, 8                    ; Wait duration
+                ld      b, 8
                 call    wait_frames
 
-                pop     de                      ; Restore coords
-                pop     bc                      ; Restore counters (B=total, C=row)
-                pop     hl                      ; Restore history pointer
+                pop     de
+                pop     bc
+                pop     hl
                 
-                ; Move HL to next 4-byte slot in history
-                inc     hl
-                inc     hl
-                inc     hl
+                inc     hl                      ; Advance to next 2-byte slot
                 inc     hl
                 
-                ; --- Grid Logic ---
-                inc     c                       ; Increment row item counter
+                inc     c                       ; Track items per row
                 ld      a, c
-                cp      3                       ; Have we drawn 3 items?
-                jr      nz, .same_row           ; If not, continue on same row
+                cp      3                       ; Branch: check for row wrap
+                jr      nz, .same_row
 
-                ; New Row Logic
-                ld      c, 0                    ; Reset row counter
-                ld      a, e                    ; Load current X
-                sub     48                      ; X = X - 96 (return to start)
-                ld      e, a                    ; Update X
-                ld      a, d                    ; Load current Y
-                add     a, 24                   ; Y = Y + 32 (move down)
-                ld      d, a                    ; Update Y
+                ld      c, 0                    ; Reset column counter
+                ld      a, e
+                sub     48                      ; Offset X back to start
+                ld      e, a
+                ld      a, d
+                add     a, 24                   ; Offset Y for next row
+                ld      d, a
                 jr      .continue
 
 .same_row:
-                ; Same Row Logic
-                ld      a, e                    ; Load current X
-                add     a, 24                   ; X = X + 24
-                ld      e, a                    ; Update X
+                ld      a, e
+                add     a, 24                   ; Offset X to next column
+                ld      e, a
 
 .continue:
-                djnz    .items_loop             ; Decrement total counter and loop
+                djnz    .items_loop             ; Branch: continue if items remain
                 ret
-
 
 
 
@@ -3858,7 +3856,7 @@ game_story:
 
                 call    game_stats           ; show game statistics
 
-                ;call    draw_items
+                call    draw_items
 
                 ld      de, go_acgkey_yx
                 call    draw_acg_key

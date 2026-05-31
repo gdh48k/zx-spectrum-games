@@ -3625,13 +3625,14 @@ go_minimap_y      equ     high(go_minimap_yx)
 go_minimap_x      equ     low(go_minimap_yx)
 
 ; --- ITEM REPLAY MIDDLE BLOCK (Row 11 / Upward from Row 12 Boundary) ---
-go_replay_items_yx  equ    &5c48    ; Y=96,  X=48  (Draws UPWARD into Row 11)
-go_items_attr_yx    equ      &4a30
-go_escapee_yx       equ     &6828            ; Y=104, X=40
+;go_replay_items_yx  equ    &5c48    ; Y=96,  X=48  (Draws UPWARD into Row 11)
+go_replay_items_yx  equ    &8828 
+go_items_attr_yx    equ    &4a30
+go_escapee_yx       equ    &6828            ; Y=104, X=40
 
 ; --- LOWER BLOCK (Shifted down 40 pixels / Starts at Row 17) ---
-go_acgkey_yx      equ     &9E38    ; Y=158, X=56  (Draws 22 pixels UPWARD to Y=136)
-go_acgkey_attr_yx equ     &8838    ; Y=136, X=56  (Row 17, Col 7 - Attribute top edge)
+go_acgkey_yx      equ     &68B0     ; Y = 104, X = 176 (Bottom-left base pixel)
+go_acgkey_attr_yx equ     &50B0     ; Y = 80,  X = 176 (Top-left character cell base) 
 
 ;go_acgkey_yx        equ     &6EA0    ; Y=110, X=160
 ;go_acgkey_attr_yx   equ     &58A0    ; Y=88,  X=160
@@ -3691,7 +3692,7 @@ history_count:  defb 0          ; Current index/total rooms logged
 ; =============================================================================
 ; Item History Storage
 ; =============================================================================
-item_max        equ     12
+item_max        equ     8
 item_history:   defs    item_max * 2    ; Compact buffer: 24 bytes total
 item_count:     db      0               
 
@@ -3734,6 +3735,8 @@ add_history:
                 ret
 
 
+two_col:        equ     16
+three_col       equ     24
 
 ; -------------------------------------------------------------------
 ; Routine: draw_items
@@ -3783,12 +3786,12 @@ draw_items:
                 
                 inc     c                       ; Track items per row
                 ld      a, c
-                cp      3                       ; Branch: check for row wrap
+                cp      4                       ; Branch: check for row wrap
                 jr      nz, .same_row
 
                 ld      c, 0                    ; Reset column counter
                 ld      a, e
-                sub     48                      ; Offset X back to start
+                sub     32                      ; Offset X back to start
                 ld      e, a
                 ld      a, d
                 add     a, 24                   ; Offset Y for next row
@@ -3797,7 +3800,7 @@ draw_items:
 
 .same_row:
                 ld      a, e
-                add     a, 24                   ; Offset X to next column
+                add     a, two_col                  ; Offset X to next column
                 ld      e, a
 
 .continue:
@@ -10541,7 +10544,7 @@ colour_acg_key1:
                 call    xy_to_attr
                 ld      a, (acg_key_flag)
                 bit     0, a
-                ld      a, dark_blue
+                ld      a, bright_yellow_gr
                 jr      z, .fill1
                 ld      a, bright_yellow
 .fill1:         ld      bc, &0204       ; 2w x 4h
@@ -10555,7 +10558,7 @@ colour_acg_key2:
                 call    xy_to_attr
                 ld      a, (acg_key_flag)
                 bit     1, a
-                ld      a, dark_blue
+                ld      a, bright_yellow_gr
                 jr      z, .fill2
                 ld      a, bright_yellow
 .fill2:         ld      bc, &0204
@@ -10569,7 +10572,7 @@ colour_acg_key3:
                 call    xy_to_attr
                 ld      a, (acg_key_flag)
                 bit     2, a
-                ld      a, dark_blue
+                ld      a, bright_yellow_gr
                 jr      z, .fill3
                 ld      a, bright_yellow
 .fill3:         ld      bc, &0204

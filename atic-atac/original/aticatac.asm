@@ -3620,22 +3620,19 @@ chicken_entity: db  0, 0, 0, 0, 0, 0, 0, 0
 go_title_yx       equ     &1028    ; Y=16,  X=72  (Row 2,  Col 9)
 
 ; --- MAP REPLAY BLOCK (Moved right below Title) ---
-go_minimap_yx     equ     &2830    ; Y=40,  X=48  (Row 5,  Col 6)
+go_minimap_yx     equ     &2840    ; Y=40,  X=48  (Row 5,  Col 6)
 go_minimap_y      equ     high(go_minimap_yx)
 go_minimap_x      equ     low(go_minimap_yx)
 
 ; --- ITEM REPLAY MIDDLE BLOCK (Row 11 / Upward from Row 12 Boundary) ---
-;go_replay_items_yx  equ    &5c48    ; Y=96,  X=48  (Draws UPWARD into Row 11)
-go_replay_items_yx  equ    &8828 
+
+go_replay_items_yx  equ    &8f40 
 go_items_attr_yx    equ    &4a30
 go_escapee_yx       equ    &6828            ; Y=104, X=40
 
 ; --- LOWER BLOCK (Shifted down 40 pixels / Starts at Row 17) ---
-go_acgkey_yx      equ     &68B0     ; Y = 104, X = 176 (Bottom-left base pixel)
-go_acgkey_attr_yx equ     &50B0     ; Y = 80,  X = 176 (Top-left character cell base) 
-
-;go_acgkey_yx        equ     &6EA0    ; Y=110, X=160
-;go_acgkey_attr_yx   equ     &58A0    ; Y=88,  X=160
+go_acgkey_yx      equ     &6870     ; Y = 104, X = 176 (Bottom-left base pixel)
+go_acgkey_attr_yx equ     &5070     ; Y = 80,  X = 176 (Top-left character cell base) 
 
 ; --- STATS CAPTIONS (Shifted down 40 pixels to match Y=136 baseline) ---
 go_roomscap_yx    equ     &8898    ; Y=136, X=136 (Row 17, Col 17)
@@ -3669,11 +3666,11 @@ go_mapat_x      equ     &98
 
 
 gameover_msg:   db  &47                       ; bright white
-                db  "Q U E S T   S O   F A " 
+                db  "  Q U E S T   S O   F A " 
                 db  &d2
 
 complete_msg:   db  &47                       ; bright white
-                db  "   Y O U   M A D E   I T " 
+                db  "  Y O U   M A D E   I T " 
                 db  &a1 ; points to '!'
 
 
@@ -3791,10 +3788,10 @@ draw_items:
 
                 ld      c, 0                    ; Reset column counter
                 ld      a, e
-                sub     32                      ; Offset X back to start
+                sub     48                      ; Offset X back to start
                 ld      e, a
                 ld      a, d
-                add     a, 24                   ; Offset Y for next row
+                add     a, 16                   ; Offset Y for next row
                 ld      d, a
                 jr      .continue
 
@@ -10544,7 +10541,7 @@ colour_acg_key1:
                 call    xy_to_attr
                 ld      a, (acg_key_flag)
                 bit     0, a
-                ld      a, bright_yellow_gr
+                ld      a, dark_blue
                 jr      z, .fill1
                 ld      a, bright_yellow
 .fill1:         ld      bc, &0204       ; 2w x 4h
@@ -10558,7 +10555,7 @@ colour_acg_key2:
                 call    xy_to_attr
                 ld      a, (acg_key_flag)
                 bit     1, a
-                ld      a, bright_yellow_gr
+                ld      a, dark_blue
                 jr      z, .fill2
                 ld      a, bright_yellow
 .fill2:         ld      bc, &0204
@@ -10572,7 +10569,7 @@ colour_acg_key3:
                 call    xy_to_attr
                 ld      a, (acg_key_flag)
                 bit     2, a
-                ld      a, bright_yellow_gr
+                ld      a, dark_blue
                 jr      z, .fill3
                 ld      a, bright_yellow
 .fill3:         ld      bc, &0204

@@ -6552,45 +6552,45 @@ minimap_f1:
         db  &FF              ; End of Floor 1
 
 minimap_bm:
-        ; --- ROW 0 ---
-        db  &67,  3,  0
-        db  &68, 15,  0
+                ; --- ROW 0 ---
+                db      &67,  4,  0             
+                db      &68, 14,  0             
 
-        ; --- ROW 1 ---
-        db  &69,  0,  3
-        db  &56,  3,  3
-        db  &57,  6,  3
-        db  &58, 12,  3
-        db  &59, 15,  3
+                ; --- ROW 1 ---
+                db      &69,  1,  3             
+                db      &56,  4,  3             
+                db      &57,  7,  3             
+                db      &58, 11,  3             
+                db      &59, 14,  3             
 
-        ; --- ROW 2 ---
-        db  &5A,  3,  6
-        db  &5B,  6,  6
-        db  &5C, 12,  6
-        db  &5D, 15,  6
+                ; --- ROW 2 ---
+                db      &5A,  4,  6             
+                db      &5B,  7,  6             
+                db      &5C, 11,  6             
+                db      &5D, 14,  6             
 
-        ; --- ROW 3 ---
-        db  &66,  9,  9
+                ; --- ROW 3 ---
+                db      &66,  9,  9             
 
-        ; --- ROW 4 ---
-        db  &5E,  3, 12
-        db  &5F,  6, 12
-        db  &60, 12, 12
-        db  &61, 15, 12
+                ; --- ROW 4 ---
+                db      &5E,  4, 12             
+                db      &5F,  7, 12             
+                db      &60, 11, 12             
+                db      &61, 14, 12             
 
-        ; --- ROW 5 ---
-        db  &6A,  0, 15
-        db  &62,  3, 15
-        db  &63,  6, 15
-        db  &64, 12, 15
-        db  &65, 15, 15
-        db  &1B, 18, 15      ; Entry Room
-        db  &1C, 21, 15      ; STAIRS: To Caverns
+                ; --- ROW 5 ---
+                db      &6A,  1, 15             
+                db      &62,  4, 15             
+                db      &63,  7, 15             
+                db      &64, 11, 15             
+                db      &65, 14, 15             
+                db      &1B, 17, 15             ; Entry Room
+                db      &1C, 20, 15             ; STAIRS: To Caverns
 
-        ; --- ROW 6 ---
-        db  &1A, 18, 18      ; STAIRS: To Ground Floor
+                ; --- ROW 6 ---
+                db      &1A, 17, 18             ; STAIRS: To Ground Floor
 
-        db  &FF              ; End of Basement
+                db      &FF                     ; End of Basement
 
 minimap_cv:
         ; --- ROW 0 ---

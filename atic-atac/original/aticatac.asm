@@ -3631,8 +3631,8 @@ go_items_attr_yx    equ    &4a30
 go_escapee_yx       equ    &6828            ; Y=104, X=40
 
 ; --- LOWER BLOCK (Shifted down 40 pixels / Starts at Row 17) ---
-go_acgkey_yx      equ     &6870     ; Y = 104, X = 176 (Bottom-left base pixel)
-go_acgkey_attr_yx equ     &5070     ; Y = 80,  X = 176 (Top-left character cell base) 
+go_acgkey_yx      equ     &6880     ; Y = 104, X = 176 (Bottom-left base pixel)
+go_acgkey_attr_yx equ     &5080     ; 24 pixels above acg_yx! (3 chars)
 
 ; --- STATS CAPTIONS (Shifted down 40 pixels to match Y=136 baseline) ---
 go_roomscap_yx    equ     &8898    ; Y=136, X=136 (Row 17, Col 17)
@@ -3689,7 +3689,7 @@ history_count:  defb 0          ; Current index/total rooms logged
 ; =============================================================================
 ; Item History Storage
 ; =============================================================================
-item_max        equ     8
+item_max        equ     12
 item_history:   defs    item_max * 2    ; Compact buffer: 24 bytes total
 item_count:     db      0               
 
@@ -3733,7 +3733,8 @@ add_history:
 
 
 two_col:        equ     16
-three_col       equ     24
+three_cols      equ     24
+
 
 ; -------------------------------------------------------------------
 ; Routine: draw_items
@@ -3791,7 +3792,7 @@ draw_items:
                 sub     48                      ; Offset X back to start
                 ld      e, a
                 ld      a, d
-                add     a, 16                   ; Offset Y for next row
+                add     a, three_cols           ; Offset Y three cols down
                 ld      d, a
                 jr      .continue
 
@@ -3857,6 +3858,12 @@ game_story:
                 call    game_stats           ; show game statistics
 
                 call    draw_items
+
+                ld      hl, go_acgkey_attr_yx 
+                call    xy_to_attr         
+                ld      bc, &0604           ; width x height
+                ld      a, dark_black                
+                call    fill_bc_hl_a 
 
                 ld      de, go_acgkey_yx
                 call    draw_acg_key
@@ -10262,6 +10269,7 @@ timer_attr_yx   equ     &5ed0
 
 
 dark_blue       equ      01
+dark_black      equ      0
 bright_white    equ      &47
 bright_white_bl equ      &4f  
 bright_yellow   equ     &46

@@ -1756,7 +1756,7 @@ start_game:
                 ld      de, acg_key_yx
                 call    draw_acg_key
                 call    draw_lives           ; draw lives sprites in side panel
-                call    place_key_pieces     ; set locations of ACG key pieces
+                call    set_acg_positions    ; set locations of ACG key pieces
                 call    set_key_positions    ; set positions of red/green/cyan keys, and mummy
                 call    gf_mod
                 call    reset_game_state     ; copy initial game state to working state area
@@ -5835,16 +5835,26 @@ loc_94AB:
                 jr      z, loc_94AB          ; jump if so (wait until pause key released)
                 ret
 
-; set locations of ACG key pieces
-place_key_pieces:
+; ==============================================================================
+; Routine: set_acg_positions
+; Flow:    Calculates an unpredictable index, applies mod offsets, and populates
+;          the ACG key piece room positions.
+; Inputs:  None
+; Outputs: Modifies acg_key_init room pointers
+; ==============================================================================
+set_acg_positions:
                 ld      a, (sysvar_FRAMES)
                 ld      c, a
-                ld      a, (counter_low)
-                add     a, c
-                and     7
+                ld      a, r
+                xor     c               ; Bitwise inversion breaks cold-boot alignment
                 ld      c, a
-                add     a, a                 ; * 2
-                add     a, c                 ; * 3 (3 key pieces per entry)
+                ld      a, (counter_low)
+                add     a, c            ; Arithmetic displacement adds game loop depth
+                and     7               ; Mask limits pool to 8 triplet rows (0-7)
+                ld      c, a            ; Back up row index
+                add     a, a            ; Shift left doubles row value (Index * 2)
+                add     a, c            ; (Index * 2) + Index = Offset
+                
                 
                 ; --- APPLY OFFSET MOD HERE ---
                 ld      c, a                 ; Temporarily save our index (0-21)
@@ -8260,7 +8270,7 @@ mushroom_death:
                 jp      player_dead
 
 ; set positions of red/green/cyan keys, and mummy
-                db      '999'
+                
 set_key_positions:
                 ld      a, (mod_selection)
                 and     %00000100

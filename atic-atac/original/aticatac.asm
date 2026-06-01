@@ -3700,35 +3700,50 @@ item_count:     db      0
 
 ; -------------------------------------------------------------------
 ; Routine: add_history
-; Flow:    Captures sprite ID and attribute from the entity buffer
-;          and stores them in the compact 2-byte item_history buffer.
+; Flow:    Verifies item uniqueness before storing the sprite ID and
+;          attribute into the compact 2-byte item_history buffer.
 ; Inputs:  IX = Pointer to entity structure.
-; Outputs: Updates item_history and increments item_count.
+; Outputs: Updates item_history and increments item_count if unique.
 ; -------------------------------------------------------------------
 add_history:
                 ld      a, (item_count)         ; Load current item count
-                cp      item_max                ; Check if buffer is full
-                ret     nc                      ; Return if full
+                cp      item_max
+                ret     nc                      ; Return if buffer full
 
-                ; Calculate index: HL = (item_count * 2) + item_history
-                ld      l, a                    ; L = item_count
-                ld      h, 0                    ; H = 0
-                add     hl, hl                  ; Multiply by 2
-                ld      de, item_history        ; Point to start of buffer
-                add     hl, de                  ; HL points to current slot
-
-                ; Base+0: Store Sprite ID from (ix+0)
-                ld      a, (ix+0)               ; Get sprite ID
-                ld      (hl), a                 ; Store in buffer
-                inc     hl                      ; Advance to next byte
-
-                ; Base+1: Store Attribute from (ix+5)
-                ld      a, (ix+5)               ; Get attribute
-                ld      (hl), a                 ; Store in buffer
+                ; Check if item is already in list
+                ld      b, a                    ; B = loop counter
+                ld      hl, item_history
+chk_match:      ld      a, (ix+0)               ; Current Sprite ID
+                cp      (hl)                    ; Compare with history ID
+                jr      nz, .next_slot          ; Branch: no ID match
                 
-                ; Increment item counter
-                ld      hl, item_count          ; Point to counter
-                inc     (hl)                    ; Add 1 to count
+                push    hl                      ; Save current history pointer
+                inc     hl                      ; Point to Attribute byte
+                ld      a, (ix+5)               ; Current Attribute
+                cp      (hl)                    ; Compare with history Attr
+                pop     hl                      ; Restore pointer
+                ret     z                       ; Branch: ID and Attr match; duplicate
+
+.next_slot:     inc     hl                      ; Move to next 2-byte slot
+                inc     hl
+                djnz    chk_match
+                
+                ; Item not found, calculate storage slot
+                ld      a, (item_count)         ; Reload count
+                ld      l, a                    ; L = item_count
+                ld      h, 0
+                add     hl, hl                  ; Multiply by 2 (2-byte stride)
+                ld      de, item_history
+                add     hl, de                  ; HL points to destination
+
+                ld      a, (ix+0)               ; Offset +0: Sprite ID
+                ld      (hl), a                 ; Store Sprite ID
+                inc     hl
+                ld      a, (ix+5)               ; Offset +5: Attribute
+                ld      (hl), a                 ; Store Attribute
+                
+                ld      hl, item_count          ; Increment global count
+                inc     (hl)
                 ret
 
 
@@ -3815,7 +3830,7 @@ game_over:
                 
 
                 ld      hl, go_title_yx
-                ld      de, gameover_msg   ; Default to completion
+                ld      de, gameover_msg   
                 call    colour_text
 
                 call    game_story

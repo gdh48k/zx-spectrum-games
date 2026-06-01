@@ -11828,26 +11828,24 @@ g_key:          db  &0a
                 db  &12, 0
                 db  &1e, 0
                 db  &0c, 0
-g_wine:         db  &14
-                db  &19, &fc
-                db  &19, &fc
-                db  &19, &c0
-                db  &19, &dc
-                db  &19, &dc
-                db  &19, &dc
-                db  &19, &dc
-                db  &19, &dc
-                db  &19, &dc
-                db  &19, &dc
-                db  &19, &c0
-                db  &19, &fc
-                db  &1c, &fc
-                db  &0e, &f8
-                db  3, &60
-                db  1, &40
-                db  1, &40
-                db  1, &40
-                db  2, &e0
+g_wine:         db  &12                 ; New Height: 18 lines (37 bytes total)
+                db  &19, &fc            ; Row 01
+                db  &19, &fc            ; Row 02
+                db  &19, &c0            ; Row 03
+                db  &19, &dc            ; Row 04
+                db  &19, &dc            ; Row 05
+                db  &19, &dc            ; Row 06
+                db  &19, &dc            ; Row 07
+                db  &19, &dc            ; Row 08
+                db  &19, &c0            ; Row 09
+                db  &19, &fc            ; Row 10
+                db  &1c, &fc            ; Row 11
+                db  &0e, &f8            ; Row 12
+                db  3, &60              ; Row 13
+                db  1, &40              ; Row 14
+                db  1, &40              ; Row 15
+                db  1, &40              ; Row 16
+                db  2, &e0              ; Row 17
                 db  1, &c0
 g_bottle:       db  &14
                 db  &19, &f0

@@ -131,7 +131,7 @@ clock_hours:    db  0
 clock_minutes:  db  0
 clock_seconds:  db  0
 visited_rooms:  ds  20                        ; visit rooms bit array
-visited_number: db  0
+visited_number: dw  0
 food_ptr:       dw  0
 
 
@@ -3689,7 +3689,7 @@ history_count:  defb 0          ; Current index/total rooms logged
 ; =============================================================================
 ; Item History Storage
 ; =============================================================================
-item_max        equ     12
+item_max        equ     15
 item_history:   defs    item_max * 2    ; Compact buffer: 24 bytes total
 item_count:     db      0               
 
@@ -3747,7 +3747,7 @@ chk_match:      ld      a, (ix+0)               ; Current Sprite ID
                 ret
 
 
-two_col:        equ     16
+two_cols:        equ     16
 three_cols      equ     24
 
 
@@ -3799,7 +3799,7 @@ draw_items:
                 
                 inc     c                       ; Track items per row
                 ld      a, c
-                cp      4                       ; Branch: check for row wrap
+                cp      5                       ; Branch: check for row wrap
                 jr      nz, .same_row
 
                 ld      c, 0                    ; Reset column counter
@@ -3807,13 +3807,13 @@ draw_items:
                 sub     48                      ; Offset X back to start
                 ld      e, a
                 ld      a, d
-                add     a, three_cols           ; Offset Y three cols down
+                add     a, two_cols           ; Offset Y - cols down
                 ld      d, a
                 jr      .continue
 
 .same_row:
                 ld      a, e
-                add     a, two_col                  ; Offset X to next column
+                add     a, two_cols                  ; Offset X to next column
                 ld      e, a
 
 .continue:
@@ -6295,9 +6295,9 @@ game_stats:
                 
                 ld      hl, go_rooms_yx      ; percent at 128,96
                 call    xy_to_display        ; convert coords in HL to display address in HL
-                ld      de, visited_number
-                ld      b, 1
-                call    print_bcd_bytes         ; Print number, HL advances
+                ;ld      de, visited_number
+                ;ld      b, 2
+                call    print_rooms         ; Print number, HL advances
 
                 ld      de, slash_148
                 call    print_slash_max
@@ -8013,7 +8013,7 @@ loc_96C6:
                 ;pop     af
                 ret
 
-; calculate percentage of rooms visited
+; calculate number of rooms visited
 calc_visited:
                 ld      hl, visited_rooms    ; visit rooms bit array
                 ld      bc, &0813             ; 8*19 bits covers all rooms
@@ -8029,7 +8029,7 @@ loc_96D5:
                 ;dec     d                    ; counter zero?
                 ;jr      nz, loc_96E1         ; jump if not
                 ;ld      d, 3                 ; reset counter
-                add     a, 1                 ; add 2% for every 3 visited rooms
+                add     a, 1                 ; 
                 daa
 loc_96E1:
                 djnz    loc_96D5
@@ -10086,6 +10086,49 @@ loc_A1AE:
                 ;ld      hl,  display+&10c8
                 ld      hl, score_yx
                 ret  
+
+; -------------------------------------------------------------------
+; Routine: print_rooms_no_zeros
+; Flow:    Prints 3 digits, skipping leading zeros for hundreds/tens.
+; Inputs:  HL = Screen coords, DE = visited_number pointer.
+; -------------------------------------------------------------------
+print_rooms:
+                ld      de, visited_number
+                inc     de                   ; Point to high byte (Hundreds)
+                
+                ; 1. Hundreds
+                ld      a, (de)
+                and     &0f
+                jr      z, try_tens          ; Skip if 0
+                call    print_char           ; Prints and auto-advances HL
+                
+                ; 2. Tens
+try_tens:
+                dec     de                   ; Point to low byte
+                ld      a, (de)
+                push    af
+                rrca                         ; Extract tens
+                rrca
+                rrca
+                rrca
+                and     &0f
+                
+                ; Check if we have printed anything yet (Hundreds)
+                ; If HL is at original position, only print if non-zero
+                ld      a, (de)              ; Check tens value again
+                and     &f0
+                jr      z, try_units         ; Skip if tens is 0
+                
+                pop     af                   ; Restore for units later
+                push    af
+                call    print_char           ; Print tens
+                
+                ; 3. Units
+try_units:
+                pop     af
+                and     &0f
+                call    print_char
+                ret
 
 
 ; print player score at position HL

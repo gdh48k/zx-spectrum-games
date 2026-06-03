@@ -3751,6 +3751,12 @@ two_cols:        equ     16
 three_cols      equ     24
 
 
+test_history:   db      &81, &44, &81, &42, &81, &45, &81, &46 ; 4 keys
+                db      &80, &42, &8a, &46, &8b, &45, &82, &44 ; 4 items
+                db      &83, &45, &84, &46, &85, &45, &86, &44 ; 4 items
+                db      &87, &43, &88, &42, &89, &47          ; 3 items
+test_count:     db      15                                    ; Set to 15
+
 ; -------------------------------------------------------------------
 ; Routine: draw_items
 ; Flow:    Reads sprite ID and attribute from 2-byte history slots,
@@ -3759,12 +3765,12 @@ three_cols      equ     24
 ; Outputs: Renders items to the screen buffer.
 ; -------------------------------------------------------------------
 draw_items:
-                ld      a, (item_count)
+                ld      a, (test_count)
                 and     a
                 ret     z                       ; Exit if no items to draw
 
                 ld      ix, entity_to_draw
-                ld      hl, item_history
+                ld      hl, test_history
                 ld      de, go_replay_items_yx
                 ld      b, a
                 ld      c, 0
@@ -3804,10 +3810,10 @@ draw_items:
 
                 ld      c, 0                    ; Reset column counter
                 ld      a, e
-                sub     48                      ; Offset X back to start
+                sub     64                     ; Offset X back to start
                 ld      e, a
                 ld      a, d
-                add     a, two_cols           ; Offset Y - cols down
+                add     a, three_cols           ; Offset Y - cols down
                 ld      d, a
                 jr      .continue
 

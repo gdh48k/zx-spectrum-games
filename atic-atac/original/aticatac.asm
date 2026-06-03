@@ -3760,7 +3760,7 @@ test_count:     db      15                                    ; Set to 15
 ; -------------------------------------------------------------------
 ; Routine: draw_items
 ; Flow:    Reads sprite ID and attribute from 2-byte history slots,
-;          renders entities in a 4x3 grid, and plays a sound effect.
+;          renders entities in a 3x5 grid, and plays a sound effect.
 ; Inputs:  item_count, item_history buffer, go_replay_items_yx.
 ; Outputs: Renders items to the screen buffer.
 ; -------------------------------------------------------------------
@@ -6299,6 +6299,11 @@ game_stats:
                 ld      hl, go_score_yx      ; score at 128,80
                 call    print_score          ; print player score at position HL
                 
+                ld      a, &00               ; Low byte: 00 (Tens/Units)
+                ld      (visited_number), a
+                ld      a, &01               ; High byte: 01 (Hundreds)
+                ld      (visited_number+1), a
+
                 ld      hl, go_rooms_yx      ; percent at 128,96
                 call    xy_to_display        ; convert coords in HL to display address in HL
                 ;ld      de, visited_number
@@ -6323,7 +6328,7 @@ game_stats:
                 ld      hl, go_rooms_yx      
                 call    xy_to_attr          ; Get attribute start address
                 ld      a, bright_white
-                ld      bc, &0604           ; 5 wide by 3 tall
+                ld      bc, &0704           ; 5 wide by 3 tall
                 call    fill_bc_hl_a        ; Paint the entire rectangle 
 
                 ret
@@ -8019,31 +8024,51 @@ loc_96C6:
                 ;pop     af
                 ret
 
-; calculate number of rooms visited
+; -------------------------------------------------------------------
+; Routine: calc_visited
+; Flow:    Scans the visited_rooms bit array to count how many rooms 
+;          have been flagged as visited. Maintains a running 2-byte 
+;          BCD count to support totals exceeding 99.
+; Inputs:  visited_rooms (bit array)
+; Outputs: visited_number (2-byte BCD: [low byte, high byte])
+; -------------------------------------------------------------------
 calc_visited:
                 ld      hl, visited_rooms    ; visit rooms bit array
-                ld      bc, &0813             ; 8*19 bits covers all rooms
-                ;ld      d, 3                 ; D decremented for every visited room
-                xor     a
+                ld      bc, &1308            ; B=19 bytes, C=unused
+                xor     a                    ; A = count (low byte)
+                ld      d, 0                 ; D = count (high byte)
 loc_96D2:
-                push    bc
-                ld      e, (hl)              ; 8 visited bits
+                ld      e, (hl)
                 inc     hl
+                push    bc
+                ld      b, 8                 ; 8 bits per byte
 loc_96D5:
                 rr      e
                 jr      nc, loc_96E1
-                ;dec     d                    ; counter zero?
-                ;jr      nz, loc_96E1         ; jump if not
-                ;ld      d, 3                 ; reset counter
-                add     a, 1                 ; 
+                
+                ; Add 1 to BCD count
+                add     a, 1
                 daa
+                jr      nc, loc_96E1         ; If no carry, continue
+                
+                ; Handle Carry
+                push    af
+                ld      a, d
+                add     a, 1
+                daa
+                ld      d, a
+                pop     af
 loc_96E1:
                 djnz    loc_96D5
                 pop     bc
-                dec     c
-                jr      nz, loc_96D2
-                ld      (visited_number), a
+                djnz    loc_96D2
+                
+                ; Store results (Little-Endian)
+                ld      (visited_number), a   ; Store low byte (Tens/Units)
+                ld      hl, visited_number + 1
+                ld      (hl), d               ; Store high byte
                 ret
+
 game_complete:
                 call    clear_side_panel
                 ld      hl, player           
@@ -10100,38 +10125,40 @@ loc_A1AE:
 ; -------------------------------------------------------------------
 print_rooms:
                 ld      de, visited_number
-                inc     de                   ; Point to high byte (Hundreds)
+                inc     de                   ; Point to Hundreds
                 
                 ; 1. Hundreds
                 ld      a, (de)
                 and     &0f
-                jr      z, try_tens          ; Skip if 0
-                call    print_char           ; Prints and auto-advances HL
+                ld      c, 0                 ; C=0: Nothing printed yet
+                jr      z, check_tens        ; If 0, skip
+                call    print_char
+                ld      c, 1                 ; C=1: Printed Hundreds
                 
-                ; 2. Tens
-try_tens:
+check_tens:
                 dec     de                   ; Point to low byte
                 ld      a, (de)
-                push    af
-                rrca                         ; Extract tens
+                push    af                   ; Save for units
+                rrca
                 rrca
                 rrca
                 rrca
                 and     &0f
                 
-                ; Check if we have printed anything yet (Hundreds)
-                ; If HL is at original position, only print if non-zero
-                ld      a, (de)              ; Check tens value again
-                and     &f0
-                jr      z, try_units         ; Skip if tens is 0
+                ; Logic: Print if (C==1) OR (Tens != 0)
+                ld      b, a                 ; B = Tens digit
+                ld      a, c
+                or      a                    ; Is C set?
+                jr      nz, print_tens       ; Yes, print Tens
+                ld      a, b                 ; No, check if Tens digit itself is 0
+                or      a
+                jr      z, try_units         ; If 0, skip Tens
+print_tens:
+                ld      a, b
+                call    print_char
                 
-                pop     af                   ; Restore for units later
-                push    af
-                call    print_char           ; Print tens
-                
-                ; 3. Units
 try_units:
-                pop     af
+                pop     af                   ; Restore low byte
                 and     &0f
                 call    print_char
                 ret

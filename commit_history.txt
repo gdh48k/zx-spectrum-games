@@ -1,0 +1,251 @@
+2026-06-03 - gdh48k: GAME OVER - Refactored draw_items to plot 3x5 grid
+2026-06-02 - gdh48k: GAME OVER - Added print_rooms to display up to 3 digits
+2026-06-02 - gdh48k: MINIMAP - Added missing room &49 to basement
+2026-06-01 - gdh48k: Refactored add_history so not to store duplicates in item_history
+2026-06-01 - gdh48k: GAME OVER - Fixed overlapping draw_items, repositioned acg_key
+2026-06-01 - gdh48k: GF MODE - Fixed randomisation in set_acg_positions
+2026-06-01 - gdh48k: SIDE PANEL - Fixed wine bottle attribute spill
+2026-05-31 - gdh48k: GAME OVER - Yet more layout tweaks!
+2026-05-31 - gdh48k: GAMEOVER - Further layout changes - unfinished
+2026-05-31 - gdh48k: GAME OVER - Refactored item_history to 2-byte structure (not 8)
+2026-05-31 - gdh48k: MINIMAP - Tweaked basement floor layout
+2026-05-30 - gdh48k: GAME OVER - Commented out draw_items and further layout tweaks
+2026-05-30 - gdh48k: SIDE PANEL - Fixed data issue with Wizard and Serf title text
+2026-05-30 - gdh48k: GAME OVER - Tweaked layout (again!) - giving escapee a clear run
+2026-05-30 - gdh48k: GAME OVER - Added draw_escapee to completion page
+2026-05-29 - gdh48k: GAME OVER - Refactored draw_items so displayed as grid; relocated acg key
+2026-05-29 - gdh48k: ACG PANEL - Modularised colour_acg_key so to add sounds when called from game_over/complete. Removed calls to it from draw_panel_attrs
+2026-05-29 - gdh48k: GAME OVER - Created game_story for calls to reply, items, acg key stats
+2026-05-29 - gdh48k: GAME OVER - Fixed game over message
+2026-05-29 - gdh48k: SIDE PANEL - refactored draw_panel_attrs II - middle edges.  Flickering fixed.
+2026-05-29 - gdh48k: SIDE PANEL - Refactored draw_panel_attrs - part I - colours top and bottom blocks in full
+2026-05-27 - gdh48k: GAME OVER - game_complete separated, side_panel cleared, title fixed
+2026-05-27 - gdh48k: GAME OVER - fixed minimap offsets and added comments to draw_items and add_history
+2026-05-26 - gdh48k: GAME OVER: Added sound to draw_items
+2026-05-26 - gdh48k: GAME OVER - Added '/16' to items_count
+2026-05-26 - gdh48k: GAME OVER - Added display of the number of items collected
+2026-05-26 - gdh48k: GAME OVER - Refactored print_slash_max to utilise print_char
+2026-05-24 - gdh48k: GAME OVER - First draft of adding /148 to Rooms
+2026-05-24 - gdh48k: GAME OVER - Renamed visited_percent as visited_number
+2026-05-24 - gdh48k: GAME OVER - Sequenced code into thirds
+2026-05-24 - gdh48k: GAME OVER - Fixed permanently 'halted' state
+2026-05-23 - gdh48k: GAME OVER - Began integrting game over with game complete
+2026-05-22 - gdh48k: GAME OVER - Fixed minmap_ptr so defaults to minimap_gf
+2026-05-22 - gdh48k: GAME OVER - Refactored draw_items to display multiple items
+2026-05-22 - gdh48k: GAME OVER - Two items test displayed dynamically
+2026-05-21 - gdh48k: GAME OVER - Partly de-hardcoded draw_items.  Dynamically displays a single item and colour
+2026-05-21 - gdh48k: GAME OVER - Hardcoded draw_items that integrates with draw_entity and set_entity_attrs
+2026-05-21 - gdh48k: GAME OVER - Hardcoded draw_items working via draw_entity
+2026-05-20 - gdh48k: GAME_OVER - Began different approach to colout_items
+2026-05-19 - gdh48k: GAME OVER - Began replay_item_attrs - needs works still
+2026-05-18 - gdh48k: GAME_OVER - Began replay_item_history (dummy data)
+2026-05-18 - gdh48k: GAME_OVER - Repositioned replay at head of game over page
+2026-05-18 - gdh48k: MINIMAP - Implemented new floor look up into update_minimap
+2026-05-18 - gdh48k: GAME_OVER - Refactored look up applied to all five floors
+2026-05-18 - gdh48k: GAME OVER - Began refactoring floor look up table - working for GF and BM
+2026-05-18 - gdh48k: GAME_OVER - Fixed missing reply (history_count used as counter) and aligned basement room
+2026-05-18 - gdh48k: GAME OVER - Added walk sound to replay
+2026-05-18 - gdh48k: GAME_OVER - Set replay_max to 255
+2026-05-16 - gdh48k: GAME_OVER - Fixed replay_max so only displays maximum rooms
+2026-05-16 - gdh48k: GAME OVER - Reset minimap_ptr so replay works with Random Start
+2026-05-15 - gdh48k: MAIN MENU - Fixed reset so previous selections remain
+2026-05-15 - gdh48k: Hide symbols
+2026-05-13 - gdh48k: Cleanup ignore files
+2026-05-13 - gdh48k: MINIMAP - Fixed missing ACG Exit Room and Attic room order
+2026-05-13 - gdh48k: Delete original$file_base_name.sym
+2026-05-13 - gdh48k: GAME OVER - Fixed missing last game room
+2026-05-12 - gdh48k: GAME OVER - Fixed room_history and count clearing
+2026-05-12 - gdh48k: Clean up generated build files and legacy scripts
+2026-05-11 - gdh48k: GAME OVER - Fixed first draft of visited rooms within replay
+2026-05-11 - gdh48k: GAME OVER - Further refactored replay logic - erase pixel unfinished
+2026-05-07 - gdh48k: GAME OVER - Added room reset to start of replay
+2026-05-07 - gdh48k: GAME OVER -Reverted to fully working replay of all floors
+2026-05-07 - gdh48k: GAME OVER - Dynamic minimap working for all floors
+2026-05-07 - gdh48k: GAME OVER - Refactored/de-coupled check_floor and update_floor_offsets
+2026-05-06 - gdh48k: GAME OVER - Dynamic minimap working for ground floor gameplay
+2026-05-06 - gdh48k: GAME OVER - Dynamic minimap improved (erase working)
+2026-05-06 - gdh48k: GAME OVER - De-hardcoded Update_flasher
+2026-05-06 - gdh48k: GAME OVER - First mock up of dynamic minimap - unfinished
+2026-05-04 - gdh48k: GAME OVER - Added attributes for acg key, stats and maps
+2026-05-04 - gdh48k: GAME OVER - Removed unused code relating to draw_all_maps
+2026-05-03 - gdh48k: MINIMAP - Stairs now added to all 5 floors
+2026-05-03 - gdh48k: MINIMAP - Added First floor stairs to map
+2026-05-03 - gdh48k: MINIMAP - Added Attic stairs to map
+2026-05-03 - gdh48k: GAME OVER - Repositioned floors, acg key and changed title
+2026-05-02 - gdh48k: GAME OVER - Draft version of all 5 maps added
+2026-05-01 - gdh48k: GAME OVER - Added acg key and cv and bm minimaps
+2026-04-30 - gdh48k: GAME OVER - Title, Score, Time and Rooms label repositioned
+2026-04-30 - gdh48k: GAME OVER - Integrated display of gf minimap with master anchor
+2026-04-30 - gdh48k: GAME OVER - Finished logic change for 'master anchor'
+2026-04-29 - gdh48k: GAME OVER - Began making minimap_yx a 'master anchor' - unfinished
+2026-04-29 - gdh48k: GAME OVER - Finalised a flexible multimap position logic
+2026-04-29 - gdh48k: GAME OVER - Latest draft of minimap positioning - unfinished
+2026-04-28 - gdh48k: GAME OVER - Added first of five maps
+2026-04-27 - gdh48k: GAME OVER - Replaced delay with pause, % rooms with # rooms, and cleared scroll
+2026-04-26 - gdh48k: MINIMAP - tweaked floor offsets
+2026-04-26 - gdh48k: RANDOM START - Logic added
+2026-04-25 - gdh48k: SIDE PANEL - Fixed gaps in scroll
+2026-04-24 - gdh48k: SIDE PANEL - Fixed timer flash and beep when player appears
+2026-04-23 - gdh48k: SIDE PANEL - Yet more layout tweaks - explored minimap labels and borders but not go
+2026-04-23 - gdh48k: SIDE PANEL - Further tweaked layout - unfinished
+2026-04-23 - gdh48k: SIDE PANEL - Tweaked colours of floor ui and minimap
+2026-04-22 - gdh48k: SIDE PANEL - Fixed 'decoloured' inventory
+2026-04-22 - gdh48k: SIDE PANEL - Centralised more coords - need to fix 'decoloured' inventory
+2026-04-22 - gdh48k: SIDE PANEL - Began centralising coords for all elements in one place
+2026-04-22 - gdh48k: MINIMAP - Replace placeholders for floor ui -  now 'CBGFA'
+2026-04-21 - gdh48k: MINIMAP - Added logic for floor ui -  need to update placeholders with floor lettering
+2026-04-21 - gdh48k: MINIMAP - Removed 'score' and added placeholder for floor ui
+2026-04-20 - gdh48k: MINIMAP - Aligned all 5 minimaps within minimap area
+2026-04-20 - gdh48k: MINIMAP - Fixed minimap_x so alighns with attribute block
+2026-04-19 - gdh48k: MINIMAP - First draft of swapping multimap and acg key positions in side panel - adjustments needed
+2026-04-18 - gdh48k: MINIMAP - Extended logic to centre minimap for all floors
+2026-04-17 - gdh48k: MINIMAP - Added logic to centre minimap using floor offset
+2026-04-12 - gdh48k: MINIMAP - Fixed missing end mark from newly added room data
+2026-04-12 - gdh48k: MINIMAP - Attic floor data added
+2026-04-12 - gdh48k: MINIMAP - Caverns floor data added
+2026-04-12 - gdh48k: MINIMAP - Basement floor data added
+2026-04-12 - gdh48k: MINIMAP - Maps now persist on floor change
+2026-04-12 - gdh48k: MINIMAP - Fixed Flashing 1F room'
+2026-04-11 - gdh48k: MINIMAP - Fixed 'Erased 1F room'
+2026-04-11 - gdh48k: MINIMAP - Fixed Floor transition to F1, apart from room 1F
+2026-04-11 - gdh48k: MINIMAP - Second draft of Check_floor logic and table - unfinished
+2026-04-10 - gdh48k: MINIMAP - First draft of Check_floor logic and table - unfinished
+2026-04-10 - gdh48k: Minimap - Reformatted GF room data table by row
+2026-04-10 - gdh48k: MINIMAP - Finalised F1 map data
+2026-04-10 - gdh48k: MINIMAP - Draft of F1 map data
+2026-04-10 - gdh48k: MINIMAP - Tweaked Update_minimap so centre pixel is drawn on entering a room
+2026-04-09 - gdh48k: MINIMAP - Best version so far of Draw_visited_room finished
+2026-04-07 - gdh48k: MINIMAP - Best version so far of Draw_visited_room - still unfinished
+2026-04-07 - gdh48k: MINIMAP - More logic applied to Draw_visited_room - unfinished
+2026-04-07 - gdh48k: MINIMAP - Further logic applied to Draw_visited_room - unfinished
+2026-04-06 - gdh48k: MINIMAP - Flashing pixel fixed
+2026-04-06 - gdh48k: MINIMAP - Renamed DRAW and UPDATE_MINIMAP for clarity
+2026-04-05 - gdh48k: MINIMAP - Further updates to PIXEL_ADDRESS, SET_PIXEL_HL & LUT - Unvisited map now draws
+2026-04-05 - gdh48k: MINIMAP - Updated PIXEL_ADDRESS - alignment issues remain
+2026-04-05 - gdh48k: SIDE PANEL - Removed residue of rosette attributes changes
+2026-04-05 - gdh48k: MINIMAP - First draft of map initialisation - needs work
+2026-04-05 - gdh48k: SIDE PANEL - Crude removal of rosette - to be finished
+2026-04-05 - gdh48k: ROOMS - Removed different entry sound for revisited rooms in view of minimap plan
+2026-04-04 - gdh48k: ROOMS - Added different entry sound for revisited rooms
+2026-04-03 - gdh48k: SIDE PANEL - Added S character data to label Score
+2026-04-03 - gdh48k: SIDE PANEL - Added single character label and attribute
+2026-04-03 - gdh48k: SIDE PANEL - Fixed score flash at start to cover 5 digits
+2026-04-03 - gdh48k: ACG PANEL - Fixed Chicken attribute boundary issue
+2026-04-02 - gdh48k: GAME OVER - Fixed missing colon (due to overwrite)
+2026-04-02 - gdh48k: ACG PANEL - Refactored UPDATE_ACG_FLAG now b0 of key_pressed no longer used
+2026-04-02 - gdh48k: AUTO PICKUP - Toggle logic fixed (Manual mode wasn't being selected)
+2026-04-02 - gdh48k: AUTO PICKUP - Toggle logic added and mod menu text for Auto-pickup
+2026-04-01 - gdh48k: AUTO PICKUP - refactored h_pickup_item and h_blank so to fix manual drop
+2026-04-01 - gdh48k: GF MODE - Editted green key tables so not hidden behind locked doors
+2026-03-26 - gdh48k: AUTO PICKUP - Further logic added - manual drop logic to be finalised
+2026-03-25 - gdh48k: AUTO PICKUP - Added first draft. Auto-loops to be fixed
+2026-03-24 - gdh48k: ACG Panel - Fixed ':' position relative to aligned Score and Time
+2026-03-24 - gdh48k: ACG Panel - Removed hour digit from timer
+2026-03-24 - gdh48k: ACG PANEL - Removed 6th digit from score and capped at 99,999
+2026-03-23 - gdh48k: ACG PANEL - Partially editted Chicken overlap with Lives - crossing boundary issue unresolved
+2026-03-22 - gdh48k: RANDOM EXIT - Commented out hardcoded move of ACG door
+2026-03-22 - gdh48k: ACG PANEL - Fixed initilisation of acg_key_flag
+2026-03-22 - gdh48k: ACG PANEL - Fixed scroll outline
+2026-03-21 - gdh48k: ACG PANEL - Fixed chicken pixel problem within DRAW_CHICKEN
+2026-03-20 - gdh48k: ACG PANEL - Fixed drop item issue
+2026-03-20 - gdh48k: ACG KEY SOUND - Added draft of new pick up sound
+2026-03-20 - gdh48k: ACG Panel - Aligned acg door exit logic with new look ACG key
+2026-03-19 - gdh48k: ACG Panel - Finalised logic to remove ACG from inventory now it's displayed separately
+2026-03-19 - gdh48k: ACG PANEL - Added first draft of logic to highlight ACG key on collection
+2026-03-17 - gdh48k: ACG panel - fixed some of the panel attr coords
+2026-03-16 - gdh48k: ACG PANEL - Dirty initial mod to display ACG key in panel.  Needs work
+2026-03-13 - gdh48k: RANDOM EXIT: Hardcoded data to test new ACG door location
+2026-03-13 - gdh48k: GF MODE - Editted red key table so lists 'large' rooms only
+2026-03-12 - gdh48k: EXIT MOD - Added logic to auto-sort acg key parts on accessing acg door
+2026-03-10 - gdh48k: EXIT MOD - Added inital logic to exit game with any order of acg key parts
+2026-03-06 - gdh48k: GF MODE - Editted red and cyan key tables so more variable
+2026-03-04 - gdh48k: GF MODE - Added logic/data to set ACG key within GF
+2026-03-03 - gdh48k: GF MODE - Added logic/data to set g, r & c keys within GF
+2026-03-03 - gdh48k: GF MODE - Refactored GF mode selection logic
+2026-03-03 - gdh48k: GF MODE - Added logic to choose gf_mode based on mod_selection
+2026-03-02 - gdh48k: GF MODE - Completed data table (3 doors, 3 traps) for door hide logic
+2026-03-01 - gdh48k: GF MODE - Added initial logic to hide doors
+2026-03-01 - gdh48k: GF MODE - Editted data for three trapdoors
+2026-02-28 - gdh48k: GF MODE - Editted data for third door
+2026-02-25 - gdh48k: GF MODE - Editted data to hide second door
+2026-02-24 - gdh48k: GF MODE - Added initial logic to hide door
+2026-02-21 - gdh48k: MOD_MENU: Added xcoords to menu tables
+2026-02-19 - gdh48k: SIDE_PANEL: Added Wizard + Serf graphic data
+2026-02-15 - gdh48k: SIDE_PANEL: Fixed to Knight lettering
+2026-02-15 - gdh48k: SIDE_PANEL: Added logic to choose header based on character
+2026-02-14 - gdh48k: SIDE_PANEL: Added 'Knight'graphic data
+2026-02-14 - gdh48k: SIDE_PANEL: Refactored code to draw side panel in two parts (header + body)
+2026-02-11 - gdh48k: SIDE_PANEL: Applied rosette attributes to change scroll title
+2026-02-09 - gdh48k: EXPLORER_MODE: Added logic to bypass Char Check to open secret passages to all
+2026-02-05 - gdh48k: MOD_MENU: Fixed GAME_OVER so it returns to RESET_MENU not INIT MENU
+2026-02-04 - gdh48k: MOD_MENU: Added logic to avoid accidental double '0' presses
+2026-02-03 - gdh48k: EXPLORE_MODE: Tweaked bypass_key_chk logic
+2026-02-02 - gdh48k: EXPLORE_MODE: Added logic to bypass coloured key check
+2026-02-01 - gdh48k: MOD_MENU: Fixed Game Over return
+2026-01-26 - gdh48k: SIDE_PANEL: Fixed Draw_panel_attrs - lives bright white again!
+2026-01-26 - gdh48k: MOD_MENU: Fixed offset (ix+0) for menu_selection and 5/6 highlighting
+2026-01-25 - gdh48k: MOD_MENU: Refactored menu table so main_selection is included
+2026-01-24 - gdh48k: MOD_MENU: Reverted to hardcoding menu_selection due to broken highlighting
+2026-01-24 - gdh48k: MOD_MENU: Completed basic menu logic
+2026-01-23 - gdh48k: MOD_MENU: Began Menu logic
+2026-01-22 - gdh48k: MOD_MENU: Added new main menu option 'Seer'
+2026-01-21 - gdh48k: MOD_MENU: Added count of menu items to menu table
+2026-01-21 - gdh48k: MOD_MENU: Renamed labels to distinguish main and mod menus
+2026-01-21 - gdh48k: MOD_MENU:  Applies IX offsets in DRAW_MENU_TEXT
+2026-01-20 - gdh48k: MOD_MENU: Reverted back to earlier mod menu code - total fail!
+2026-01-20 - gdh48k: GIT: Added .gitignore to keep emulator files out of the repo
+2026-01-19 - gdh48k: MOD_MENU: Created menu table
+2026-01-18 - gdh48k: MOD_MENU: Added option
+2026-01-18 - gdh48k: MOD_MENU: Created mod_selection variable
+2026-01-03 - gdh48k: Initial setup: Added attribution and prepared aticatac.asm for modification
+2023-12-29 - Michael R. Cook: Update README.md
+2023-12-21 - Michael R. Cook: Update README.md
+2023-12-21 - Michael R. Cook: Update .gitattributes
+2023-12-21 - Michael R. Cook: Add two versions of Chaos - The Battle of Wizards
+2023-12-10 - Michael R. Cook: Update README.md
+2021-10-24 - Michael R. Cook: Update README
+2020-09-14 - Michael R. Cook: Update README and add Jetpac disassembly link
+2020-06-06 - Michael R. Cook: Update README
+2020-06-04 - Michael R. Cook: Atic Atac disassembly
+2019-12-25 - Michael R. Cook: Add Dynamite Dan 2 disassembly
+2019-12-24 - Michael R. Cook: Add Knight Lore disassembly
+2019-12-15 - Michael R. Cook: Add two Alien8 disassemblies
+2019-12-15 - Michael R. Cook: Update README and add .gitattributes
+2019-11-23 - Michael R. Cook: Reference the html2skool repository
+2019-11-16 - Michael R. Cook: Add README
+2019-11-16 - Michael R. Cook: Move Dun Darach into sub dir
+2019-11-10 - Michael R. Cook: Generate Control file and re-generate .skool
+2019-11-10 - Michael R. Cook: Add header/copyright info
+2019-11-10 - Michael R. Cook: Dun Darach html2skool conversion
+2019-11-16 - Michael R. Cook: Move Tir Na Nog into sub dir
+2019-11-10 - Michael R. Cook: Generate Control file and re-generate .skool
+2019-11-10 - Michael R. Cook: Add header/copyright info
+2019-11-10 - Michael R. Cook: Remove accidental extra bytes
+2019-11-09 - Michael R. Cook: Add notes on disassembly
+2019-11-09 - Michael R. Cook: Tir Na Nog html2skool conversion
+2019-11-16 - Michael R. Cook: Move Through The Trap Door into sub dir
+2019-11-10 - Michael R. Cook: Generate Control file and re-generate .skool
+2019-11-09 - Michael R. Cook: Load loader routine to 63000
+2019-11-09 - Michael R. Cook: Remove $03858 ROM data
+2019-11-09 - Michael R. Cook: Add tap2sna.py Z80 converter file
+2019-11-09 - Michael R. Cook: Add substitutions to .skool
+2019-11-09 - Michael R. Cook: Fix location of Graphics Set 01 (ROM Data)
+2019-11-09 - Michael R. Cook: Add header/copyright info
+2019-11-09 - Michael R. Cook: Through The Trap Door html2skool conversion
+2019-11-16 - Michael R. Cook: Move Stormbinger into sub dir
+2019-11-09 - Michael R. Cook: Generate Control file and re-generate .skool
+2019-11-09 - Michael R. Cook: Add header/copyright info
+2019-11-09 - Michael R. Cook: Add substitutions to end of .skool
+2019-11-09 - Michael R. Cook: Stormbringer html2skool conversion
+2019-11-16 - Michael R. Cook: Move Spellbound into sub dir
+2019-11-09 - Michael R. Cook: Generate Control file and re-generate .skool
+2019-11-09 - Michael R. Cook: Add tap2sna.py Z80 converter file
+2019-11-09 - Michael R. Cook: Add substitutions to end of .skool
+2019-11-09 - Michael R. Cook: Add header/copyright info
+2019-11-09 - Michael R. Cook: Spellbound html2skool conversion
+2019-11-16 - Michael R. Cook: Move Knight Tyme into sub dir
+2019-11-09 - Michael R. Cook: Generate Control file and re-generate .skool
+2019-11-09 - Michael R. Cook: Add missing start-up routine and loader data
+2019-11-09 - Michael R. Cook: Add header/copyright info
+2019-11-09 - Michael R. Cook: Add substitutions to end of .skool
+2019-11-09 - Michael R. Cook: Knight Tyme html2skool conversion

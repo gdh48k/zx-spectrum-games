@@ -3634,17 +3634,21 @@ go_escapee_yx       equ    &6828            ; Y=104, X=40
 go_acgkey_yx      equ     &6880     ; Y = 104, X = 176 (Bottom-left base pixel)
 go_acgkey_attr_yx equ     &5080     ; 24 pixels above acg_yx! (3 chars)
 
-; --- STATS CAPTIONS (Shifted down 40 pixels to match Y=136 baseline) ---
-go_roomscap_yx    equ     &8898    ; Y=136, X=136 (Row 17, Col 17)
-go_itemcap_yx     equ     &A098    ; Y=144, X=136 (Row 18, Col 17)
-go_scorecap_yx    equ     &9098    ; Y=152, X=136 (Row 19, Col 17)
-go_timecap_yx     equ     &9898    ; Y=160, X=136 (Row 20, Col 17)
+; --- STATS CAPTIONS (X=136, Y=136-176) ---
+go_acgkeycap_yx     equ     &8898    ; Y=136, X=136 (Row 17)
+go_itemcap_yx       equ     &9098    ; Y=144, X=136 (Row 18)
+go_roomscap_yx      equ     &9898    ; Y=152, X=136 (Row 19)
+; --- One row gap here at Row 20 ---
+go_scorecap_yx      equ     &b098    ; Y=176, X=136 (Row 22) ; Shifted
+go_timecap_yx       equ     &b898    ; Y=184, X=136 (Row 23) ; Shifted
 
-; --- STATS NUMBERS (Shifted down 40 pixels to match Y=136 baseline) ---
-go_rooms_yx       equ     &88c8    ; Y=136, X=184 (Row 17, Col 23)
-go_items_yx       equ     &A0c8    ; Y=144, X=184 (Row 18, Col 23)
-go_score_yx       equ     &90c8    ; Y=152, X=184 (Row 19, Col 23)
-go_time_yx        equ     &98c8    ; Y=160, X=184 (Row 20, Col 23)
+; --- STATS NUMBERS (X=200, Y=136-176) ---
+go_acgkeys_yx        equ     &88c8    ; Y=136, X=200 (Row 17)
+go_items_yx         equ     &90c8    ; Y=144, X=200 (Row 18)
+go_rooms_yx         equ     &98c8    ; Y=152, X=200 (Row 19)
+; --- One row gap here at Row 20 ---
+go_score_yx         equ     &b0c8    ; Y=176, X=200 (Row 22) ; Shifted
+go_time_yx          equ     &b8c8    ; Y=184, X=200 (Row 23) ; Shifted
 
 
 
@@ -6270,35 +6274,55 @@ loc_963B:
 
 ; show game statistics
 game_stats:
-                call    calc_visited         ; calculate percentage of rooms visited
+                call    calc_visited         
                 
 ;display captions using charset
-                ld      hl, go_timecap_yx            ; time header at 64,64
-                ld      de, time_msg
-                call    colour_text          ; show a line of text, first byte is attr
+                ;--- Draw Captions ---
+                ld      hl, go_acgkeycap_yx
+                ld      de, acg_msg          ; Ensure 'acg_msg' is defined
+                call    colour_text
                 
-                ld      hl, go_scorecap_yx           ; score header at 64,80
-                ld      de, score_msg
-                call    colour_text          ; show a line of text, first byte is attr
+                ld      hl, go_itemcap_yx
+                ld      de, item_msg
+                call    colour_text
                 
-                ld      hl, go_roomscap_yx            ; percent header at 64,96
+                ld      hl, go_roomscap_yx
                 ld      de, rooms_msg
-                call    colour_text          ; show a line of text, first byte is attr
-
-                ;ld      hl, go_itemcap_yx            
-                ;ld      de, item_msg
-                ;call    colour_text          ; show a line of text, first byte is attr
+                call    colour_text
                 
-;display values using digit_charset
+                ld      hl, go_scorecap_yx
+                ld      de, score_msg
+                call    colour_text
+                
+                ld      hl, go_timecap_yx
+                ld      de, time_msg
+                call    colour_text
+                
+
                 ld      hl, digit_charset
                 ld      (charset_addr), hl
+
+                ; --- Draw Values ---
+                ; ACG Key Count
+                call    count_acg_key
+                ld      hl, go_acgkeys_yx
+                call    xy_to_display
+                ld      a, (acg_key_count)
+                call    print_char           ; Uses raw index (0-3)
+
+                ld      de, slash_3
+                call    print_slash_max
+
+                ld      hl, go_items_yx      
+                call    xy_to_display        ; convert coords in HL to display address in HL
+                ld      de, item_count
+                ld      b, 1
+                call    print_bcd_bytes         ; Print number, HL advances
+
+                ld      de, slash_16
+                call    print_slash_max
                 
-                ld      hl, go_time_yx       ; clock at 128,64
-                call    print_clock          ; print clock time at position HL
-                
-                ld      hl, go_score_yx      ; score at 128,80
-                call    print_score          ; print player score at position HL
-                
+                                
                 ld      a, &00               ; Low byte: 00 (Tens/Units)
                 ld      (visited_number), a
                 ld      a, &01               ; High byte: 01 (Hundreds)
@@ -6313,29 +6337,24 @@ game_stats:
                 ld      de, slash_148
                 call    print_slash_max
 
+                        
+                ld      hl, go_score_yx      ; score at 128,80
+                call    print_score          ; print player score at position HL
                 
-                ; add code for go_acg_yx
-                ;ld      hl, go_items_yx      
-                ;call    xy_to_display        ; convert coords in HL to display address in HL
-                ;ld      de, item_count
-                ;ld      b, 1
-                ;call    print_bcd_bytes         ; Print number, HL advances
-
-                ;ld      de, slash_16
-                ;call    print_slash_max
-
+                ld      hl, go_time_yx       ; clock at 128,64
+                call    print_clock          ; print clock time at position HL
                                             ; colour_stats_block:
                 ld      hl, go_rooms_yx      
                 call    xy_to_attr          ; Get attribute start address
                 ld      a, bright_white
-                ld      bc, &0704           ; 5 wide by 3 tall
+                ld      bc, &0708           ; 
                 call    fill_bc_hl_a        ; Paint the entire rectangle 
 
                 ret
 
 
 
-; DE = Address of index-based string (e.g., slash_148_indices)
+; DE = Address of index-based string 
 ; HL = Starting screen pixel address (provided by xy_to_display)
 print_slash_max:
                 ld      a, (de)         ; Get index from string
@@ -6353,16 +6372,24 @@ print_slash_max:
                 call    print_char      ; Print final character, HL auto-advances
                 ret
 
+slash_3:
+                db    10, 131              ; 131 is 3 + 128 (the terminator)
+
+
 slash_16:
                 db    10, 1, 134    ; 134 is 6 + 128 (the terminator)
 
 slash_148:
                 db    10, 1, 4, 136   ; 128 is &80 (the terminator)
 
-slash_148_indices:
+;slash_148_indices:
                 db      &45                     ; Color Attribute
                 db      10, 1, 4                ; Indices for /, 1, 4
                 db      8 | &80                 ; Index for 8, terminate with bit 7 se
+
+acg_msg:        db  bright_cyan
+                db  'AC'
+                db  &c7
 
 
 time_msg:       db  bright_cyan
@@ -8068,6 +8095,32 @@ loc_96E1:
                 ld      hl, visited_number + 1
                 ld      (hl), d               ; Store high byte
                 ret
+
+
+acg_key_count:  db      0 
+; -------------------------------------------------------------------
+; Routine: count_acg_key
+; Flow:    Calculates total pieces by counting set bits (0-2) in
+;          acg_key_flag.
+; Inputs:  acg_key_flag (bits 0, 1, 2 represent pieces)
+; Outputs: A = total count (0-3), also stored in acg_key_count
+; -------------------------------------------------------------------
+count_acg_key:
+                ld      a, (acg_key_flag)
+                and     &07                  ; Mask to bits 0-2
+                ld      b, a                 ; Move to B for processing
+                xor     a                    ; Clear A as counter
+.count_loop:
+                srl     b                    ; Shift LSB into carry
+                jr      nc, .no_inc          ; Skip if bit not set
+                inc     a                    ; Increment count
+.no_inc:
+                or      b                    ; Check if bits remain
+                jr      nz, .count_loop      ; Loop until empty
+                ld      (acg_key_count), a   ; Save result
+                ret
+
+
 
 game_complete:
                 call    clear_side_panel

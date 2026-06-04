@@ -3694,7 +3694,7 @@ history_count:  defb 0          ; Current index/total rooms logged
 ; Item History Storage
 ; =============================================================================
 item_max        equ     15
-item_history:   defs    item_max * 2    ; Compact buffer: 24 bytes total
+item_history:   defs    item_max * 2    
 item_count:     db      0               
 
 ; Structure per slot:
@@ -3723,20 +3723,24 @@ add_history:
                 ; --- Check if item is already in list ---
                 ld      b, a                    ; B = loop counter (item_count)
                 ld      hl, item_history
-chk_match:      ld      a, (ix+0)               ; Current Sprite ID
-                cp      (hl)                    ; Compare with history ID
-                jr      nz, .next_slot          ; Branch: no ID match
+chk_match:      
+                ; --- PAIR CHECK ---
+                ld      a, (ix+0)
+                cp      (hl)
+                jr      nz, .not_this_pair      ; ID doesn't match
                 
-                push    hl                      ; Save current history pointer
-                inc     hl                      ; Point to Attribute byte
-                ld      a, (ix+5)               ; Current Attribute
-                cp      (hl)                    ; Compare with history Attr
-                pop     hl                      ; Restore pointer
-                ret     z                       ; Branch: ID and Attr match; duplicate
+                push    hl
+                inc     hl                      ; Point to Attribute
+                ld      c, (hl)                 ; Get stored attribute
+                ld      a, (ix+5)               ; Get new attribute
+                cp      c                       ; Compare
+                pop     hl                      ; Restore HL
+                ret     z                       ; It's a duplicate, exit!
 
-.next_slot:     inc     hl                      ; Move to next 2-byte slot
-                inc     hl
-                djnz    chk_match
+.not_this_pair:
+                inc     hl                      ; Skip ID
+                inc     hl                      ; Skip Attribute
+                djnz    chk_match               ; Check next pair
                 
 .store_item:    ; Item not found, calculate storage slot
                 ld      a, (item_count)         ; Reload count
@@ -3780,7 +3784,7 @@ draw_items:
                 ret     z                       ; Exit if no items to draw
 
                 ld      ix, entity_to_draw
-                ld      hl, test_history
+                ld      hl, item_history
                 ld      de, go_replay_items_yx
                 ld      b, a
                 ld      c, 0

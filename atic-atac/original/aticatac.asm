@@ -3702,20 +3702,26 @@ item_count:     db      0
 ; Offset +1: Attribute Byte
 
 
-; -------------------------------------------------------------------
+; =============================================================================
 ; Routine: add_history
 ; Flow:    Verifies item uniqueness before storing the sprite ID and
 ;          attribute into the compact 2-byte item_history buffer.
+;          Includes a guard for the initial empty state to prevent 
+;          the 256-loop djnz error.
 ; Inputs:  IX = Pointer to entity structure.
 ; Outputs: Updates item_history and increments item_count if unique.
-; -------------------------------------------------------------------
+; =============================================================================
 add_history:
                 ld      a, (item_count)         ; Load current item count
                 cp      item_max
                 ret     nc                      ; Return if buffer full
 
-                ; Check if item is already in list
-                ld      b, a                    ; B = loop counter
+                ; --- GUARD: Handle 0-count initial state ---
+                or      a                       ; Test if item_count is 0
+                jr      z, .store_item          ; If 0, skip uniqueness loop
+
+                ; --- Check if item is already in list ---
+                ld      b, a                    ; B = loop counter (item_count)
                 ld      hl, item_history
 chk_match:      ld      a, (ix+0)               ; Current Sprite ID
                 cp      (hl)                    ; Compare with history ID
@@ -3732,7 +3738,7 @@ chk_match:      ld      a, (ix+0)               ; Current Sprite ID
                 inc     hl
                 djnz    chk_match
                 
-                ; Item not found, calculate storage slot
+.store_item:    ; Item not found, calculate storage slot
                 ld      a, (item_count)         ; Reload count
                 ld      l, a                    ; L = item_count
                 ld      h, 0
@@ -3769,7 +3775,7 @@ test_count:     db      15                                    ; Set to 15
 ; Outputs: Renders items to the screen buffer.
 ; -------------------------------------------------------------------
 draw_items:
-                ld      a, (test_count)
+                ld      a, (item_count)
                 and     a
                 ret     z                       ; Exit if no items to draw
 
@@ -6274,7 +6280,10 @@ loc_963B:
 
 ; show game statistics
 game_stats:
-                call    calc_visited         
+                call    calc_visited  
+
+                       
+
                 
 ;display captions using charset
                 ;--- Draw Captions ---
@@ -6324,10 +6333,10 @@ game_stats:
                 call    print_slash_max
                 
                                 
-                ld      a, &09              ; Low byte: 00 (Tens/Units)
-                ld      (visited_number), a
-                ld      a, &00               ; High byte: 01 (Hundreds)
-                ld      (visited_number+1), a
+                ;ld      a, &09              ; Low byte: 00 (Tens/Units)
+                ;ld      (visited_number), a
+                ;ld      a, &00               ; High byte: 01 (Hundreds)
+                ;ld      (visited_number+1), a
 
                 ld      hl, go_rooms_yx      ; percent at 128,96
                 call    xy_to_display        ; convert coords in HL to display address in HL
@@ -6345,7 +6354,7 @@ game_stats:
                 ld      hl, go_time_yx       ; clock at 128,64
                 call    print_clock          ; print clock time at position HL
                                             ; colour_stats_block:
-                ld      hl, go_rooms_yx      
+                ld      hl, go_acgkeys_yx      
                 call    xy_to_attr          ; Get attribute start address
                 ld      a, bright_white
                 ld      bc, &0708           ; 
@@ -10353,33 +10362,45 @@ print_bcd_digit:
                 djnz    print_bcd_bytes      ; print B BCD bytes at DE
                 ret
 
-; print a single character
+; =============================================================================
+; Routine:      print_char
+; Flow:         Calculates the memory address of the character definition 
+;               from the active charset, then copies the 8x1 line data to 
+;               the screen memory.
+; Inputs:       A  = Index of character to print (0-9). 
+;               HL = Screen memory address for current character cell.
+;               (charset_addr) must point to the base of the digit definitions.
+; Outputs:      The character is drawn to the screen at HL.
+;               HL is updated to point to the next cell to the right.
+; Notes:        Requires input A to be pre-masked to 0-9 (lower nibble only)
+;               when printing BCD format to ensure correct character index.
+; =============================================================================
 print_char:
                 push    bc
                 push    de
                 push    hl
                 ld      l, a
                 ld      h, 0
-                add     hl, hl
-                add     hl, hl
+                add     hl, hl                  ; Multiply index by 8 
+                add     hl, hl                  ; (hl * 2 * 2 * 2 = index * 8)
                 add     hl, hl
                 ld      de, (charset_addr)
                 add     hl, de
                 ex      de, hl
                 pop     hl
-                ld      b, 8                 ; 8 lines in character cell
+                ld      b, 8                    ; 8 lines in character cell
 loc_A1E5:
                 ld      a, (de)
                 ld      (hl), a
-                inc     de                   ; next source byte
-                inc     h                    ; next pixel line
+                inc     de                      ; next source byte
+                inc     h                       ; next pixel line
                 djnz    loc_A1E5
                 pop     de
                 pop     bc
                 ld      a, h
-                sub     8                    ; back to start address
+                sub     8                       ; back to start address
                 ld      h, a
-                inc     l                    ; next position to the right
+                inc     l                       ; next position to the right
                 ret
 
 ; show a line of text, first byte is attr

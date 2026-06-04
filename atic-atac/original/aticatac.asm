@@ -8106,28 +8106,33 @@ loc_96E1:
                 ld      (hl), d               ; Store high byte
                 ret
 
-
 acg_key_count:  db      0 
-; -------------------------------------------------------------------
-; Routine: count_acg_key
-; Flow:    Calculates total pieces by counting set bits (0-2) in
-;          acg_key_flag.
-; Inputs:  acg_key_flag (bits 0, 1, 2 represent pieces)
-; Outputs: A = total count (0-3), also stored in acg_key_count
-; -------------------------------------------------------------------
+; =============================================================================
+; Routine: count_acg_key (Robust)
+; Flow:    Counts bits 0, 1, and 2 of acg_key_flag.
+; Outputs: A = Total count (0-3), stored in acg_key_count
+; =============================================================================
 count_acg_key:
                 ld      a, (acg_key_flag)
-                and     &07                  ; Mask to bits 0-2
-                ld      b, a                 ; Move to B for processing
-                xor     a                    ; Clear A as counter
-.count_loop:
-                srl     b                    ; Shift LSB into carry
-                jr      nc, .no_inc          ; Skip if bit not set
-                inc     a                    ; Increment count
-.no_inc:
-                or      b                    ; Check if bits remain
-                jr      nz, .count_loop      ; Loop until empty
-                ld      (acg_key_count), a   ; Save result
+                and     &07             ; Mask to bits 0-2
+                ld      b, a            ; B holds the bits
+                
+                xor     a               ; A = 0 (counter)
+                
+                ; Test bit 0
+                bit     0, b
+                jr      z, .skip0
+                inc     a
+.skip0:         ; Test bit 1
+                bit     1, b
+                jr      z, .skip1
+                inc     a
+.skip1:         ; Test bit 2
+                bit     2, b
+                jr      z, .skip2
+                inc     a
+.skip2:         
+                ld      (acg_key_count), a
                 ret
 
 

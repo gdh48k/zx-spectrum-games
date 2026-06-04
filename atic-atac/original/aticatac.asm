@@ -6317,7 +6317,7 @@ game_stats:
                 call    xy_to_display        ; convert coords in HL to display address in HL
                 ld      de, item_count
                 ld      b, 1
-                call    print_bcd_bytes         ; Print number, HL advances
+                call    print_bcd_no_zeros   ; The unified routine
 
                 ld      de, slash_16
                 call    print_slash_max
@@ -10170,6 +10170,55 @@ loc_A1AE:
                 ;ld      hl,  display+&10c8
                 ld      hl, score_yx
                 ret  
+
+; -------------------------------------------------------------------
+; Routine: print_bcd_no_zeros
+; Flow:    Prints BCD number, suppressing leading zeros.
+; Inputs:  DE = Pointer to BCD number, B = number of bytes
+;          Flag: C = 0 (suppress), C = 1 (print everything)
+; -------------------------------------------------------------------
+print_bcd_no_zeros:
+                ld      c, 0                 ; C=0: Suppress flag active
+.loop_bytes:
+                push    bc                   ; Save byte count
+                ld      a, (de)              ; Get BCD byte (HI:LO)
+                
+                ; --- Process High Nibble ---
+                push    af
+                rrca                         ; Move high to low
+                rrca
+                rrca
+                rrca
+                and     &0f
+                call    .check_and_print
+                pop     af
+                
+                ; --- Process Low Nibble ---
+                and     &0f
+                call    .check_and_print
+                
+                inc     de
+                pop     bc
+                djnz    .loop_bytes
+                
+                ; --- Force-Print Zero if nothing printed ---
+                ld      a, c                 ; Check flag
+                or      a
+                ret     nz                   ; Return if something printed
+                ld      a, 0                 ; Otherwise force '0'
+                call    print_char
+                ret
+
+.check_and_print:
+                or      a                    ; Is digit zero?
+                jr      nz, .print           ; If non-zero, always print
+                ld      a, c                 ; If zero, check flag
+                or      a
+                ret     z                    ; If flag off, skip printing
+.print:         ld      c, 1                 ; Set flag: print subsequent zeros
+                call    print_char           ; Print the digit (A)
+                ret
+
 
 ; -------------------------------------------------------------------
 ; Routine: print_rooms_no_zeros

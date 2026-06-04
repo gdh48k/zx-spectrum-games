@@ -6330,9 +6330,9 @@ game_stats:
 
                 ld      hl, go_rooms_yx      ; percent at 128,96
                 call    xy_to_display        ; convert coords in HL to display address in HL
-                ;ld      de, visited_number
-                ;ld      b, 2
-                call    print_rooms         ; Print number, HL advances
+                ld      de, visited_number
+                ld      b, 2
+                call    print_bcd_no_zeros
 
                 ld      de, slash_148
                 call    print_slash_max

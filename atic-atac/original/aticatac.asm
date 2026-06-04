@@ -3751,7 +3751,7 @@ chk_match:      ld      a, (ix+0)               ; Current Sprite ID
                 ret
 
 
-two_cols:        equ     16
+two_cols:       equ     16
 three_cols      equ     24
 
 
@@ -6315,11 +6315,12 @@ game_stats:
 
                 ld      hl, go_items_yx      
                 call    xy_to_display        ; convert coords in HL to display address in HL
-                ld      de, item_count
-                ld      b, 1
-                call    print_bcd_no_zeros   ; The unified routine
+                ;ld      de, test_count
+                ld      a, (item_count)
+                ;call print_bcd_bytes
+                call    print_bin_original   
 
-                ld      de, slash_16
+                ld      de, slash_15
                 call    print_slash_max
                 
                                 
@@ -6330,9 +6331,9 @@ game_stats:
 
                 ld      hl, go_rooms_yx      ; percent at 128,96
                 call    xy_to_display        ; convert coords in HL to display address in HL
-                ld      de, visited_number
-                ld      b, 2
-                call    print_bcd_no_zeros
+                ;ld      de, visited_number
+                ;ld      b, 2
+                call    print_rooms
 
                 ld      de, slash_148
                 call    print_slash_max
@@ -6376,8 +6377,8 @@ slash_3:
                 db    10, 131              ; 131 is 3 + 128 (the terminator)
 
 
-slash_16:
-                db    10, 1, 134    ; 134 is 6 + 128 (the terminator)
+slash_15:
+                db    10, 1, 133    ; 133 is 5 + 128 (the terminator)
 
 slash_148:
                 db    10, 1, 4, 136   ; 128 is &80 (the terminator)
@@ -10170,6 +10171,32 @@ loc_A1AE:
                 ;ld      hl,  display+&10c8
                 ld      hl, score_yx
                 ret  
+
+
+; =============================================================================
+; Routine: print_bin_original
+; Flow:    Divides binary value in A by 10 to get tens and units digits, 
+;          then prints both digits (0-9) to the screen.
+; Inputs:  A = Binary value (0-99), HL = Screen coordinate (via xy_to_display)
+; Outputs: Renders two digits to screen. HL is updated by print_char.
+; =============================================================================
+print_bin_original:
+                ld      b, 0                 ; B = Tens counter
+.div10:         sub     10
+                jr      c, .rem
+                inc     b
+                jr      .div10
+.rem:           add     a, 10                ; A = Units
+                push    af                   ; Save Units
+                
+                ; Print Tens
+                ld      a, b                 ; A = 0-9
+                call    print_char
+                
+                ; Print Units
+                pop     af                   ; A = 0-9
+                call    print_char
+                ret
 
 ; -------------------------------------------------------------------
 ; Routine: print_bcd_no_zeros

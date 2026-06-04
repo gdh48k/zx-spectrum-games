@@ -6324,16 +6324,16 @@ game_stats:
                 call    print_slash_max
                 
                                 
-                ld      a, &00               ; Low byte: 00 (Tens/Units)
+                ld      a, &09              ; Low byte: 00 (Tens/Units)
                 ld      (visited_number), a
-                ld      a, &01               ; High byte: 01 (Hundreds)
+                ld      a, &00               ; High byte: 01 (Hundreds)
                 ld      (visited_number+1), a
 
                 ld      hl, go_rooms_yx      ; percent at 128,96
                 call    xy_to_display        ; convert coords in HL to display address in HL
                 ;ld      de, visited_number
                 ;ld      b, 2
-                call    print_rooms
+                call    print_bcd_rooms
 
                 ld      de, slash_148
                 call    print_slash_max
@@ -10245,6 +10245,33 @@ print_bcd_no_zeros:
 .print:         ld      c, 1                 ; Set flag: print subsequent zeros
                 call    print_char           ; Print the digit (A)
                 ret
+
+
+print_bcd_rooms:
+                ld      de, visited_number + 1  ; Point to High Byte (Hundreds)
+                
+                ; 1. Hundreds
+                ld      a, (de)                 ; Load Hundreds
+                and     &0F                     ; Mask to get 0-9
+                call    print_char              ; Print Hundreds
+                
+                ; 2. Tens
+                dec     de                      ; Point to Low Byte
+                ld      a, (de)                 ; Load Tens & Units
+                push    af                      ; Save for Units
+                rrca                            ; Shift High Nibble (Tens) to low
+                rrca
+                rrca
+                rrca
+                and     &0F                     ; Mask to get 0-9
+                call    print_char              ; Print Tens
+                
+                ; 3. Units
+                pop     af                      ; Restore Low Byte
+                and     &0F                     ; Mask to get 0-9
+                call    print_char              ; Print Units
+                ret
+
 
 
 ; -------------------------------------------------------------------

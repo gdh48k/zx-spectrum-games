@@ -3672,11 +3672,13 @@ go_mapat_x      equ     &98
 
 
 gameover_msg:   db  &47                       ; bright white
-                db  "  Q U E S T   S O   F A " 
+                ;db  "  Q U E S T   S O   F A " 
+                db  "     G A M E   O V E " 
                 db  &d2
 
 complete_msg:   db  &47                       ; bright white
-                db  "  Y O U   M A D E   I T " 
+                ;db  "  Y O U   M A D E   I T "
+                db  "G A M E   C O M P L E T E "  
                 db  &a1 ; points to '!'
 
 ;test_msg:       db  &47                       ; bright white

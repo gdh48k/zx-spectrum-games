@@ -3635,20 +3635,22 @@ go_acgkey_yx      equ     &6880     ; Y = 104, X = 176 (Bottom-left base pixel)
 go_acgkey_attr_yx equ     &5080     ; 24 pixels above acg_yx! (3 chars)
 
 ; --- STATS CAPTIONS (X=136, Y=136-176) ---
-go_acgkeycap_yx     equ     &8898    ; Y=136, X=136 (Row 17)
-go_itemcap_yx       equ     &9098    ; Y=144, X=136 (Row 18)
-go_roomscap_yx      equ     &9898    ; Y=152, X=136 (Row 19)
+go_acgkeycap_yx     equ     &9098    ; Y=136, X=136 (Row 17)
+go_itemcap_yx       equ     &9898    ; Y=144, X=136 (Row 18)
+go_roomscap_yx      equ     &a098    ; Y=152, X=136 (Row 19)
+go_test_yx          equ     &9040
+
 ; --- One row gap here at Row 20 ---
-go_scorecap_yx      equ     &b098    ; Y=176, X=136 (Row 22) ; Shifted
-go_timecap_yx       equ     &b898    ; Y=184, X=136 (Row 23) ; Shifted
+go_scorecap_yx      equ     &a898    ; Y=176, X=136 (Row 22) ; Shifted
+go_timecap_yx       equ     &b098    ; Y=184, X=136 (Row 23) ; Shifted
 
 ; --- STATS NUMBERS (X=200, Y=136-176) ---
-go_acgkeys_yx        equ     &88c8    ; Y=136, X=200 (Row 17)
-go_items_yx         equ     &90c8    ; Y=144, X=200 (Row 18)
-go_rooms_yx         equ     &98c8    ; Y=152, X=200 (Row 19)
+go_acgkeys_yx        equ    &90c8    ; Y=136, X=200 (Row 17)
+go_items_yx         equ     &98c8    ; Y=144, X=200 (Row 18)
+go_rooms_yx         equ     &a0c8    ; Y=152, X=200 (Row 19)
 ; --- One row gap here at Row 20 ---
-go_score_yx         equ     &b0c8    ; Y=176, X=200 (Row 22) ; Shifted
-go_time_yx          equ     &b8c8    ; Y=184, X=200 (Row 23) ; Shifted
+go_score_yx         equ     &a8c8    ; Y=176, X=200 (Row 22) ; Shifted
+go_time_yx          equ     &b0c8    ; Y=184, X=200 (Row 23) ; Shifted
 
 
 
@@ -3676,6 +3678,10 @@ gameover_msg:   db  &47                       ; bright white
 complete_msg:   db  &47                       ; bright white
                 db  "  Y O U   M A D E   I T " 
                 db  &a1 ; points to '!'
+
+;test_msg:       db  &47                       ; bright white
+;                db  "YESSSSS" 
+;                db  &a1 ; points to '!
 
 
 floor_ptrs_table:
@@ -3779,12 +3785,12 @@ test_count:     db      15                                    ; Set to 15
 ; Outputs: Renders items to the screen buffer.
 ; -------------------------------------------------------------------
 draw_items:
-                ld      a, (item_count)
+                ld      a, (test_count)
                 and     a
                 ret     z                       ; Exit if no items to draw
 
                 ld      ix, entity_to_draw
-                ld      hl, item_history
+                ld      hl, test_history
                 ld      de, go_replay_items_yx
                 ld      b, a
                 ld      c, 0
@@ -6310,6 +6316,10 @@ game_stats:
                 ld      hl, go_timecap_yx
                 ld      de, time_msg
                 call    colour_text
+
+                ;ld      hl, go_test_yx
+                ;ld      de, test_msg
+                ;call    colour_text
                 
 
                 ld      hl, digit_charset

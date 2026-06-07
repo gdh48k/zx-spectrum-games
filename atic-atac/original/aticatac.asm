@@ -67,10 +67,10 @@ mod_options:    db  '1  CLASSIC MOD'
                 db  &c5
                 db  '2  EXPLORER MODE - OPEN CASTL'
                 db  &c5
-                db  '3  MINI MODE FOR ORLA/BERTI'
-                db  &c5
-                db  '4  TB'
-                db  &c3
+                db  '3  MINI MODE - GROUND FLR ONL'
+                db  &d9
+                db  '4  CLASSIC FEATURE'
+                db  &d3
                 db  '5  AUTO-PICKU'
                 db  &d0
                 db  '6  RANDOM STAR'
@@ -163,7 +163,7 @@ cyan_key_init:  db  &81, &53, 0, &58, &58, &45, 0, 0 ; cyan key
                 db  0, 0, 0, 0, 0, 0, 0, 0    ; tombstone2
                 db  0, 0, 0, 0, 0, 0, 0, 0    ; tombstone3
                 db  0, 0, 0, 0, 0, 0, 0, 0    ; tombstone4
-                db  &8a, 5, 0, &40, &70, &46, 0, 0 ; crucafix
+                db  &8a, &05, 0, &40, &70, &46, 0, 0 ; crucafix *paper/ink swap
                 db  &8b, &30, 0, &40, &70, &45, 0, 0 ; spanner
                 db  &82, &3b, 0, &60, &60, &44, 0, 0 ; wine
                 db  &83, &48, 0, &70, &70, &45, 0, 0 ; coin
@@ -3626,7 +3626,7 @@ go_minimap_x      equ     low(go_minimap_yx)
 
 ; --- ITEM REPLAY MIDDLE BLOCK (Row 11 / Upward from Row 12 Boundary) ---
 
-go_replay_items_yx  equ    &8f40 
+go_replay_items_yx  equ    &8b40 
 go_items_attr_yx    equ    &4a30
 go_escapee_yx       equ    &6828            ; Y=104, X=40
 
@@ -3635,14 +3635,14 @@ go_acgkey_yx      equ     &6880     ; Y = 104, X = 176 (Bottom-left base pixel)
 go_acgkey_attr_yx equ     &5080     ; 24 pixels above acg_yx! (3 chars)
 
 ; --- STATS CAPTIONS (X=136, Y=136-176) ---
-go_acgkeycap_yx     equ     &9098    ; Y=136, X=136 (Row 17)
+go_acgkeycap_yx     equ     &90a8    ; Y=136, X=136 (Row 17)
 go_itemcap_yx       equ     &9898    ; Y=144, X=136 (Row 18)
 go_roomscap_yx      equ     &a098    ; Y=152, X=136 (Row 19)
 go_test_yx          equ     &9040
 
 ; --- One row gap here at Row 20 ---
-go_scorecap_yx      equ     &a898    ; Y=176, X=136 (Row 22) ; Shifted
-go_timecap_yx       equ     &b098    ; Y=184, X=136 (Row 23) ; Shifted
+go_scorecap_yx      equ     &a898      ; Y=176, X=136 (Row 22) ; Shifted
+go_timecap_yx       equ     &b0a0    ; Y=184, X=136 (Row 23) ; Shifted
 
 ; --- STATS NUMBERS (X=200, Y=136-176) ---
 go_acgkeys_yx        equ    &90c8    ; Y=136, X=200 (Row 17)
@@ -3701,152 +3701,14 @@ history_count:  defb 0          ; Current index/total rooms logged
 ; =============================================================================
 ; Item History Storage
 ; =============================================================================
-item_max        equ     15
+item_max        equ     12
 item_history:   defs    item_max * 2    
-item_count:     db      0               
+item_count:     db      0 
+row_max         equ     5               
 
 ; Structure per slot:
 ; Offset +0: Sprite ID
 ; Offset +1: Attribute Byte
-
-
-; =============================================================================
-; Routine: add_history
-; Flow:    Verifies item uniqueness before storing the sprite ID and
-;          attribute into the compact 2-byte item_history buffer.
-;          Includes a guard for the initial empty state to prevent 
-;          the 256-loop djnz error.
-; Inputs:  IX = Pointer to entity structure.
-; Outputs: Updates item_history and increments item_count if unique.
-; =============================================================================
-add_history:
-                ld      a, (item_count)         ; Load current item count
-                cp      item_max
-                ret     nc                      ; Return if buffer full
-
-                ; --- GUARD: Handle 0-count initial state ---
-                or      a                       ; Test if item_count is 0
-                jr      z, .store_item          ; If 0, skip uniqueness loop
-
-                ; --- Check if item is already in list ---
-                ld      b, a                    ; B = loop counter (item_count)
-                ld      hl, item_history
-chk_match:      
-                ; --- PAIR CHECK ---
-                ld      a, (ix+0)
-                cp      (hl)
-                jr      nz, .not_this_pair      ; ID doesn't match
-                
-                push    hl
-                inc     hl                      ; Point to Attribute
-                ld      c, (hl)                 ; Get stored attribute
-                ld      a, (ix+5)               ; Get new attribute
-                cp      c                       ; Compare
-                pop     hl                      ; Restore HL
-                ret     z                       ; It's a duplicate, exit!
-
-.not_this_pair:
-                inc     hl                      ; Skip ID
-                inc     hl                      ; Skip Attribute
-                djnz    chk_match               ; Check next pair
-                
-.store_item:    ; Item not found, calculate storage slot
-                ld      a, (item_count)         ; Reload count
-                ld      l, a                    ; L = item_count
-                ld      h, 0
-                add     hl, hl                  ; Multiply by 2 (2-byte stride)
-                ld      de, item_history
-                add     hl, de                  ; HL points to destination
-
-                ld      a, (ix+0)               ; Offset +0: Sprite ID
-                ld      (hl), a                 ; Store Sprite ID
-                inc     hl
-                ld      a, (ix+5)               ; Offset +5: Attribute
-                ld      (hl), a                 ; Store Attribute
-                
-                ld      hl, item_count          ; Increment global count
-                inc     (hl)
-                ret
-
-
-two_cols:       equ     16
-three_cols      equ     24
-
-
-test_history:   db      &81, &44, &81, &42, &81, &45, &81, &46 ; 4 keys
-                db      &80, &42, &8a, &46, &8b, &45, &82, &44 ; 4 items
-                db      &83, &45, &84, &46, &85, &45, &86, &44 ; 4 items
-                db      &87, &43, &88, &42, &89, &47          ; 3 items
-test_count:     db      15                                    ; Set to 15
-
-; -------------------------------------------------------------------
-; Routine: draw_items
-; Flow:    Reads sprite ID and attribute from 2-byte history slots,
-;          renders entities in a 3x5 grid, and plays a sound effect.
-; Inputs:  item_count, item_history buffer, go_replay_items_yx.
-; Outputs: Renders items to the screen buffer.
-; -------------------------------------------------------------------
-draw_items:
-                ld      a, (test_count)
-                and     a
-                ret     z                       ; Exit if no items to draw
-
-                ld      ix, entity_to_draw
-                ld      hl, test_history
-                ld      de, go_replay_items_yx
-                ld      b, a
-                ld      c, 0
-
-.items_loop:
-                push    hl
-                push    bc
-                push    de
-
-                ld      a, (hl)
-                ld      (ix+0), a               ; Offset +0: Sprite ID
-                inc     hl
-                ld      a, (hl)
-                ld      (ix+5), a               ; Offset +5: Attribute
-                
-                ld      (ix+3), e               ; Offset +3: X coordinate
-                ld      (ix+4), d               ; Offset +4: Y coordinate
-
-                call    draw_entity
-                call    set_entity_attrs
-                call    drop_sound
-                
-                ld      b, 8
-                call    wait_frames
-
-                pop     de
-                pop     bc
-                pop     hl
-                
-                inc     hl                      ; Advance to next 2-byte slot
-                inc     hl
-                
-                inc     c                       ; Track items per row
-                ld      a, c
-                cp      5                       ; Branch: check for row wrap
-                jr      nz, .same_row
-
-                ld      c, 0                    ; Reset column counter
-                ld      a, e
-                sub     64                     ; Offset X back to start
-                ld      e, a
-                ld      a, d
-                add     a, three_cols           ; Offset Y - cols down
-                ld      d, a
-                jr      .continue
-
-.same_row:
-                ld      a, e
-                add     a, two_cols                  ; Offset X to next column
-                ld      e, a
-
-.continue:
-                djnz    .items_loop             ; Branch: continue if items remain
-                ret
 
 
 
@@ -4404,6 +4266,156 @@ replay_item_attrs:
                 inc     hl
                 ld      (hl), a                 
                 ret
+
+
+
+; =============================================================================
+; Routine: add_history
+; Flow:    Verifies item uniqueness before storing the sprite ID and
+;          attribute into the compact 2-byte item_history buffer.
+;          Includes a guard for the initial empty state to prevent 
+;          the 256-loop djnz error.
+; Inputs:  IX = Pointer to entity structure.
+; Outputs: Updates item_history and increments item_count if unique.
+; =============================================================================
+add_history:
+                ld      a, (item_count)         ; Load current item count
+                cp      item_max
+                ret     nc                      ; Return if buffer full
+
+                ; --- GUARD: Handle 0-count initial state ---
+                or      a                       ; Test if item_count is 0
+                jr      z, .store_item          ; If 0, skip uniqueness loop
+
+                ; --- Check if item is already in list ---
+                ld      b, a                    ; B = loop counter (item_count)
+                ld      hl, item_history
+chk_match:      
+                ; --- PAIR CHECK ---
+                ld      a, (ix+0)
+                cp      (hl)
+                jr      nz, .not_this_pair      ; ID doesn't match
+                
+                push    hl
+                inc     hl                      ; Point to Attribute
+                ld      c, (hl)                 ; Get stored attribute
+                ld      a, (ix+5)               ; Get new attribute
+                cp      c                       ; Compare
+                pop     hl                      ; Restore HL
+                ret     z                       ; It's a duplicate, exit!
+
+.not_this_pair:
+                inc     hl                      ; Skip ID
+                inc     hl                      ; Skip Attribute
+                djnz    chk_match               ; Check next pair
+                
+.store_item:    ; Item not found, calculate storage slot
+                ld      a, (item_count)         ; Reload count
+                ld      l, a                    ; L = item_count
+                ld      h, 0
+                add     hl, hl                  ; Multiply by 2 (2-byte stride)
+                ld      de, item_history
+                add     hl, de                  ; HL points to destination
+
+                ld      a, (ix+0)               ; Offset +0: Sprite ID
+                ld      (hl), a                 ; Store Sprite ID
+                inc     hl
+                ld      a, (ix+5)               ; Offset +5: Attribute
+                ld      (hl), a                 ; Store Attribute
+                
+                ld      hl, item_count          ; Increment global count
+                inc     (hl)
+                ret
+
+
+two_cols:       equ     16
+three_cols      equ     24
+
+
+; =============================================================================
+; Routine:        test_history
+; Description:    Data table containing 15 test items stored as ID/Attr pairs [cite: 2026-05-20].
+; Configuration:  Every second byte (attribute) has had its Ink and Paper values swapped.
+;                 Bright and Flash settings have been completely preserved.
+; Format:         Each line contains 2-byte entries formatted as [Sprite ID, Attribute] [cite: 2026-05-20].
+; =============================================================================
+
+test_history:   db      &81, &60, &81, &50, &81, &68, &81, &70 ; 4 keys with swapped colors
+                db      &80, &50, &8A, &70, &8B, &68, &82, &60 ; 4 items with swapped colors
+                db      &83, &68, &84, &70, &85, &68, &86, &60 ; 4 items with swapped colors
+                db      &87, &58, &88, &50, &89, &78          ; 3 items with swapped colors
+test_count:     db      15   
+
+
+; -------------------------------------------------------------------
+; Routine: draw_items
+; Flow:    Reads sprite ID and attribute from 2-byte history slots,
+;          renders entities in a 3x5 grid, and plays a sound effect.
+; Inputs:  item_count, item_history buffer, go_replay_items_yx.
+; Outputs: Renders items to the screen buffer.
+; -------------------------------------------------------------------
+draw_items:
+                ld      a, (test_count)
+                and     a
+                ret     z                       ; Exit if no items to draw
+
+                ld      ix, entity_to_draw
+                ld      hl, test_history
+                ld      de, go_replay_items_yx
+                ld      b, a
+                ld      c, 0
+
+.items_loop:
+                push    hl
+                push    bc
+                push    de
+
+                ld      a, (hl)
+                ld      (ix+0), a               ; Offset +0: Sprite ID
+                inc     hl
+                ld      a, (hl)
+                ld      (ix+5), a               ; Offset +5: Attribute
+                
+                ld      (ix+3), e               ; Offset +3: X coordinate
+                ld      (ix+4), d               ; Offset +4: Y coordinate
+
+                call    draw_entity
+                call    set_entity_attrs
+                call    drop_sound
+                
+                ld      b, 8
+                call    wait_frames
+
+                pop     de
+                pop     bc
+                pop     hl
+                
+                inc     hl                      ; Advance to next 2-byte slot
+                inc     hl
+                
+                inc     c                       ; Track items per row
+                ld      a, c
+                cp      row_max                       ; Branch: check for row wrap
+                jr      nz, .same_row
+
+                ld      c, 0                    ; Reset column counter
+                ld      a, e
+                sub     64                     ; Offset X back to start
+                ld      e, a
+                ld      a, d
+                add     a, three_cols           ; Offset Y - cols down
+                ld      d, a
+                jr      .continue
+
+.same_row:
+                ld      a, e
+                add     a, two_cols                  ; Offset X to next column
+                ld      e, a
+
+.continue:
+                djnz    .items_loop             ; Branch: continue if items remain
+                ret
+
 
 
 ; food item handler
@@ -6419,7 +6431,7 @@ acg_msg:        db  bright_cyan
 
 
 time_msg:       db  bright_cyan
-                db  'TIME    '
+                db  'TIME   '
                 db  '#  '
                 db  &a0
 

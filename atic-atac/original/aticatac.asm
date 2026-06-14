@@ -3626,7 +3626,8 @@ go_minimap_x      equ     low(go_minimap_yx)
 
 ; --- ITEM REPLAY MIDDLE BLOCK (Row 11 / Upward from Row 12 Boundary) ---
 
-go_replay_items_yx  equ    &8b20 
+;go_replay_items_yx  equ    &8b20 
+go_replay_items_yx  equ    &8b98
 go_items_attr_yx    equ    &4a30
 go_escapee_yx       equ    &6828            ; Y=104, X=40
 
@@ -4341,17 +4342,90 @@ test_history:   db      &81, &44, &81, &42, &81, &45, &81, &46 ; 4 keys (Restore
                 db      &80, &42, &8A, &46, &8B, &45, &82, &44 ; 4 items (Restored values: &42, &46, &45, &44) [cite: 2026-05-29]
                 db      &83, &45, &84, &46, &85, &45, &86, &44 ; 4 items (Restored values: &45, &46, &45, &44) [cite: 2026-05-29]
                 db      &87, &43, &88, &42, &89, &47          ; 3 items (Restored values: &43, &42, &47) [cite: 2026-05-29]
-test_count:     db      14   
+test_count:     db      2   
 
 
-; -------------------------------------------------------------------
 ; Routine: draw_items
-; Flow:    Reads sprite ID and attribute from 2-byte history slots,
-;          renders entities in a 3x5 grid, and plays a sound effect.
-; Inputs:  item_count, item_history buffer, go_replay_items_yx.
-; Outputs: Renders items to the screen buffer.
-; -------------------------------------------------------------------
+; Flow:    Load anchor from go_replay_items_yx into DE, then
+;          iterate through item_history, incrementing X by 16.
+; Inputs:  item_count (N), item_history, go_replay_items_yx (Y, C)
+
 draw_items:
+                ld      a, (test_count)
+                and     a
+                ret     z               ; Exit if no items
+
+                ld      c, a                    ; Save N in C for the loop counter
+
+                ; --- Step 1: Load Anchor ---
+                ld      de, go_replay_items_yx ; D=Y, E=C (Initial Anchor)
+
+                ; --- Step 2: Centering Logic (C - N*8) ---
+                add     a, a            ; N * 2
+                add     a, a            ; N * 4
+                add     a, a            ; N * 8
+                
+                ld      b, a            ; B = Shift amount
+                ld      a, e            ; A = C
+                sub     b               ; A = C - (N * 8)
+                ld      e, a            ; E = StartX (Centered)
+
+
+
+                ; --- Step 3: Draw Loop ---
+                ld      ix, entity_to_draw
+                ld      hl, test_history
+                ld      b, c
+                
+.items_loop:
+                push    bc
+                push    hl
+                push    de              ; Save coordinate (DE)
+
+                ; Load sprite ID and attribute
+                ld      a, (hl)
+                ld      (ix+0), a       ; Offset +0: Sprite ID
+                inc     hl
+                ld      a, (hl)
+                ld      (ix+5), a       ; Offset +5: Attribute
+                
+                ; Set coordinates from DE
+                ld      (ix+3), e       ; X
+                ld      (ix+4), d       ; Y
+
+                call    draw_entity
+                call    set_entity_attrs
+                call    drop_sound
+                
+                ld      b, 8
+                call    wait_frames
+
+                pop     de              ; Restore coords
+                pop     hl
+                pop     bc
+                
+                ; Increment X for next item (+16px)
+                ld      a, e
+                add     a, 16
+                ld      e, a
+                
+                inc     hl              ; Next history pair
+                inc     hl
+                djnz    .items_loop
+                ret
+
+
+
+
+
+
+
+
+
+
+
+
+draw_items_old:
                 ld      a, (item_count)
                 and     a
                 ret     z                       ; Exit if no items to draw
@@ -4362,7 +4436,7 @@ draw_items:
                 ld      b, a
                 ld      c, 0
 
-.items_loop:
+.oitems_loop:
                 push    hl
                 push    bc
                 push    de
@@ -4410,7 +4484,7 @@ draw_items:
                 ld      e, a
 
 .continue:
-                djnz    .items_loop             ; Branch: continue if items remain
+                djnz    .oitems_loop             ; Branch: continue if items remain
                 ret
 
 

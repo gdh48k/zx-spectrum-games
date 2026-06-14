@@ -3634,23 +3634,20 @@ go_escapee_yx       equ    &6828            ; Y=104, X=40
 go_acgkey_yx      equ     &6880     ; Y = 104, X = 176 (Bottom-left base pixel)
 go_acgkey_attr_yx equ     &5080     ; 24 pixels above acg_yx! (3 chars)
 
-; --- STATS CAPTIONS (X=136, Y=136-176) ---
-go_acgkeycap_yx     equ     &90a8    ; Y=136, X=136 (Row 17)
-go_itemcap_yx       equ     &9898    ; Y=144, X=136 (Row 18)
-go_roomscap_yx      equ     &a098    ; Y=152, X=136 (Row 19)
-go_test_yx          equ     &9040
+; --- STATS CAPTIONS (X=104-120, Y=136-184) ---
+go_acgkeycap_yx equ     &9078     ; Y=136, X=120 (Row 17) [cite: 2026-05-29]
+go_itemcap_yx   equ     &9868     ; Y=144, X=104 (Row 18) [cite: 2026-05-29]
+go_roomscap_yx  equ     &a068     ; Y=152, X=104 (Row 19) [cite: 2026-05-29]
+go_scorecap_yx  equ     &a868     ; Y=176, X=104 (Row 22) ; Shifted [cite: 2026-05-29]
+go_timecap_yx   equ     &b070     ; Y=184, X=112 (Row 23) ; Shifted [cite: 2026-05-29]
+;go_test_yx     equ     &9040
 
-; --- One row gap here at Row 20 ---
-go_scorecap_yx      equ     &a898      ; Y=176, X=136 (Row 22) ; Shifted 
-go_timecap_yx       equ     &b0a0    ; Y=184, X=136 (Row 23) ; Shifted
-
-; --- STATS NUMBERS (X=200, Y=136-176) ---
-go_acgkeys_yx        equ    &90c8    ; Y=136, X=200 (Row 17)
-go_items_yx         equ     &98c8    ; Y=144, X=200 (Row 18)
-go_rooms_yx         equ     &a0c8    ; Y=152, X=200 (Row 19)
-; --- One row gap here at Row 20 ---
-go_score_yx         equ     &a8c8    ; Y=176, X=200 (Row 22) ; Shifted
-go_time_yx          equ     &b0c8    ; Y=184, X=200 (Row 23) ; Shifted
+; --- STATS NUMBERS (X=152, Y=136-176) ---
+go_acgkeys_yx   equ     &9098     ; Y=136, X=152 (Row 17) [cite: 2026-05-29]
+go_items_yx     equ     &9898     ; Y=144, X=152 (Row 18) [cite: 2026-05-21, 2026-05-29]
+go_rooms_yx     equ     &a098     ; Y=152, X=152 (Row 19) [cite: 2026-05-29]
+go_score_yx     equ     &a898     ; Y=176, X=152 (Row 22) ; Shifted [cite: 2026-05-29]
+go_time_yx      equ     &b098     ; Y=184, X=152 (Row 23) ; Shifted [cite: 2026-05-29]
 
 
 

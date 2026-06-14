@@ -3635,19 +3635,19 @@ go_acgkey_yx      equ     &6880     ; Y = 104, X = 176 (Bottom-left base pixel)
 go_acgkey_attr_yx equ     &5080     ; 24 pixels above acg_yx! (3 chars)
 
 ; --- STATS CAPTIONS (X=104-120, Y=136-184) ---
-go_acgkeycap_yx equ     &9078     ; Y=136, X=120 (Row 17) [cite: 2026-05-29]
-go_itemcap_yx   equ     &9868     ; Y=144, X=104 (Row 18) [cite: 2026-05-29]
-go_roomscap_yx  equ     &a068     ; Y=152, X=104 (Row 19) [cite: 2026-05-29]
-go_scorecap_yx  equ     &a868     ; Y=176, X=104 (Row 22) ; Shifted [cite: 2026-05-29]
-go_timecap_yx   equ     &b070     ; Y=184, X=112 (Row 23) ; Shifted [cite: 2026-05-29]
+go_acgkeycap_yx equ     &9878     ; Y=136, X=120 (Row 17) [cite: 2026-05-29]
+go_itemcap_yx   equ     &A068     ; Y=144, X=104 (Row 18) [cite: 2026-05-29]
+go_roomscap_yx  equ     &a868     ; Y=152, X=104 (Row 19) [cite: 2026-05-29]
+go_scorecap_yx  equ     &b068     ; Y=176, X=104 (Row 22) ; Shifted [cite: 2026-05-29]
+go_timecap_yx   equ     &b870     ; Y=184, X=112 (Row 23) ; Shifted [cite: 2026-05-29]
 ;go_test_yx     equ     &9040
 
 ; --- STATS NUMBERS (X=152, Y=136-176) ---
-go_acgkeys_yx   equ     &9098     ; Y=136, X=152 (Row 17) [cite: 2026-05-29]
-go_items_yx     equ     &9898     ; Y=144, X=152 (Row 18) [cite: 2026-05-21, 2026-05-29]
-go_rooms_yx     equ     &a098     ; Y=152, X=152 (Row 19) [cite: 2026-05-29]
-go_score_yx     equ     &a898     ; Y=176, X=152 (Row 22) ; Shifted [cite: 2026-05-29]
-go_time_yx      equ     &b098     ; Y=184, X=152 (Row 23) ; Shifted [cite: 2026-05-29]
+go_acgkeys_yx   equ     &9898     ; Y=136, X=152 (Row 17) [cite: 2026-05-29]
+go_items_yx     equ     &a098     ; Y=144, X=152 (Row 18) [cite: 2026-05-21, 2026-05-29]
+go_rooms_yx     equ     &a898     ; Y=152, X=152 (Row 19) [cite: 2026-05-29]
+go_score_yx     equ     &b098     ; Y=176, X=152 (Row 22) ; Shifted [cite: 2026-05-29]
+go_time_yx      equ     &b898     ; Y=184, X=152 (Row 23) ; Shifted [cite: 2026-05-29]
 
 
 
@@ -4352,12 +4352,12 @@ test_count:     db      14
 ; Outputs: Renders items to the screen buffer.
 ; -------------------------------------------------------------------
 draw_items:
-                ld      a, (test_count)
+                ld      a, (item_count)
                 and     a
                 ret     z                       ; Exit if no items to draw
 
                 ld      ix, entity_to_draw
-                ld      hl, test_history
+                ld      hl, item_history
                 ld      de, go_replay_items_yx
                 ld      b, a
                 ld      c, 0

@@ -3626,7 +3626,7 @@ go_minimap_x      equ     low(go_minimap_yx)
 
 ; --- ITEM REPLAY MIDDLE BLOCK (Row 11 / Upward from Row 12 Boundary) ---
 
-go_replay_items_yx  equ    &8b40 
+go_replay_items_yx  equ    &8b20 
 go_items_attr_yx    equ    &4a30
 go_escapee_yx       equ    &6828            ; Y=104, X=40
 
@@ -3641,7 +3641,7 @@ go_roomscap_yx      equ     &a098    ; Y=152, X=136 (Row 19)
 go_test_yx          equ     &9040
 
 ; --- One row gap here at Row 20 ---
-go_scorecap_yx      equ     &a898      ; Y=176, X=136 (Row 22) ; Shifted
+go_scorecap_yx      equ     &a898      ; Y=176, X=136 (Row 22) ; Shifted 
 go_timecap_yx       equ     &b0a0    ; Y=184, X=136 (Row 23) ; Shifted
 
 ; --- STATS NUMBERS (X=200, Y=136-176) ---
@@ -3701,10 +3701,10 @@ history_count:  defb 0          ; Current index/total rooms logged
 ; =============================================================================
 ; Item History Storage
 ; =============================================================================
-item_max        equ     12
+item_max        equ     15
 item_history:   defs    item_max * 2    
 item_count:     db      0 
-row_max         equ     5               
+row_max         equ     14               
 
 ; Structure per slot:
 ; Offset +0: Sprite ID
@@ -4340,11 +4340,11 @@ three_cols      equ     24
 ; Format:         Each line contains 2-byte entries formatted as [Sprite ID, Attribute] [cite: 2026-05-20].
 ; =============================================================================
 
-test_history:   db      &81, &60, &81, &50, &81, &68, &81, &70 ; 4 keys with swapped colors
-                db      &80, &50, &8A, &70, &8B, &68, &82, &60 ; 4 items with swapped colors
-                db      &83, &68, &84, &70, &85, &68, &86, &60 ; 4 items with swapped colors
-                db      &87, &58, &88, &50, &89, &78          ; 3 items with swapped colors
-test_count:     db      15   
+test_history:   db      &81, &44, &81, &42, &81, &45, &81, &46 ; 4 keys (Restored values: &44, &42, &45, &46) [cite: 2026-05-29]
+                db      &80, &42, &8A, &46, &8B, &45, &82, &44 ; 4 items (Restored values: &42, &46, &45, &44) [cite: 2026-05-29]
+                db      &83, &45, &84, &46, &85, &45, &86, &44 ; 4 items (Restored values: &45, &46, &45, &44) [cite: 2026-05-29]
+                db      &87, &43, &88, &42, &89, &47          ; 3 items (Restored values: &43, &42, &47) [cite: 2026-05-29]
+test_count:     db      14   
 
 
 ; -------------------------------------------------------------------

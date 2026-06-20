@@ -3679,6 +3679,10 @@ complete_msg:   db  &47                       ; bright white
                 db  "G A M E   C O M P L E T E "  
                 db  &a1 ; points to '!'
 
+quest_com_msg   db  &47
+                db  'Q U E S T   C O M P L E T E ' 
+                db  &a1
+
 ;test_msg:       db  &47                       ; bright white
 ;                db  "YESSSSS" 
 ;                db  &a1 ; points to '!
@@ -3702,11 +3706,15 @@ history_count:  defb 0          ; Current index/total rooms logged
 item_max        equ     15
 item_history:   defs    item_max * 2    
 item_count:     db      0 
-row_max         equ     14               
+row_max         equ     14
+item_quest:     db      3               
 
 ; Structure per slot:
 ; Offset +0: Sprite ID
 ; Offset +1: Attribute Byte
+
+
+
 
 
 
@@ -4323,7 +4331,13 @@ chk_match:
                 
                 ld      hl, item_count          ; Increment global count
                 inc     (hl)
-                ret
+
+chk_quest:      ld      a, (hl)
+                ld      hl, item_quest
+                cp      (hl)
+                ret     nz
+                jp      quest_complete
+                
 
 
 two_cols:       equ     16
@@ -4351,7 +4365,7 @@ test_count:     db      2
 ; Inputs:  item_count (N), item_history, go_replay_items_yx (Y, C)
 
 draw_items:
-                ld      a, (test_count)
+                ld      a, (item_count)
                 and     a
                 ret     z               ; Exit if no items
 
@@ -4360,7 +4374,7 @@ draw_items:
                 ; --- Step 1: Load Anchor ---
                 ld      de, go_replay_items_yx ; D=Y, E=C (Initial Anchor)
 
-                ; --- Step 2: Centering Logic (C - N*8) ---
+                ; --- Step 2: Centering Logic (C - N*8) --- N = number of items
                 add     a, a            ; N * 2
                 add     a, a            ; N * 4
                 add     a, a            ; N * 8
@@ -4368,13 +4382,13 @@ draw_items:
                 ld      b, a            ; B = Shift amount
                 ld      a, e            ; A = C
                 sub     b               ; A = C - (N * 8)
-                ld      e, a            ; E = StartX (Centered)
+                ld      e, a            ; E = Start X coord 
 
 
 
                 ; --- Step 3: Draw Loop ---
                 ld      ix, entity_to_draw
-                ld      hl, test_history
+                ld      hl, item_history
                 ld      b, c
                 
 .items_loop:
@@ -6452,7 +6466,7 @@ game_stats:
                 
                 ld      hl, go_time_yx       ; clock at 128,64
                 call    print_clock          ; print clock time at position HL
-                                            ; colour_stats_block:
+                                            
                 ld      hl, go_acgkeys_yx      
                 call    xy_to_attr          ; Get attribute start address
                 ld      a, bright_white
@@ -8235,6 +8249,53 @@ count_acg_key:
                 ret
 
 
+quest_complete:
+                call    clear_screen
+                ld      hl, charset - 256
+                ld      (charset_addr), hl
+                
+
+                ld      hl, go_title_yx - 16
+                ld      de, quest_com_msg   
+                call    colour_text
+
+                ;call    run_replay
+
+                call    draw_items
+
+                ld      hl, go_itemcap_yx
+                ld      de, item_msg
+                call    colour_text
+
+                ld      hl, go_timecap_yx
+                ld      de, time_msg
+                call    colour_text
+
+                ld      hl, digit_charset
+                ld      (charset_addr), hl
+            
+                ld      hl, go_items_yx      
+                call    xy_to_display        ; convert coords in HL to display address in HL
+                ld      a, (item_count)
+                call    print_bin_original
+
+                ld      de, slash_3
+                call    print_slash_max
+                
+
+                ld      hl, go_time_yx       ; clock at 128,64
+                call    print_clock          ; print clock time at position HL
+
+                ld      hl, go_acgkeys_yx      
+                call    xy_to_attr          ; Get attribute start address
+                ld      a, bright_white
+                ld      bc, &0708           ; 
+                call    fill_bc_hl_a        ; Paint the entire rectangle
+
+                jp      loc_8C4A
+                 
+
+
 
 game_complete:
                 call    clear_side_panel
@@ -8258,6 +8319,8 @@ congrat_msg:    db  &47
 escape_msg:     db  &47
                 db  'YOU HAVE ESCAPE'
                 db  &c4
+
+
 
 clear_side_panel:
 
@@ -12580,121 +12643,125 @@ a_ghost_picture:db  4, 3
                 db  &ff, &ff, &ff, &ff
                 db  &ff, &ff, &ff, &ff
                 db  &ff, &ff, &ff, &ff
-g_serf_down1:   
-                db  &12
-                db  &1f, &38
-                db  &17, &38
-                db  &0e, &3c
-                db  1, &5e
-                db  3, &de
-                db  &27, &ee
-                db  &77, &70
-                db  &77, &f4
-                db  &77, &74
-                db  &45, &d0
-                db  0, &80
-                db  &0a, &28
-                db  &1b, &6c
-                db  8, &0c
-                db  &1c, &14
-                db  &17, &fc
-                db  &0d, &e8
-                db  7, &50
-g_serf_down2:   db  &12
-                db  &0f, &f8
-                db  &0d, &68
-                db  6, &30
-                db  1, &40
-                db  &23, &e2
-                db  &37, &f6
-                db  &37, &76
-                db  &17, &f4
-                db  &17, &74
-                db  5, &d0
-                db  0, &80
-                db  &0a, &28
-                db  &1b, &6c
-                db  8, &0c
-                db  &1c, &14
-                db  &17, &fc
-                db  &0d, &e8
-                db  7, &50
-g_serf_down3:   db  &12
-                db  7, &7c
-                db  7, &74
-                db  &1f, &58
-                db  &3d, &60
-                db  &3d, &e0
-                db  &3b, &f2
-                db  7, &77
-                db  &17, &f7
-                db  &17, &77
-                db  5, &d2
-                db  0, &80
-                db  &0a, &28
-                db  &1b, &6c
-                db  8, &0c
-                db  &1c, &14
-                db  &17, &fc
-                db  &0d, &e8
-                db  7, &a0
-g_serf_up1:     db  &12
-                db  &1e, &40
-                db  &1e, &70
-                db  &0a, &b0
-                db  7, &d8
-                db  &0f, &d8
-                db  &4f, &e8
-                db  &ef, &e0
-                db  &ec, &6c
-                db  &e2, &4c
-                db  &8d, &a8
-                db  &15, &70
-                db  &1b, &d0
-                db  &3a, &98
-                db  &2b, &68
-                db  &15, &d0
-                db  &2f, &b8
-                db  &13, &50
-                db  &0a, &a0
-g_serf_up2:     db  &12
-                db  &0e, &e0
-                db  &0e, &e0
-                db  2, &80
-                db  7, &c0
-                db  &47, &c4
-                db  &6f, &ec
-                db  &6f, &ec
-                db  &2c, &68
-                db  &23, &88
-                db  &0d, &a0
-                db  &15, &70
-                db  &1b, &d0
-                db  &3a, &98
-                db  &2b, &68
-                db  &15, &d0
-                db  &2f, &b8
-                db  &13, &50
-                db  &0a, &a0
-g_serf_up3:     db  &12
-                db  4, &f0
-                db  &1c, &f0
-                db  &1a, &a0
-                db  &37, &c0
-                db  &37, &e0
-                db  &2f, &e4
-                db  &0f, &ee
-                db  &6c, &3e
-                db  &63, &8e
-                db  &2d, &a2
-                db  &15, &70
-                db  &1b, &d0
-                db  &3a, &98
-                db  &2b, &68
-                db  &15, &d0
-                db  &2f, &b8
-                db  &13, &50
-                db  &0a, &a0
+g_serf_down1:   db      &13
+                db      &00, &80
+                db      &01, &40
+                db      &03, &60
+                db      &07, &70
+                db      &02, &20
+                db      &01, &C0
+                db      &63, &E0
+                db      &7C, &1C
+                db      &38, &CE
+                db      &36, &C7
+                db      &26, &12
+                db      &38, &EE
+                db      &16, &E4
+                db      &1E, &EC
+                db      &24, &24
+                db      &43, &C6
+                db      &84, &2E
+                db      &48, &1C
+                db      &30, &00
+g_serf_down2:   db      &13
+                db      &00, &80
+                db      &01, &40
+                db      &03, &60          ; Row 17 - Corrected from &96 to clear right-side glitch
+                db      &07, &70
+                db      &02, &20
+                db      &01, &C0
+                db      &63, &E0
+                db      &7C, &1C
+                db      &38, &CE
+                db      &36, &C7
+                db      &26, &12
+                db      &38, &EE
+                db      &16, &E4
+                db      &1E, &EC
+                db      &24, &24
+                db      &43, &C2
+                db      &84, &21
+                db      &48, &12
+                db      &30, &0C
+g_serf_down3:   db      &13
+                db      &00, &80
+                db      &01, &40
+                db      &03, &60
+                db      &07, &70
+                db      &02, &20
+                db      &01, &C0
+                db      &63, &E0
+                db      &7C, &1C
+                db      &38, &CE
+                db      &36, &C7
+                db      &26, &12
+                db      &38, &EE
+                db      &16, &E4
+                db      &3E, &EC
+                db      &24, &24
+                db      &63, &C2
+                db      &74, &21
+                db      &38, &12
+                db      &00, &0C
+g_serf_up1:     db      &13 
+                db      &30, &00
+                db      &48, &1C
+                db      &84, &2E
+                db      &43, &C6
+                db      &24, &24
+                db      &1E, &EC
+                db      &12, &E4
+                db      &38, &EE
+                db      &26, &12
+                db      &36, &C7
+                db      &38, &CE
+                db      &3C, &1C
+                db      &63, &E0
+                db      &01, &C0
+                db      &02, &20
+                db      &07, &70
+                db      &03, &60
+                db      &01, &40
+                db      &00, &80
+g_serf_up2:     db      &13
+                db      &30, &0C
+                db      &48, &12
+                db      &84, &21
+                db      &43, &C2
+                db      &24, &24
+                db      &1E, &EC
+                db      &12, &E4
+                db      &38, &EE
+                db      &26, &12
+                db      &76, &C7
+                db      &38, &CE
+                db      &1C, &1C
+                db      &03, &E0
+                db      &01, &C0
+                db      &02, &20
+                db      &07, &70
+                db      &03, &60
+                db      &01, &40
+                db      &00, &80
+g_serf_up3:     db      &12
+                db      &38, &12
+                db      &74, &21
+                db      &63, &C2
+                db      &24, &24
+                db      &1E, &EC
+                db      &12, &E4
+                db      &38, &EE
+                db      &26, &12
+                db      &76, &C6
+                db      &38, &CE
+                db      &1C, &1F
+                db      &03, &E3
+                db      &01, &C0
+                db      &02, &20
+                db      &07, &70
+                db      &03, &60
+                db      &01, &40
+                db      &00, &80
 g_serf_left1:   db  &12
                 db  3, &70
                 db  &0f, &78

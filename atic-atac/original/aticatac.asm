@@ -86,6 +86,38 @@ mod_header:    db  &44
                db  '    THE SECRET PASSAG'
                db  &c5
 
+; ==============================================================================
+; DATA STRUCTURE: standalone_test_menu
+; PURPOSE:        Uniform string block to allow pure mathematical offset
+;                 indexing, completely removing the need for a look-up table.
+; ==============================================================================
+
+; --- 1. Menu State Tracking ---
+menu_state:     db      &00             ; Holds current active index (0 to 2)
+
+; --- 2. Contiguous Uniform String Block ---
+; Every string is now exactly 10 bytes long. 
+; The last character has bit 7 set (e.g., 'N' is &4E + &80 = &CE).
+
+control_max:    db      &04                 ; Total options (0-3)
+
+keyboard_txt:   db      '1  KEYBOAR'
+                db      &C4 
+kempston_txt:   db      '2  KEMPSTO' 
+                db      &Ce
+sinclair_txt:   db      '3  SINCLAI'
+                db      &D2
+wireless_txt:   db      '4  WIRELES'        ; New 4th option
+                db      &D3
+
+control_ptrs:   dw      keyboard_txt
+                dw      kempston_txt
+                dw      sinclair_txt
+                dw      wireless_txt        ; Added to pointer table
+
+saved_charset:  dw      &0000           ; Local cache for font pointer
+saved_attr:     db      &00             ; Local cache for attribute color
+
 ;main_selection: db  0
 ;mod_selection:  db  0
 current_menu:   dw  0
@@ -1647,7 +1679,7 @@ zero_pressed:   ld      hl, (current_menu)
                 ld      de, mod_menu_data
                 or      a
                 sbc     hl, de               ; current menu = mod menu?
-                jp      z, start_game        ; jump if so
+                jp      z, test_menu_loop        ; jump if so
                 
 switch_mod:     ld      hl, mod_menu_data
                 ld      (current_menu), hl
@@ -1689,6 +1721,11 @@ set_flash_on:
                 set     7, (hl)              ; set flash attribute
                 inc     hl
                 ret
+
+
+
+
+
 
 draw_menu_text:
                 ld      hl, charset - 256
@@ -1733,6 +1770,116 @@ loc_7CC1:
                 ld      e, (ix+9)            ; DE = HEADER MSG via IX, not hardcoded
                 ld      d, (ix+10)
                 jp      colour_text          ; show a line of text, first byte is attr
+
+
+; ==============================================================================
+; ROUTINE: test_menu_loop
+; FLOW:    Captures control, polls key '1' to cycle through the menu,
+;          triggers a sound effect, and refreshes the display.
+; ==============================================================================
+test_menu_loop:
+                call    clear_screen
+.tm_loop:
+                call    draw_test_menu
+
+                ; 1. Scan for '1'
+                ld      bc, &F7FE           ; High byte = row, Low byte = port
+                in      a, (c)              ; Read directly from the port
+                cpl                         ; Invert bits
+                bit     0, a                ; Is '1' pressed?
+                jr      z, .tm_loop         ; Loop if '1' is NOT pressed
+
+                ; 2. Cycle index (No bit-masking needed)
+                ld      a, (menu_state)
+                inc     a
+                ld      hl, control_max
+                cp      (hl)                ; Compare A with control_max
+                jr      c, .store_state
+                xor     a                   ; Reset 3 to 0
+.store_state:
+                ld      (menu_state), a
+
+                ; 3. Audio/Visual Feedback
+                call    drop_sound
+                
+                ; 4. Debounce (Keep UI responsive)
+.debounce:
+                ld      a, &F7
+                out     (&FD), a
+                in      a, (&FE)
+                cpl
+                bit     0, a
+                jr      nz, .debounce
+                jr      .tm_loop
+
+; ==============================================================================
+; ROUTINE: draw_test_menu
+; FLOW:    Backs up engine globals, performs math-based pointer offset,
+;          invokes print_text at 0,0, and restores all system state.
+; ==============================================================================
+draw_test_menu:
+                push    af              ; Protect registers for engine safety
+                push    bc
+                push    de
+                push    hl
+                push    ix
+                push    iy
+                exx
+                push    hl
+                push    de
+                push    bc
+                ex      af, af'
+                push    af
+
+                ; --- 1. Backup Engine Globals ---
+                ld      hl, (charset_addr)
+                ld      (saved_charset), hl
+                ld      a, (text_attr)
+                ld      (saved_attr), a
+
+                ; --- 2. Setup Menu Environment ---
+                ld      hl, charset - 256
+                ld      (charset_addr), hl
+                ld      a, &47          ; Attribute: Bright White/Blue
+                ld      (text_attr), a
+
+                ; --- 3. Lookup String Pointer ---
+                ld      hl, control_ptrs ; Base of pointer table
+                ld      a, (menu_state)  ; Current index (0, 1, or 2)
+                add     a, a             ; Multiply by 2 (each pointer is 2 bytes)
+                ld      e, a
+                ld      d, 0
+                add     hl, de           ; HL points to the address in table
+                ld      e, (hl)          ; Fetch LSB
+                inc     hl
+                ld      d, (hl)          ; Fetch MSB
+                ex      de, hl           ; HL now contains the actual start of string
+
+.draw:
+                ex      de, hl           ; Pointer into DE for print_text
+                ld      h, 0             ; Y=0
+                ld      l, 0             ; X=0
+                call    print_text
+
+                ; --- 4. Restore Globals & Registers ---
+                ld      hl, (saved_charset)
+                ld      (charset_addr), hl
+                ld      a, (saved_attr)
+                ld      (text_attr), a
+
+                pop     af
+                ex      af, af'
+                pop     bc
+                pop     de
+                pop     hl
+                exx
+                pop     iy
+                pop     ix
+                pop     hl
+                pop     de
+                pop     bc
+                pop     af
+                ret
 
 
 print_text:
@@ -8263,9 +8410,9 @@ quest_complete:
 
                 call    draw_items
 
-                ld      hl, go_itemcap_yx
-                ld      de, item_msg
-                call    colour_text
+               ;ld      hl, go_itemcap_yx
+               ;ld      de, item_msg
+               ;call    colour_text
 
                 ld      hl, go_timecap_yx
                 ld      de, time_msg
@@ -8274,13 +8421,13 @@ quest_complete:
                 ld      hl, digit_charset
                 ld      (charset_addr), hl
             
-                ld      hl, go_items_yx      
-                call    xy_to_display        ; convert coords in HL to display address in HL
-                ld      a, (item_count)
-                call    print_bin_original
+                ;ld      hl, go_items_yx      
+                ;call    xy_to_display        ; convert coords in HL to display address in HL
+                ;ld      a, (item_count)
+                ;call    print_bin_original
 
-                ld      de, slash_3
-                call    print_slash_max
+                ;ld      de, slash_3
+                ;call    print_slash_max
                 
 
                 ld      hl, go_time_yx       ; clock at 128,64

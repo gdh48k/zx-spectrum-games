@@ -86,14 +86,16 @@ mod_header:    db  &44
                db  '    THE SECRET PASSAG'
                db  &c5
 
+; ==============================================================================
 ; --- Menu Descriptor Table (5 bytes per entry) ---
 ; Format: dw (Ptr Table), db (Y-Coord), db (Max Items), db (State Address)
+; ==============================================================================
 
 menu_descriptors:
                 ; Entry 0: Control Menu
                 dw      control_txt_table
                 db      &10, &04        ; Y=&10, Max=4
-                dw      menu_state      ; State Address
+                dw      control_state      ; State Address
 
                 ; Entry 1: Character Menu
                 dw      char_txt_table
@@ -113,23 +115,23 @@ char_txt_table:
 ; 3. OPTION TEXT (The Content)
 ; ==============================================================================
 keyboard_txt:   db      '1  KEYBOAR', &C4 
-kempston_txt:   db      '2  KEMPSTO', &Ce
-sinclair_txt:   db      '3  SINCLAI', &D2
-wireless_txt:   db      '4  WIRELES', &D3
+kempston_txt:   db      '1  KEMPSTO', &Ce
+sinclair_txt:   db      '1  SINCLAI', &D2
+wireless_txt:   db      '1  WIRELES', &D3
 
-knight_txt:     db      '1  KNIGHT ', &D4
-wizard_txt:     db      '2  WIZARD ', &C4
-thief_txt:      db      '3  THIEF  ', &C6
+knight_txt:     db      '2  KNIGH', &D4
+wizard_txt:     db      '2  WIZAR', &C4
+thief_txt:      db      '2  THIE', &C6
 
 ; ==============================================================================
 ; 4. STATE TRACKERS
 ; ==============================================================================
-menu_state:     db      &00             ; Current index for Control (0-3)
+menu_items      db      &02
+control_state:  db      &00             ; Current index for Control (0-3)
 char_state:     db      &00             ; Current index for Character (0-2)
 fixed_x:        db      &08             ; Shared X-coordinate
 
-;main_selection: db  0
-;mod_selection:  db  0
+
 current_menu:   dw  0
 charset_addr:   dw  0
 last_FRAMES:    db  0
@@ -1784,87 +1786,103 @@ loc_7CC1:
 
 ; ==============================================================================
 ; ROUTINE: test_menu_loop
-; FLOW:    Captures control, polls key '1' to cycle through the menu,
-;          triggers a sound effect, and refreshes the display.
+; FLOW:    Draws both categories via draw_test_menu, then handles 
+;          input to cycle the state of the specific selected category.
 ; ==============================================================================
 test_menu_loop:
                 call    clear_screen
 .tm_loop:
                 call    draw_test_menu
 
-                ; 1. Scan for '1'
-                ld      bc, &F7FE           ; High byte = row, Low byte = port
-                in      a, (c)              ; Read directly from the port
-                cpl                         ; Invert bits
-                bit     0, a                ; Is '1' pressed?
-                jr      z, .tm_loop         ; Loop if '1' is NOT pressed
+                ; 1. Scan for '1' (Control Category)
+                ld      bc, &F7FE       ; Port for 1 key
+                in      a, (c)
+                cpl
+                bit     0, a
+                jr      nz, .handle_1   ; If '1' pressed, cycle Control
 
-                ; --- 2. Cycle index (Using Descriptor Offset 3) ---
-                ld      ix, menu_descriptors    ; Point to Control entry
-                ld      a, (menu_state)         ; Get current index
-                inc     a                       ; Increment index
+                ; 2. Scan for '2' (Character Category)
+                ld      bc, &F7FE       ; Port for 1-5 keys
+                in      a, (c)          ; Note: You need correct port for '2'
+                cpl
+                bit     1, a
+                jr      nz, .handle_2   ; If '2' pressed, cycle Char
                 
-                ; Load the Max limit (Offset 3) into register L
-                ld      l, (ix+3)               ; Get Max value (byte) from offset 3
-                
-                ; Compare A with the limit now in L
-                cp      l                       ; Compare A with MAX limit
-                jr      c, .store_state         ; If less than max, store
-                xor     a                       ; Else, reset to 0
-.store_state:
-                ld      (menu_state), a
+                jr      .tm_loop
 
-                ; 3. Audio/Visual Feedback
+.handle_1:
+                ld      ix, menu_descriptors     ; Control is at index 0
+                jr      .cycle_state
+
+.handle_2:
+                ld      ix, menu_descriptors + 6 ; Char is at index 1
+                jr      .cycle_state
+
+.cycle_state:
+                ; Now we have the correct IX for the target category
+                ld      l, (ix+4)
+                ld      h, (ix+5)
+                ld      a, (hl)
+                inc     a
+                cp      (ix+3)
+                jr      c, .store
+                xor     a
+.store:         ld      (hl), a
                 call    drop_sound
                 
-                ; 4. Debounce (Keep UI responsive)
+                ; 4. Debounce
 .debounce:
                 ld      a, &F7
                 out     (&FD), a
                 in      a, (&FE)
                 cpl
-                bit     0, a
+                and     &03
                 jr      nz, .debounce
                 jr      .tm_loop
 
+
 ; ==============================================================================
 ; ROUTINE: draw_test_menu
-; FLOW:    Draws the full menu with strict register protection.
+; FLOW:    Iterates through the menu_descriptors table and renders the 
+;          currently active item for every available category.
 ; ==============================================================================
 draw_test_menu:
-                ; --- 1. Protect Callers Registers ---
                 push    af
                 push    bc
-                push    de
                 push    hl
                 push    ix
 
-                
-                ; --- 2. Iterate Descriptors ---
                 ld      ix, menu_descriptors
-                ld      b, 1            ; Number of items to draw
+                ld      a, (menu_items)
+                ld      b, a            ; B = Number of categories (2)
 
-.loop:
-                push    bc              ; Protect loop counter
-                call    draw_item
-                ;ld      de, 6           ; Descriptor size
-                ;add     ix, de
-                pop     bc
-                djnz    .loop
+.cat_loop:
+                push    bc              ; Protect category counter
+                
+                ; --- Draw active item for this category ---
+                ld      l, (ix+4)       ; State Address LSB
+                ld      h, (ix+5)       ; State Address MSB
+                ld      a, (hl)         ; A = current active index
+                call    draw_item       ; Print item A at coordinates (IX+2)
+                
+                ; --- Move IX to next category descriptor ---
+                ld      de, 6           ; Descriptor size
+                add     ix, de
+                
+                pop     bc              ; Restore category counter
+                djnz    .cat_loop       ; Repeat for all categories
 
-                ; --- 3. Restore and Return ---
                 pop     ix
                 pop     hl
-                pop     de
                 pop     bc
                 pop     af
                 ret
 
 ; ==============================================================================
 ; ROUTINE: draw_item
-; FLOW:    Fetches string pointer based on state address, manages register
-;          handshaking via double-EX, and prints to screen.
-; INPUT:   IX = Pointer to the 5-byte descriptor
+; FLOW:    Fetches current index from state address (via IX+4/5),
+;          calculates string pointer, and executes print via double-EX.
+; INPUT:   IX = Pointer to the 6-byte descriptor
 ; ==============================================================================
 draw_item:
                 ; --- 1. Protect Registers ---
@@ -1880,8 +1898,14 @@ draw_item:
                 ; --- 3. Lookup Pointer ---
                 ld      l, (ix+0)       ; Load Table Base from Descriptor
                 ld      h, (ix+1)
-                ld      a, (menu_state) ; Get current index
-                add     a, a            ; Multiply by 2
+                
+                ; --- 4. Fetch Index Dynamically ---
+                ; Dereference the State Address stored in the descriptor
+                ld      c, (ix+4)       ; State Address LSB
+                ld      b, (ix+5)       ; State Address MSB
+                ld      a, (bc)         ; Get current index (0, 1, 2...) from RAM
+                
+                add     a, a            ; Multiply by 2 for table offset
                 ld      e, a
                 ld      d, 0
                 add     hl, de          ; Add offset to table base
@@ -1890,19 +1914,19 @@ draw_item:
                 ld      d, (hl)         ; Fetch MSB of string address
                 ; At this point, DE holds the string pointer
 
-                ; --- 4. The Double-EX Handshake ---
+                ; --- 5. The Double-EX Handshake ---
                 ex      de, hl          ; Pointer now safely in HL
                 ld      a, (ix+2)       ; Fetch Y-coord from Descriptor
-                ld      d, a            ; DE now holds Y (D) and X (E)
+                ld      d, a            ; D = Y, E = X
                 ld      e, &20          ; Fixed X
                 ex      de, hl          ; Pointer back in DE, Coords in HL
 
-                ; --- 5. Print to Screen ---
+                ; --- 6. Print to Screen ---
                 ld      a, &07          ; Attribute
                 ld      (text_attr), a
                 call    print_text
 
-                ; --- 6. Restore and Return ---
+                ; --- 7. Restore and Return ---
                 pop     hl
                 pop     de
                 pop     bc

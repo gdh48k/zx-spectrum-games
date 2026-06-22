@@ -86,37 +86,47 @@ mod_header:    db  &44
                db  '    THE SECRET PASSAG'
                db  &c5
 
+; --- Menu Descriptor Table (5 bytes per entry) ---
+; Format: dw (Ptr Table), db (Y-Coord), db (Max Items), db (State Address)
+
+menu_descriptors:
+                ; Entry 0: Control Menu
+                dw      control_txt_table
+                db      &10, &04        ; Y=&10, Max=4
+                dw      menu_state      ; State Address
+
+                ; Entry 1: Character Menu
+                dw      char_txt_table
+                db      &20, &03        ; Y=&20, Max=3
+                dw      char_state      ; State Address
+
 ; ==============================================================================
-; DATA STRUCTURE: standalone_test_menu
-; PURPOSE:        Uniform string block to allow pure mathematical offset
-;                 indexing, completely removing the need for a look-up table.
+; 2. POINTER TABLES (The Directory)
 ; ==============================================================================
+control_txt_table:
+                dw      keyboard_txt, kempston_txt, sinclair_txt, wireless_txt
 
-; --- 1. Menu State Tracking ---
-menu_state:     db      &00             ; Holds current active index (0 to 2)
+char_txt_table:
+                dw      knight_txt, wizard_txt, thief_txt
 
-; --- 2. Contiguous Uniform String Block ---
-; Every string is now exactly 10 bytes long. 
-; The last character has bit 7 set (e.g., 'N' is &4E + &80 = &CE).
+; ==============================================================================
+; 3. OPTION TEXT (The Content)
+; ==============================================================================
+keyboard_txt:   db      '1  KEYBOAR', &C4 
+kempston_txt:   db      '2  KEMPSTO', &Ce
+sinclair_txt:   db      '3  SINCLAI', &D2
+wireless_txt:   db      '4  WIRELES', &D3
 
-control_max:    db      &04                 ; Total options (0-3)
+knight_txt:     db      '1  KNIGHT ', &D4
+wizard_txt:     db      '2  WIZARD ', &C4
+thief_txt:      db      '3  THIEF  ', &C6
 
-keyboard_txt:   db      '1  KEYBOAR'
-                db      &C4 
-kempston_txt:   db      '2  KEMPSTO' 
-                db      &Ce
-sinclair_txt:   db      '3  SINCLAI'
-                db      &D2
-wireless_txt:   db      '4  WIRELES'        ; New 4th option
-                db      &D3
-
-control_ptrs:   dw      keyboard_txt
-                dw      kempston_txt
-                dw      sinclair_txt
-                dw      wireless_txt        ; Added to pointer table
-
-saved_charset:  dw      &0000           ; Local cache for font pointer
-saved_attr:     db      &00             ; Local cache for attribute color
+; ==============================================================================
+; 4. STATE TRACKERS
+; ==============================================================================
+menu_state:     db      &00             ; Current index for Control (0-3)
+char_state:     db      &00             ; Current index for Character (0-2)
+fixed_x:        db      &08             ; Shared X-coordinate
 
 ;main_selection: db  0
 ;mod_selection:  db  0
@@ -1789,13 +1799,18 @@ test_menu_loop:
                 bit     0, a                ; Is '1' pressed?
                 jr      z, .tm_loop         ; Loop if '1' is NOT pressed
 
-                ; 2. Cycle index (No bit-masking needed)
-                ld      a, (menu_state)
-                inc     a
-                ld      hl, control_max
-                cp      (hl)                ; Compare A with control_max
-                jr      c, .store_state
-                xor     a                   ; Reset 3 to 0
+                ; --- 2. Cycle index (Using Descriptor Offset 3) ---
+                ld      ix, menu_descriptors    ; Point to Control entry
+                ld      a, (menu_state)         ; Get current index
+                inc     a                       ; Increment index
+                
+                ; Load the Max limit (Offset 3) into register L
+                ld      l, (ix+3)               ; Get Max value (byte) from offset 3
+                
+                ; Compare A with the limit now in L
+                cp      l                       ; Compare A with MAX limit
+                jr      c, .store_state         ; If less than max, store
+                xor     a                       ; Else, reset to 0
 .store_state:
                 ld      (menu_state), a
 
@@ -1814,67 +1829,80 @@ test_menu_loop:
 
 ; ==============================================================================
 ; ROUTINE: draw_test_menu
-; FLOW:    Backs up engine globals, performs math-based pointer offset,
-;          invokes print_text at 0,0, and restores all system state.
+; FLOW:    Draws the full menu with strict register protection.
 ; ==============================================================================
 draw_test_menu:
-                push    af              ; Protect registers for engine safety
+                ; --- 1. Protect Callers Registers ---
+                push    af
                 push    bc
                 push    de
                 push    hl
                 push    ix
-                push    iy
-                exx
-                push    hl
-                push    de
-                push    bc
-                ex      af, af'
+
+                
+                ; --- 2. Iterate Descriptors ---
+                ld      ix, menu_descriptors
+                ld      b, 1            ; Number of items to draw
+
+.loop:
+                push    bc              ; Protect loop counter
+                call    draw_item
+                ;ld      de, 6           ; Descriptor size
+                ;add     ix, de
+                pop     bc
+                djnz    .loop
+
+                ; --- 3. Restore and Return ---
+                pop     ix
+                pop     hl
+                pop     de
+                pop     bc
+                pop     af
+                ret
+
+; ==============================================================================
+; ROUTINE: draw_item
+; FLOW:    Fetches string pointer based on state address, manages register
+;          handshaking via double-EX, and prints to screen.
+; INPUT:   IX = Pointer to the 5-byte descriptor
+; ==============================================================================
+draw_item:
+                ; --- 1. Protect Registers ---
                 push    af
+                push    bc
+                push    de
+                push    hl
 
-                ; --- 1. Backup Engine Globals ---
-                ld      hl, (charset_addr)
-                ld      (saved_charset), hl
-                ld      a, (text_attr)
-                ld      (saved_attr), a
-
-                ; --- 2. Setup Menu Environment ---
+                ; --- 2. Setup Font Address ---
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
-                ld      a, &47          ; Attribute: Bright White/Blue
-                ld      (text_attr), a
 
-                ; --- 3. Lookup String Pointer ---
-                ld      hl, control_ptrs ; Base of pointer table
-                ld      a, (menu_state)  ; Current index (0, 1, or 2)
-                add     a, a             ; Multiply by 2 (each pointer is 2 bytes)
+                ; --- 3. Lookup Pointer ---
+                ld      l, (ix+0)       ; Load Table Base from Descriptor
+                ld      h, (ix+1)
+                ld      a, (menu_state) ; Get current index
+                add     a, a            ; Multiply by 2
                 ld      e, a
                 ld      d, 0
-                add     hl, de           ; HL points to the address in table
-                ld      e, (hl)          ; Fetch LSB
+                add     hl, de          ; Add offset to table base
+                ld      e, (hl)         ; Fetch LSB of string address
                 inc     hl
-                ld      d, (hl)          ; Fetch MSB
-                ex      de, hl           ; HL now contains the actual start of string
+                ld      d, (hl)         ; Fetch MSB of string address
+                ; At this point, DE holds the string pointer
 
-.draw:
-                ex      de, hl           ; Pointer into DE for print_text
-                ld      h, 0             ; Y=0
-                ld      l, 0             ; X=0
+                ; --- 4. The Double-EX Handshake ---
+                ex      de, hl          ; Pointer now safely in HL
+                ld      a, (ix+2)       ; Fetch Y-coord from Descriptor
+                ld      d, a            ; DE now holds Y (D) and X (E)
+                ld      e, &20          ; Fixed X
+                ex      de, hl          ; Pointer back in DE, Coords in HL
+
+                ; --- 5. Print to Screen ---
+                ld      a, &07          ; Attribute
+                ld      (text_attr), a
                 call    print_text
 
-                ; --- 4. Restore Globals & Registers ---
-                ld      hl, (saved_charset)
-                ld      (charset_addr), hl
-                ld      a, (saved_attr)
-                ld      (text_attr), a
-
-                pop     af
-                ex      af, af'
-                pop     bc
-                pop     de
-                pop     hl
-                exx
-                pop     iy
-                pop     ix
+                ; --- 6. Restore and Return ---
                 pop     hl
                 pop     de
                 pop     bc

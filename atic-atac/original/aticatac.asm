@@ -91,22 +91,27 @@ mod_header:    db  &44
 ; Format: dw (Ptr Table), db (Y-Coord), db (Max Items), db (State Address)
 ; ==============================================================================
 
+menu_items      db      &02
+control_state:  db      &00             ; Current index for Control (0-3)
+char_state:     db      &00             ; Current index for Character (0-2)
+fixed_x:        equ     &58             ; Shared X-coordinate
+
 menu_descriptors:
                 ; Entry 0: Control Menu
                 dw      control_txt_table
-                db      &10, &04        ; Y=&10, Max=4
+                db      &10, &03        ; Y=&10, Max=3
                 dw      control_state      ; State Address
 
                 ; Entry 1: Character Menu
                 dw      char_txt_table
-                db      &20, &03        ; Y=&20, Max=3
+                db      &28, &03        ; Y=&20, Max=3
                 dw      char_state      ; State Address
 
 ; ==============================================================================
 ; 2. POINTER TABLES (The Directory)
 ; ==============================================================================
 control_txt_table:
-                dw      keyboard_txt, kempston_txt, sinclair_txt, wireless_txt
+                dw      keyboard_txt, kempston_txt, sinclair_txt
 
 char_txt_table:
                 dw      knight_txt, wizard_txt, thief_txt
@@ -117,19 +122,15 @@ char_txt_table:
 keyboard_txt:   db      '1  KEYBOAR', &C4 
 kempston_txt:   db      '1  KEMPSTO', &Ce
 sinclair_txt:   db      '1  SINCLAI', &D2
-wireless_txt:   db      '1  WIRELES', &D3
 
 knight_txt:     db      '2  KNIGH', &D4
 wizard_txt:     db      '2  WIZAR', &C4
-thief_txt:      db      '2  THIE', &C6
+thief_txt:      db      '2  SERF ', &A0
 
 ; ==============================================================================
 ; 4. STATE TRACKERS
 ; ==============================================================================
-menu_items      db      &02
-control_state:  db      &00             ; Current index for Control (0-3)
-char_state:     db      &00             ; Current index for Character (0-2)
-fixed_x:        db      &08             ; Shared X-coordinate
+
 
 
 current_menu:   dw  0
@@ -1847,10 +1848,10 @@ test_menu_loop:
 ;          currently active item for every available category.
 ; ==============================================================================
 draw_test_menu:
-                push    af
-                push    bc
-                push    hl
-                push    ix
+                ;push    af
+                ;push    bc
+                ;push    hl
+                ;push    ix
 
                 ld      ix, menu_descriptors
                 ld      a, (menu_items)
@@ -1872,10 +1873,10 @@ draw_test_menu:
                 pop     bc              ; Restore category counter
                 djnz    .cat_loop       ; Repeat for all categories
 
-                pop     ix
-                pop     hl
-                pop     bc
-                pop     af
+                ;pop     ix
+                ;pop     hl
+                ;pop     bc
+                ;pop     af
                 ret
 
 ; ==============================================================================
@@ -1918,11 +1919,11 @@ draw_item:
                 ex      de, hl          ; Pointer now safely in HL
                 ld      a, (ix+2)       ; Fetch Y-coord from Descriptor
                 ld      d, a            ; D = Y, E = X
-                ld      e, &20          ; Fixed X
+                ld      e, fixed_x      ; Fixed X
                 ex      de, hl          ; Pointer back in DE, Coords in HL
 
                 ; --- 6. Print to Screen ---
-                ld      a, &07          ; Attribute
+                ld      a, bright_cyan  ; Attribute
                 ld      (text_attr), a
                 call    print_text
 

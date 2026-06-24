@@ -1791,6 +1791,8 @@ test_menu_loop:
                 jr      .tm_loop
 
 .handle_1:
+                         
+
                 ld      ix, menu_descriptors     ; Control is at index 0
                 jr      .cycle_state
 
@@ -6088,15 +6090,36 @@ read_cursor:
                 ret
 
 ; return controls in A (FUDLR order, negative logic)
+;read_controls:
+;                ld      a, (main_selection)
+;                and     6
+;                jr      z, read_keyboard
+;                cp      4
+;                jr      z, read_cursor
+;                in      a, (&1f)             ; read Kempston joystick
+;                cpl
+;                ret
+; ==============================================================================
+; ROUTINE: read_controls
+; FLOW:    Reads the new control_state index (0=Kybd, 1=Kemp, 2=Curs)
+; ==============================================================================
 read_controls:
-                ld      a, (main_selection)
-                and     6
+                ld      a, (control_state) ; Load 0, 1, or 2
+                or      a                  ; Is it 0 (Keyboard)?
                 jr      z, read_keyboard
-                cp      4
-                jr      z, read_cursor
-                in      a, (&1f)             ; read Kempston joystick
+                cp      1                  ; Is it 1 (Kempston)?
+                jr      z, .kempston_logic
+                
+                ; Must be 2 (Cursor)
+                jp      read_cursor        ; Jump to Cursor logic
+
+.kempston_logic:
+                in      a, (&1f)           ; Perform Kempston read
                 cpl
                 ret
+
+
+
 read_keyboard:
                 ld      a, &fb
                 out     (&fd), a

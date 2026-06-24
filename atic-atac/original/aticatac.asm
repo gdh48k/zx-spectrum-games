@@ -1752,7 +1752,7 @@ test_menu_loop:
                 call    draw_test_menu
 
                 ; 1. Scan for '1' (Control Category)
-                ld      bc, &F7FE       ; Port for 1 key
+                ld      bc, &F7FE       ; Port for 1-5 keys
                 in      a, (c)
                 cpl
                 bit     0, a
@@ -1760,24 +1760,33 @@ test_menu_loop:
 
                 ; 2. Scan for '2' (Character Category)
                 ld      bc, &F7FE       ; Port for 1-5 keys
-                in      a, (c)          ; Note: You need correct port for '2'
+                in      a, (c)          ; 
                 cpl
                 bit     1, a
                 jr      nz, .handle_2   ; If '2' pressed, cycle Char
 
-                ; 2. Scan for '3' (Mode Category)
+                ; 3. Scan for '3' (Mode Category)
                 ld      bc, &F7FE       ; Port for 1-5 keys
-                in      a, (c)          ; Note: You need correct port for '2'
+                in      a, (c)          
                 cpl
                 bit     2, a
                 jr      nz, .handle_3   ; If '3' pressed, cycle Mode
 
-                ; 2. Scan for '4' (Quest Category)
+                ; 4. Scan for '4' (Quest Category)
                 ld      bc, &F7FE       ; Port for 1-5 keys
-                in      a, (c)          ; Note: You need correct port for '2'
+                in      a, (c)          
                 cpl
                 bit     3, a
                 jr      nz, .handle_4   ; If '3' pressed, cycle Mode
+
+
+                ; 6. Scan for '0' (Start Game)
+                ld      bc, &EFFE       ; Port for 6-0 keys
+                in      a, (c)          ; 
+                cpl
+                bit     0, a            ; Bit 0 of this port is '0'
+                jp      nz, start_game  ; If '0' pressed, start game
+
                 
                 jr      .tm_loop
 
@@ -1937,9 +1946,14 @@ menu_descriptors:
                 dw      mode_state 
 
                 ; Entry 3: Quest Selection
-                dw      quest_txt_table
-                db      &58, &03        
-                dw      quest_state     
+                dw      start_txt_table
+                db      &a0, &01
+                dw      start_state 
+
+                 
+
+
+                  
 ; ==============================================================================
 ; 2. POINTER TABLES (The Directory)
 ; ==============================================================================
@@ -1954,6 +1968,8 @@ mode_txt_table:
 
 quest_txt_table:
                 dw      classicq_txt, ground_txt, collect5_txt
+
+start_txt_table dw      start_txt
 
 
 ; ==============================================================================
@@ -1974,6 +1990,8 @@ classicq_txt:   db      '4  CLASSIC QUEST    ', &A0
 ground_txt:     db      '4  GROUND FLOOR MINI', &A0
 collect5_txt:   db      '4  COLLECT 5 ITEMS  ', &A0
 
+start_txt:      db      '0  STAR', &d4   
+
 ; ==============================================================================
 ; 4. STATE TRACKERS
 ; ==============================================================================
@@ -1982,6 +2000,7 @@ control_state:  db      &00             ; Current index for Control (0-3)
 char_state:     db      &00             ; Current index for Character (0-2)
 mode_state:     db      &00 
 quest_state:    db      &00
+start_state:    db      &00 
 fixed_x:        equ     &58     
 
 

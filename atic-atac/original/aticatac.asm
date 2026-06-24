@@ -1771,6 +1771,13 @@ test_menu_loop:
                 cpl
                 bit     2, a
                 jr      nz, .handle_3   ; If '3' pressed, cycle Mode
+
+                ; 2. Scan for '4' (Quest Category)
+                ld      bc, &F7FE       ; Port for 1-5 keys
+                in      a, (c)          ; Note: You need correct port for '2'
+                cpl
+                bit     3, a
+                jr      nz, .handle_4   ; If '3' pressed, cycle Mode
                 
                 jr      .tm_loop
 
@@ -1784,6 +1791,10 @@ test_menu_loop:
 
 .handle_3:
                 ld      ix, menu_descriptors + 12 ; Mode is at index 2
+                jr      .cycle_state
+
+.handle_4:
+                ld      ix, menu_descriptors + 18 ; Mode is at index 3
                 jr      .cycle_state
 
 .cycle_state:
@@ -1801,10 +1812,11 @@ test_menu_loop:
                 ; 4. Debounce
 .debounce:
                 ld      a, &F7
-                ;out     (&FD), a
+                out     (&FD), a
                 in      a, (&FE)
                 cpl
-                and     &07
+                ;and     %0001111
+                and     &0F
                 jr      nz, .debounce
                 jr      .tm_loop
 
@@ -1906,7 +1918,7 @@ draw_item:
 ; --- Menu Descriptor Table (6 bytes per entry) ---
 ; Format: dw (Ptr Table), db (Y-Coord), db (Max Items), db (State Address)
 ; ==============================================================================
-menu_items      db      &03
+menu_items      db      &04
 
 menu_descriptors:
                 ; Entry 0: Control Selection
@@ -1921,8 +1933,13 @@ menu_descriptors:
 
                 ; Entry 2: Mode Selection
                 dw      mode_txt_table
-                db      &40, &03        
-                dw      mode_state      
+                db      &40, &02        
+                dw      mode_state 
+
+                ; Entry 3: Quest Selection
+                dw      quest_txt_table
+                db      &58, &03        
+                dw      quest_state     
 ; ==============================================================================
 ; 2. POINTER TABLES (The Directory)
 ; ==============================================================================
@@ -1933,7 +1950,10 @@ char_txt_table:
                 dw      knight_txt, wizard_txt, thief_txt
 
 mode_txt_table:
-                dw      classicm_txt, open_txt, ground_txt
+                dw      classicm_txt, open_txt
+
+quest_txt_table:
+                dw      classicq_txt, ground_txt, collect5_txt
 
 
 ; ==============================================================================
@@ -1949,7 +1969,10 @@ thief_txt:      db      '2  SERF ', &A0
 
 classicm_txt:   db      '3  CLASSIC MODE    ', &A0
 open_txt:       db      '3  OPEN CASTLE MODE', &A0
-ground_txt:     db      '3  GROUND FLOOR MOD', &C5
+
+classicq_txt:   db      '4  CLASSIC QUEST    ', &A0
+ground_txt:     db      '4  GROUND FLOOR MINI', &A0
+collect5_txt:   db      '4  COLLECT 5 ITEMS  ', &A0
 
 ; ==============================================================================
 ; 4. STATE TRACKERS
@@ -1958,6 +1981,7 @@ ground_txt:     db      '3  GROUND FLOOR MOD', &C5
 control_state:  db      &00             ; Current index for Control (0-3)
 char_state:     db      &00             ; Current index for Character (0-2)
 mode_state:     db      &00 
+quest_state:    db      &00
 fixed_x:        equ     &58     
 
 

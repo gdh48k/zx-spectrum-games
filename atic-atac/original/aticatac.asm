@@ -86,51 +86,7 @@ mod_header:    db  &44
                db  '    THE SECRET PASSAG'
                db  &c5
 
-; ==============================================================================
-; --- Menu Descriptor Table (5 bytes per entry) ---
-; Format: dw (Ptr Table), db (Y-Coord), db (Max Items), db (State Address)
-; ==============================================================================
-
-menu_items      db      &02
-control_state:  db      &00             ; Current index for Control (0-3)
-char_state:     db      &00             ; Current index for Character (0-2)
-fixed_x:        equ     &58             ; Shared X-coordinate
-
-menu_descriptors:
-                ; Entry 0: Control Menu
-                dw      control_txt_table
-                db      &10, &03        ; Y=&10, Max=3
-                dw      control_state      ; State Address
-
-                ; Entry 1: Character Menu
-                dw      char_txt_table
-                db      &28, &03        ; Y=&20, Max=3
-                dw      char_state      ; State Address
-
-; ==============================================================================
-; 2. POINTER TABLES (The Directory)
-; ==============================================================================
-control_txt_table:
-                dw      keyboard_txt, kempston_txt, sinclair_txt
-
-char_txt_table:
-                dw      knight_txt, wizard_txt, thief_txt
-
-; ==============================================================================
-; 3. OPTION TEXT (The Content)
-; ==============================================================================
-keyboard_txt:   db      '1  KEYBOAR', &C4 
-kempston_txt:   db      '1  KEMPSTO', &Ce
-sinclair_txt:   db      '1  SINCLAI', &D2
-
-knight_txt:     db      '2  KNIGH', &D4
-wizard_txt:     db      '2  WIZAR', &C4
-thief_txt:      db      '2  SERF ', &A0
-
-; ==============================================================================
-; 4. STATE TRACKERS
-; ==============================================================================
-
+        ; Shared X-coordinate
 
 
 current_menu:   dw  0
@@ -1808,6 +1764,13 @@ test_menu_loop:
                 cpl
                 bit     1, a
                 jr      nz, .handle_2   ; If '2' pressed, cycle Char
+
+                ; 2. Scan for '3' (Mode Category)
+                ld      bc, &F7FE       ; Port for 1-5 keys
+                in      a, (c)          ; Note: You need correct port for '2'
+                cpl
+                bit     2, a
+                jr      nz, .handle_3   ; If '3' pressed, cycle Mode
                 
                 jr      .tm_loop
 
@@ -1817,6 +1780,10 @@ test_menu_loop:
 
 .handle_2:
                 ld      ix, menu_descriptors + 6 ; Char is at index 1
+                jr      .cycle_state
+
+.handle_3:
+                ld      ix, menu_descriptors + 12 ; Mode is at index 2
                 jr      .cycle_state
 
 .cycle_state:
@@ -1834,10 +1801,10 @@ test_menu_loop:
                 ; 4. Debounce
 .debounce:
                 ld      a, &F7
-                out     (&FD), a
+                ;out     (&FD), a
                 in      a, (&FE)
                 cpl
-                and     &03
+                and     &07
                 jr      nz, .debounce
                 jr      .tm_loop
 
@@ -1872,6 +1839,7 @@ draw_test_menu:
                 
                 pop     bc              ; Restore category counter
                 djnz    .cat_loop       ; Repeat for all categories
+
 
                 ;pop     ix
                 ;pop     hl
@@ -1933,6 +1901,64 @@ draw_item:
                 pop     bc
                 pop     af
                 ret
+
+; ==============================================================================
+; --- Menu Descriptor Table (6 bytes per entry) ---
+; Format: dw (Ptr Table), db (Y-Coord), db (Max Items), db (State Address)
+; ==============================================================================
+menu_items      db      &03
+
+menu_descriptors:
+                ; Entry 0: Control Selection
+                dw      control_txt_table
+                db      &10, &03        ; Y=&10, Max=3
+                dw      control_state      ; State Address
+
+                ; Entry 1: Character Selection
+                dw      char_txt_table
+                db      &28, &03        ; Y=&20, Max=3
+                dw      char_state      ; State Address
+
+                ; Entry 2: Mode Selection
+                dw      mode_txt_table
+                db      &40, &03        
+                dw      mode_state      
+; ==============================================================================
+; 2. POINTER TABLES (The Directory)
+; ==============================================================================
+control_txt_table:
+                dw      keyboard_txt, kempston_txt, sinclair_txt
+
+char_txt_table:
+                dw      knight_txt, wizard_txt, thief_txt
+
+mode_txt_table:
+                dw      classicm_txt, open_txt, ground_txt
+
+
+; ==============================================================================
+; 3. OPTION TEXT (The Content)
+; ==============================================================================
+keyboard_txt:   db      '1  KEYBOAR', &C4 
+kempston_txt:   db      '1  KEMPSTO', &CE
+sinclair_txt:   db      '1  SINCLAI', &D2
+
+knight_txt:     db      '2  KNIGH', &D4
+wizard_txt:     db      '2  WIZAR', &C4
+thief_txt:      db      '2  SERF ', &A0
+
+classicm_txt:   db      '3  CLASSIC MODE    ', &A0
+open_txt:       db      '3  OPEN CASTLE MODE', &A0
+ground_txt:     db      '3  GROUND FLOOR MOD', &C5
+
+; ==============================================================================
+; 4. STATE TRACKERS
+; ==============================================================================
+
+control_state:  db      &00             ; Current index for Control (0-3)
+char_state:     db      &00             ; Current index for Character (0-2)
+mode_state:     db      &00 
+fixed_x:        equ     &58     
 
 
 print_text:

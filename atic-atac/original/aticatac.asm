@@ -2018,7 +2018,7 @@ print_text:
 
 start_game:
                 call    clear_game_data      ; clear 5E10-5FFF
-                ld      a, 0                 ; 3 lives on startup
+                ld      a, 3                 ; 3 lives on startup
                 ld      (lives), a
                 ld      hl, food_items
                 ld      (food_ptr), hl
@@ -6215,10 +6215,21 @@ loc_943D:
 
 ; prepare player to spawn
 prepare_player:
-                ld      a, (main_selection)
-                rlca
-                and     &30                  ; base character graphic
-                add     a, 8                 ; offset to desired facing direction
+                ;ld      a, (main_selection)
+                ;rlca
+                ;and     &30                  ; base character graphic
+                ;add     a, 8                 ; offset to desired facing direction
+
+                ld      a, (char_state)   ; Load 0, 1, or 2
+                
+                ; Multiply by 16 (Row Size)
+                add     a, a              ; * 2
+                add     a, a              ; * 4
+                add     a, a              ; * 8
+                add     a, a              ; * 16
+                
+                add     a, 8              ; Add Direction Offset
+
                 ld      (player_template+7), a ; set spawn graphic
                 ld      a, (player_room)     ; current player room
                 ld      (player_template+1), a ; respawn in same room
@@ -10893,20 +10904,28 @@ loc_A210:
                 ld      (hl), a              ; set attr
                 ret
 
-; draw side panel background scroll
+; ==============================================================================
+; ROUTINE: draw_side_panel
+; FLOW:    Reads char_state index and selects header map.
+; ==============================================================================
 draw_side_panel:
-                                              ; Header is customised based on character selected
-                ld      a, (main_selection)
-                and     %00011000             ; Mask bits 3 and 4 - 000DD000, '00'=Knight, '01'=Wizard, '10'=Serf
-loc_chk_kni     cp      %00000000             ; Knight selected?
-                jp      nz, loc_chk_wiz       ; Jump if not
-                ld      de, panel_hdr_kni     ; DE = panel map for Knight
+                ld      a, (char_state)       ; Load index (0, 1, or 2)
+                
+                or      a                     ; Knight selected (0)
+                jr      z, .load_kni
+                
+                cp      1                     ; Wizard selected (1)
+                jr      z, .load_wiz
+                
+                ; Fall through to Serf (2)
+.load_ser:      ld      de, panel_hdr_ser
                 jr      draw_hdr
-loc_chk_wiz     cp      %00001000             ; Wizard selected?
-                jp      nz, loc_chk_ser       ; Jump if not
-                ld      de, panel_hdr_wiz     ; DE = panel map for Wizard
+
+.load_kni:      ld      de, panel_hdr_kni
                 jr      draw_hdr
-loc_chk_ser     ld      de, panel_hdr_ser     ; DE = panel map for Serf
+
+.load_wiz:      ld      de, panel_hdr_wiz
+                jr      draw_hdr
 
 draw_hdr        ld      hl, panel_chars       ; HL = panel graphics 
                 ld      (charset_addr), hl
@@ -11174,10 +11193,20 @@ draw_panel_attrs:
 draw_lives:
                 push    ix
                 ld      ix, entity_to_draw
-                ld      a, (main_selection)
-                rlca
-                and     &30                  ; extract character type from menu
-                or      1                    ; offset to first graphic
+                ;ld      a, (main_selection)
+                ;rlca
+                ;and     &30                  ; extract character type from menu
+                ;or      1                    ; offset to first graphic
+                
+                ; Calculate character base: (char_state * 16)
+                ld      a, (char_state)
+                add     a, a              ; * 2
+                add     a, a              ; * 4
+                add     a, a              ; * 8
+                add     a, a              ; * 16
+                
+                or      1                 ; Offset to the 'life icon' sprite
+
                 ld      (ix+0), a            ; character type
                 ld      (ix+5), &47          ; bright white
                 ld      hl, lives_yx         ; coords H=Y, L=X (CHANGED FROM 8dc8 to 95c8)

@@ -1834,14 +1834,13 @@ test_menu_loop:
                 call    draw_test_menu
                 
                 ; 4. Debounce
-.debounce:
+.wait_release:
                 ld      a, &F7
                 out     (&FD), a
                 in      a, (&FE)
                 cpl
-                ;and     %0001111
                 and     &1F
-                jr      nz, .debounce
+                jr      nz, .wait_release
                 jr      .tm_loop
 
 
@@ -1949,7 +1948,7 @@ draw_item:
 ; --- Menu Descriptor Table (6 bytes per entry) ---
 ; Format: dw (Ptr Table), db (Y-Coord), db (Max Items), db (State Address)
 ; ==============================================================================
-menu_items      db      &05
+menu_items      db      &06
 
 menu_descriptors:
                 ; Entry 0: Control Selection
@@ -5746,9 +5745,12 @@ draw_rot_obj:
 ; return if player has required key (C if opened, NC if locked)
 check_key_colour:
                                              
-                ld      a, (mod_selection)   ; LOGIC: IF MOD SELECTED BYPASS_KEY_CHK
-                and     3
-                cp      2                    ; mod option 2 selected?
+                ;ld      a, (mod_selection)   ; LOGIC: IF MOD SELECTED BYPASS_KEY_CHK
+                ;and     3
+                ;cp      2                    ; mod option 2 selected?
+                ld      a, (mode_state)
+                cp      1                    ; option 1 (open castle) selected
+
                 jp z,   bypass_key_chk       ; jump if so
                 ld      a, (ix+0)
                 and     3                    ; locked door colour index
@@ -5758,7 +5760,8 @@ check_key_colour:
                 ld      e, &81               ; key graphic
                 call    check_carrying       ; is player carrying the required key colour?
                 jp      nz, loc_923F         ; jump if not
-bypass_key_chk  call    enter_door           ; enter linked object (door etc.)
+
+bypass_key_chk:  call    enter_door           ; enter linked object (door etc.)
                 ld      bc, &1111            ; 17x17 size
                 jp      check_exit           ; check if player has left through a door
 loc_923F:
@@ -6238,31 +6241,31 @@ h_blank:
                 ret
                 
 h_barrel:
-                ld      a, (mod_selection)      ; LOGIC: IF MOD SELECTED BYPASS_CHAR_CHK
-                and     3
-                cp      2
-                jp z,   bypass_char_chk
+                ld      a, (mode_state)      
+                cp      1                   ; 1 = Open castle mode selected?
+                jp z,   bypass_char_chk     ; jump if so
                 ld      a, (player)
                 sub     &21                  ; subtract serf base graphic
                 jr      loc_9433
 h_bookcase:
-                ld      a, (mod_selection)      ; LOGIC: IF MOD SELECTED BYPASS_CHAR_CHK
-                and     3
-                cp      2
-                jp z,   bypass_char_chk
+                ld      a, (mode_state)      
+                cp      1                   ; 1 = Open castle mode selected?
+                jp z,   bypass_char_chk     ; jump if so
+                
                 ld      a, (player)
                 sub     &11                  ; subtract wizard base graphic
                 jr      loc_9433
 h_clock:
-                ld      a, (mod_selection)      ; LOGIC: IF MOD SELECTED BYPASS_CHAR_CHK
-                and     3
-                cp      2
-                jp z,   bypass_char_chk
+                ld      a, (mode_state)      
+                cp      1                   ; 1 = Open castle mode selected?
+                jp z,   bypass_char_chk     ; jump if so
+
                 ld      a, (player)
                 dec     a                    ; subtract knight base graphic
 loc_9433:
                 cp      &10                  ; required player type to pass through?
                 jr      nc, loc_943D         ; jump if not
+
 bypass_char_chk call    enter_door           ; enter linked object (door etc.)
                 jp      h_door_exit          ; door exit handler
 loc_943D:

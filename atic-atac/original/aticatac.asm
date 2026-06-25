@@ -1748,8 +1748,9 @@ loc_7CC1:
 ; ==============================================================================
 test_menu_loop:
                 call    clear_screen
-.tm_loop:
                 call    draw_test_menu
+.tm_loop:
+                
 
                 ; 1. Scan for '1' (Control Category)
                 ld      bc, &F7FE       ; Port for 1-5 keys
@@ -1777,7 +1778,14 @@ test_menu_loop:
                 in      a, (c)          
                 cpl
                 bit     3, a
-                jr      nz, .handle_4   ; If '3' pressed, cycle Mode
+                jr      nz, .handle_4   ; If '4' pressed, cycle Mode
+
+                ; 5. Scan for '5' (Settings Category)
+                ld      bc, &F7FE       ; Port for 1-5 keys
+                in      a, (c)          
+                cpl
+                bit     4, a
+                jr      nz, .handle_5   ; If '5' pressed, cycle Mode
 
 
                 ; 6. Scan for '0' (Start Game)
@@ -1808,6 +1816,10 @@ test_menu_loop:
                 ld      ix, menu_descriptors + 18 ; Mode is at index 3
                 jr      .cycle_state
 
+.handle_5:
+                ld      ix, menu_descriptors + 24 ; Mode is at index 4
+                jr      .cycle_state
+
 .cycle_state:
                 ; Now we have the correct IX for the target category
                 ld      l, (ix+4)
@@ -1819,6 +1831,7 @@ test_menu_loop:
                 xor     a
 .store:         ld      (hl), a
                 call    drop_sound
+                call    draw_test_menu
                 
                 ; 4. Debounce
 .debounce:
@@ -1827,7 +1840,7 @@ test_menu_loop:
                 in      a, (&FE)
                 cpl
                 ;and     %0001111
-                and     &0F
+                and     &1F
                 jr      nz, .debounce
                 jr      .tm_loop
 
@@ -1862,6 +1875,13 @@ draw_test_menu:
                 
                 pop     bc              ; Restore category counter
                 djnz    .cat_loop       ; Repeat for all categories
+
+                ld      hl, &b800           ; copyright at 0,184
+                ld      de, copyright_msg
+                call    colour_text          ; show a line of text, first byte is attr
+                ld      hl, &20              ; header at 32,0
+                ld      de, header_msg
+                jp      colour_text          ; show a line of text, first byte is attr
 
 
                 ;pop     ix
@@ -1929,7 +1949,7 @@ draw_item:
 ; --- Menu Descriptor Table (6 bytes per entry) ---
 ; Format: dw (Ptr Table), db (Y-Coord), db (Max Items), db (State Address)
 ; ==============================================================================
-menu_items      db      &04
+menu_items      db      &05
 
 menu_descriptors:
                 ; Entry 0: Control Selection
@@ -1945,9 +1965,19 @@ menu_descriptors:
                 ; Entry 2: Mode Selection
                 dw      mode_txt_table
                 db      &40, &02        
-                dw      mode_state 
+                dw      mode_state
 
                 ; Entry 3: Quest Selection
+                dw      quest_txt_table
+                db      &58, &03
+                dw      quest_state 
+
+                ; Entry 4: Quest Selection
+                dw      settings_txt_table
+                db      &70, &03
+                dw      settings_state 
+
+                ; Entry 0: Start_Game
                 dw      start_txt_table
                 db      &a0, &01
                 dw      start_state 
@@ -1971,6 +2001,9 @@ mode_txt_table:
 quest_txt_table:
                 dw      classicq_txt, ground_txt, collect5_txt
 
+settings_txt_table:
+                dw      classics_txt, auto_pickup_txt, random_start_txt
+
 start_txt_table dw      start_txt
 
 
@@ -1992,7 +2025,19 @@ classicq_txt:   db      '4  CLASSIC QUEST    ', &A0
 ground_txt:     db      '4  GROUND FLOOR MINI', &A0
 collect5_txt:   db      '4  COLLECT 5 ITEMS  ', &A0
 
-start_txt:      db      '0  STAR', &d4   
+classics_txt:   db      '5  CLASSIC SETTINGS', &A0
+auto_pickup_txt:db      '5  AUTO PICKUP     ', &A0
+random_start_txt:   db      '5  RANDOM START ROO', &CD
+
+start_txt:      db      '0  STAR', &d4 
+
+copyright_msg : db  &47
+                db  '%1983 A.C.G. ALL RIGHTS RESERVE'
+                db  &c4
+
+header_msg:    db  &47
+                db  'ATICATAC GAME SELECTIO'
+                db  &ce  
 
 ; ==============================================================================
 ; 4. STATE TRACKERS
@@ -2002,6 +2047,7 @@ control_state:  db      &00             ; Current index for Control (0-3)
 char_state:     db      &00             ; Current index for Character (0-2)
 mode_state:     db      &00 
 quest_state:    db      &00
+settings_state: db      &00
 start_state:    db      &00 
 fixed_x:        equ     &58     
 

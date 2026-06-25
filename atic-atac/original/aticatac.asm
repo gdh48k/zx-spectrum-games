@@ -4087,10 +4087,20 @@ game_story:
 
 draw_escapee:
                 ld      ix, entity_to_draw      ; Point to active entity buffer
-                ld      a, (main_selection)     ; Load user character selection
-                rlca                            ; Shift for type extraction
-                and     &30                     ; Extract character type from menu
-                or      7                       ; Offset to first graphic
+                ;ld      a, (main_selection)     ; Load user character selection
+                ;rlca                            ; Shift for type extraction
+                ;and     &30                     ; Extract character type from menu
+                ;or      7                       ; Offset to first graphic
+
+                ld      a, (char_state)   ; Load 0, 1, or 2
+                
+                ; Multiply by 16 (Row Size)
+                add     a, a              ; * 2
+                add     a, a              ; * 4
+                add     a, a              ; * 8
+                add     a, a              ; * 16
+                
+                or      7                 ; Add Direction Offset
 
                 ld      (ix+0), a               ; Store character type ID
                 ld      (ix+5), &47             ; Set attribute: bright white

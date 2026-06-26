@@ -1780,7 +1780,7 @@ test_menu_loop:
                 bit     3, a
                 jr      nz, .handle_4   ; If '4' pressed, cycle Mode
 
-                ; 5. Scan for '5' (Settings Category)
+                ; 5. Scan for '5' (Start Room Category)
                 ld      bc, &F7FE       ; Port for 1-5 keys
                 in      a, (c)          
                 cpl
@@ -1788,11 +1788,19 @@ test_menu_loop:
                 jr      nz, .handle_5   ; If '5' pressed, cycle Mode
 
 
+                ; 6. Scan for '6' (Pick Up Category)
+                ld      bc, &EFFE       ; Port for 6-0 keys
+                in      a, (c)          ; 
+                cpl
+                bit     4, a            ; Bit 0 o0f this port is '6'
+                jp      nz, .handle_6  ; If '6' pressed, cycle Pickup
+
+
                 ; 6. Scan for '0' (Start Game)
                 ld      bc, &EFFE       ; Port for 6-0 keys
                 in      a, (c)          ; 
                 cpl
-                bit     0, a            ; Bit 0 of this port is '0'
+                bit     0, a            ; Bit 4 of this port is '0'
                 jp      nz, start_game  ; If '0' pressed, start game
 
                 
@@ -1820,6 +1828,10 @@ test_menu_loop:
                 ld      ix, menu_descriptors + 24 ; Mode is at index 4
                 jr      .cycle_state
 
+.handle_6:
+                ld      ix, menu_descriptors + 30 ; Mode is at index 4
+                jr      .cycle_state
+
 .cycle_state:
                 ; Now we have the correct IX for the target category
                 ld      l, (ix+4)
@@ -1835,13 +1847,23 @@ test_menu_loop:
                 
                 ; 4. Debounce
 .wait_release:
+                ; Check row 1-5
                 ld      a, &F7
                 out     (&FD), a
                 in      a, (&FE)
                 cpl
                 and     &1F
                 jr      nz, .wait_release
-                jr      .tm_loop
+
+                ; Check row 6-0
+                ld      a, &EF
+                out     (&FD), a
+                in      a, (&FE)
+                cpl
+                and     &1F             ; Bits 0-4 cover 6, 7, 8, 9, 0
+                jr      nz, .wait_release
+
+                jp      .tm_loop
 
 
 ; ==============================================================================
@@ -1948,7 +1970,7 @@ draw_item:
 ; --- Menu Descriptor Table (6 bytes per entry) ---
 ; Format: dw (Ptr Table), db (Y-Coord), db (Max Items), db (State Address)
 ; ==============================================================================
-menu_items      db      &06
+menu_items      db      &07
 
 menu_descriptors:
                 ; Entry 0: Control Selection
@@ -1971,10 +1993,15 @@ menu_descriptors:
                 db      &58, &03
                 dw      quest_state 
 
-                ; Entry 4: Feature Selection
-                dw      feature_txt_table
-                db      &70, &03
-                dw      feature_state 
+                ; Entry 4: First Room Selection
+                dw      first_txt_table
+                db      &70, &02
+                dw      first_state 
+
+                ; Entry 4: Pick up Selection
+                dw      pickup_txt_table
+                db      &88, &02
+                dw      pickup_state 
 
                 ; Entry 0: Start_Game
                 dw      start_txt_table
@@ -2000,8 +2027,11 @@ mode_txt_table:
 quest_txt_table:
                 dw      classicq_txt, ground_txt, collect5_txt
 
-feature_txt_table:
-                dw      classics_txt, auto_pickup_txt, random_start_txt
+first_txt_table:
+                dw      acg_txt, random_txt
+
+pickup_txt_table:
+                dw      manual_txt, auto_txt
 
 start_txt_table dw      start_txt
 
@@ -2017,26 +2047,28 @@ knight_txt:     db      '2  KNIGH', &D4
 wizard_txt:     db      '2  WIZAR', &C4
 thief_txt:      db      '2  SERF ', &A0
 
-classicm_txt:   db      '3  CLASSIC MODE    ', &A0
-open_txt:       db      '3  OPEN CASTLE MODE', &A0
+classicm_txt:   db      '3  CLASSIC MODE   ', &A0
+open_txt:       db      '3  OPEN CASTLE MOD', &C5  
 
 classicq_txt:   db      '4  CLASSIC QUEST   ', &A0
 ground_txt:     db      '4  GROUND FLOOR ONL', &D9  
-collect5_txt:   db      '4  COLLECT 5 ITEMS ', &A0
+collect5_txt:   db      '4  COLLECT 3 ITEMS ', &A0
 
-classics_txt:   db      '5  CLASSIC FEATURES', &A0  
-auto_pickup_txt:db      '5  AUTO PICKUP     ', &A0
-random_start_txt:   db  '5  RANDOM START ROO', &CD
+acg_txt:        db      '5  ACG START ROOM  ', &A0  
+random_txt:     db      '5  RANDOM START ROO', &CD
+
+manual_txt:     db      '6  MANUAL PICKU', &D0
+auto_txt:       db      '6  AUTO PICKUP ', &A0
 
 start_txt:      db      '0  STAR', &d4 
 
-copyright_msg : db  &47
-                db  '%1983 A.C.G. ALL RIGHTS RESERVE'
-                db  &c4
+copyright_msg : db      &47
+                db      '%1983 A.C.G. ALL RIGHTS RESERVE'
+                db      &c4
 
-header_msg:    db  &47
-                db  'ATICATAC GAME SELECTIO'
-                db  &ce  
+header_msg:     db      &47
+                db      'ATICATAC GAME SELECTIO'
+                db      &ce  
 
 ; ==============================================================================
 ; 4. STATE TRACKERS
@@ -2046,8 +2078,9 @@ control_state:  db      &00             ; Current index for Control (0-3)
 char_state:     db      &00             ; Current index for Character (0-2)
 mode_state:     db      &00 
 quest_state:    db      &00
-feature_state:  db      &00
-start_state:    db      &00 
+first_state:    db      &00
+start_state:    db      &00
+pickup_state:   db      &00 
 fixed_x:        equ     &58     
 
 
@@ -4023,7 +4056,7 @@ item_max        equ     15
 item_history:   defs    item_max * 2    
 item_count:     db      0 
 row_max         equ     14
-item_quest:     db      3               
+item_quest:     db      1               
 
 ; Structure per slot:
 ; Offset +0: Sprite ID
@@ -4657,6 +4690,10 @@ chk_match:
                 
                 ld      hl, item_count          ; Increment global count
                 inc     (hl)
+
+                ld      a, (quest_state)
+                cp      2                       ; 2 = item3_quest
+                ret     nz 
 
 chk_quest:      ld      a, (hl)
                 ld      hl, item_quest
@@ -5928,7 +5965,7 @@ h_pickup_item:
 
                 ; --- 3. AUTO / MANUAL TOGGLE ---
 
-                ld      a, (feature_state)
+                ld      a, (pickup_state)
                 cp      0                    ; option 0 - manual pick up
                 jp      z,   man_logic       ; jump if selection
                 
@@ -6605,7 +6642,7 @@ start_room_mod:
                 ;ld      a, (mod_selection)
                 ;and     16                  ; Mask Bit 4 (%00010000)
                 
-                ld      a, (feature_state)
+                ld      a, (start_state)
                 cp      0                   ; 0 = classic start?
 
                 jr      z, srm_exit         ; jump if start

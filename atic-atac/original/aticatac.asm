@@ -1971,10 +1971,10 @@ menu_descriptors:
                 db      &58, &03
                 dw      quest_state 
 
-                ; Entry 4: Quest Selection
-                dw      settings_txt_table
+                ; Entry 4: Feature Selection
+                dw      feature_txt_table
                 db      &70, &03
-                dw      settings_state 
+                dw      feature_state 
 
                 ; Entry 0: Start_Game
                 dw      start_txt_table
@@ -2000,7 +2000,7 @@ mode_txt_table:
 quest_txt_table:
                 dw      classicq_txt, ground_txt, collect5_txt
 
-settings_txt_table:
+feature_txt_table:
                 dw      classics_txt, auto_pickup_txt, random_start_txt
 
 start_txt_table dw      start_txt
@@ -2020,13 +2020,13 @@ thief_txt:      db      '2  SERF ', &A0
 classicm_txt:   db      '3  CLASSIC MODE    ', &A0
 open_txt:       db      '3  OPEN CASTLE MODE', &A0
 
-classicq_txt:   db      '4  CLASSIC QUEST    ', &A0
-ground_txt:     db      '4  GROUND FLOOR MINI', &A0
-collect5_txt:   db      '4  COLLECT 5 ITEMS  ', &A0
+classicq_txt:   db      '4  CLASSIC QUEST   ', &A0
+ground_txt:     db      '4  GROUND FLOOR ONL', &D9  
+collect5_txt:   db      '4  COLLECT 5 ITEMS ', &A0
 
-classics_txt:   db      '5  CLASSIC SETTINGS', &A0
+classics_txt:   db      '5  CLASSIC FEATURES', &A0  
 auto_pickup_txt:db      '5  AUTO PICKUP     ', &A0
-random_start_txt:   db      '5  RANDOM START ROO', &CD
+random_start_txt:   db  '5  RANDOM START ROO', &CD
 
 start_txt:      db      '0  STAR', &d4 
 
@@ -2046,7 +2046,7 @@ control_state:  db      &00             ; Current index for Control (0-3)
 char_state:     db      &00             ; Current index for Character (0-2)
 mode_state:     db      &00 
 quest_state:    db      &00
-settings_state: db      &00
+feature_state:  db      &00
 start_state:    db      &00 
 fixed_x:        equ     &58     
 
@@ -5928,14 +5928,10 @@ h_pickup_item:
 
                 ; --- 3. AUTO / MANUAL TOGGLE ---
 
-                ld      a, (mod_selection)   ; LOGIC: IF MOD NOT SELECTED JUMP TO MANUAL LOGIC
-                and     8
-                jp      z,   man_logic       ; 
-
-                ;ld      a, (auto_pickup_flag)
-                ;and     a
-                ;jr      z, man_logic
-
+                ld      a, (feature_state)
+                cp      0                    ; option 0 - manual pick up
+                jp      z,   man_logic       ; jump if selection
+                
 auto_logic:
                 ; --- 4A. AUTO PICKUP LOGIC ---
                 ld      a, (player)

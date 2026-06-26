@@ -6602,9 +6602,13 @@ gf_doors:
 start_room_mod:
                 
                 ; --- Check if Mod 6 (Bit 4) is active ---
-                ld      a, (mod_selection)
-                and     16                  ; Mask Bit 4 (%00010000)
-                jr      z, srm_exit         ; If bit is 0, use default start
+                ;ld      a, (mod_selection)
+                ;and     16                  ; Mask Bit 4 (%00010000)
+                
+                ld      a, (feature_state)
+                cp      0                   ; 0 = classic start?
+
+                jr      z, srm_exit         ; jump if start
 
                 ; --- Random Start Room Mod ---
 

@@ -2037,11 +2037,11 @@ start_txt_table dw      start_txt
 
 
 ; ==============================================================================
-; 3. OPTION TEXT (The Content)
+; 3. OPTION TEXT 
 ; ==============================================================================
 keyboard_txt:   db      '1  KEYBOAR', &C4 
 kempston_txt:   db      '1  KEMPSTO', &CE
-sinclair_txt:   db      '1  SINCLAI', &D2
+sinclair_txt:   db      '1  CURSOR ', &A0
 
 knight_txt:     db      '2  KNIGH', &D4
 wizard_txt:     db      '2  WIZAR', &C4
@@ -5782,9 +5782,6 @@ draw_rot_obj:
 ; return if player has required key (C if opened, NC if locked)
 check_key_colour:
                                              
-                ;ld      a, (mod_selection)   ; LOGIC: IF MOD SELECTED BYPASS_KEY_CHK
-                ;and     3
-                ;cp      2                    ; mod option 2 selected?
                 ld      a, (mode_state)
                 cp      1                    ; option 1 (open castle) selected
 
@@ -6398,25 +6395,29 @@ set_acg_positions:
                 add     a, c            ; (Index * 2) + Index = Offset
                 
                 
-                ; --- APPLY OFFSET MOD HERE ---
-                ld      c, a                 ; Temporarily save our index (0-21)
-                ld      a, (mod_selection)
-                and     %00000100            ; Check Bit 2
-                jr      z, no_offset
-                ld      a, 24                ; If Bit 2 set, add 24 to skip to next table block
-                add     a, c
+                ; --- Check Quest selection ---
+                ld      c, a                    ; Save index
+                ld      a, (quest_state)
+                cp      1                       ; 1 = Ground Floor?
+                jr      z, .add_offset          ; If so, add offset
+                
+                ; Classic Mode (0 or other)
+                ld      a, c
                 jr      final_index
-no_offset:      ld      a, c
-final_index:    ; --- END MOD ---
+
+.add_offset:    ld      a, 24                   ; Skip to Ground Floor block
+                add     a, c
+
+final_index:    
 
                 ld      l, a
                 ld      h, 0
                 ld      bc, acg_key_rooms
                 add     hl, bc
                 ex      de, hl
-                ld      hl,  acg_key_init+1  ; first key piece room
-                ld      bc, 8                ; 8 bytes per entity
-                ld      a, 3                 ; 3 key pieces
+                ld      hl, acg_key_init+1  ; first key piece room
+                ld      bc, 8               ; 8 bytes per entity
+                ld      a, 3                ; 3 key pieces
 loc_94D3:
                 ex      af, af'
                 ld      a, (de)
@@ -6567,81 +6568,96 @@ loc_95A3:
                 ld      (in_doorway), a      ; non-zero if in a doorway
                 pop     de
                 ret
-; ---------------------------------------------------------------------------
-; mod: hides/restores status of doors relevant to single floor game
-; ---------------------------------------------------------------------------
-
+; ==============================================================================
+; Routine: gf_mod
+; Flow:    Determines the active door configuration based on quest_state.
+;          Reads 'gf_doors' table and writes payload data to door objects.
+; Inputs:  (quest_state) - 1: Ground Floor Mod, Others: Classic
+; Outputs: Updates 6 door/trap object structures in game memory.
+; ==============================================================================
 gf_mod:
+                ld      a, (quest_state)
+                cp      1
+                jr      z, .set_offset
+                ld      c, 0                    ; Offset 0: Classic mode
+                jr      .start_loop
+.set_offset:
+                ld      c, 4                    ; Offset 4: Ground Floor mod
 
-                ld      a, (mod_selection)
-                and     %00000100
-                ld      c, a                ; C = offset = 4 (mod selection) or 0 (not selected)
-                
+.start_loop:
                 ld      hl, gf_doors
-                ld      b, 6                ; B = no of doors to be hidden/restored
+                ld      b, 6                    ; Door count
 gf_loop:
-                ld      e, (hl)             ; LSB of door address
+                ld      e, (hl)                 ; Get door object address (LSB)
                 inc     hl
-                ld      d, (hl)             ; MSB of door address
+                ld      d, (hl)                 ; Get door object address (MSB)
                 inc     hl
                 
                 push    de
-                pop     ix                  ; IX = DE = Target Object
+                pop     ix                      ; IX = Target object memory
 
-                ; --- Calculate Pointer to correct data ---
-                push    hl                  ; Store HL (position in gf_doors)
-                ld      a, l                 
-                add     a, c                 
-                ld      l, a                ; HL = HL + Offset (HL+4 = B4-B7 in gf_doors)
-                jr      nc, gf_transfer     ; NC = No Carry (Same Page)
-                inc     h                   ; Carry = Page Boundary Cross
+                ; --- Calculate Pointer to Payload ---
+                push    hl                      ; Save table position
+                ld      a, l
+                add     a, c                    ; Add offset (0 or 4)
+                ld      l, a
+                jr      nc, gf_transfer
+                inc     h                       ; Handle 256-byte page cross
 gf_transfer:
-                ; --- Unified Data Transfer (3 Bytes) ---
-                ld      a, (hl)
-                ld (ix+0), a  ; Type
+                ; --- Apply Payload Data ---
+                ld      a, (hl)                 ; Byte 0: Type
+                ld      (ix+0), a
                 inc     hl
-                ld      a, (hl)
-                ld (ix+2), a  ; Gfx
+                ld      a, (hl)                 ; Byte 1: Gfx
+                ld      (ix+2), a
                 inc     hl
-                ld      a, (hl)
-                ld (ix+4), a  ; Y-Coord
+                ld      a, (hl)                 ; Byte 2: Y-Coord
+                ld      (ix+4), a
                 inc     hl
-                ld      a, (hl)
-                ld (ix+6), a  ; Attribute
+                ld      a, (hl)                 ; Byte 3: Attribute
+                ld      (ix+6), a
                 
-                pop     hl                  ; Restore HL (position in gf_doors plus offset)
-                ld      de, 8               ; 
-                add     hl, de              ; HL = next door (8 bytes ahead))
+                pop     hl                      ; Restore table position
+                ld      de, 8                   ; Stride to next DW header
+                add     hl, de
                 
-                djnz    gf_loop             ; Loop while B <> 0
+                djnz    gf_loop
                 ret
 
 gf_doors:
 ; ---------------------------------------------------------------------------
-; dw = door address; db B0-B3 'display' door values; db B4-B7 'hide' door values
+; Format: dw pointer, db open_data (4 bytes), db closed_data (4 bytes)
 ; ---------------------------------------------------------------------------
                 dw door_1A_06
-                db &02, &34, &3f, &04, &25, &00, &38, 0   
+1A_06_open:     db &02, &34, &3f, &04
+1A_06_closed:   db &25, &00, &38, &00
+
                 dw door_03_26
-                db &02, &34, &97, &04, &25, &00, &97, 0
+03_26_open:     db &02, &34, &97, &04
+03_26_closed:   db &25, &00, &97, &00
+
                 dw door_70_71_s
-                db &02, &34, &1f, &04, &25, &00, &17, 0
+70_71_open:     db &02, &34, &1f, &04
+70_71_closed:   db &25, &00, &17, &00
+
                 dw trap_03_65
-                db &19, &34, &70, &24, &1b, &34, &74, &24
+03_65_open:     db &19, &34, &70, &24
+03_65_closed:   db &1b, &34, &74, &24
+
                 dw trap_15_66
-                db &19, &34, &80, &24, &1b, &34, &74, &24
+15_66_open:     db &19, &34, &80, &24
+15_66_closed:   db &1b, &34, &74, &24
+
                 dw trap_73_74
-                db &19, &34, &70, &24, &1b, &34, &70, &24
+73_74_open:     db &19, &34, &70, &24
+73_74_closed:   db &1b, &34, &70, &24
 
 
 ; --- Random Start Room Mod ---
 
 start_room_mod:
                 
-                ; --- Check if Mod 6 (Bit 4) is active ---
-                ;ld      a, (mod_selection)
-                ;and     16                  ; Mask Bit 4 (%00010000)
-                
+                            
                 ld      a, (start_state)
                 cp      0                   ; 0 = classic start?
 
@@ -8952,37 +8968,46 @@ mushroom_death:
                 ld      (ix+0), 0            ; remove mushroom
                 jp      player_dead
 
-; set positions of red/green/cyan keys, and mummy
-                
+; ==============================================================================
+; Routine: set_key_positions
+; ------------------------------------------------------------------------------
+; Flow:    Sets key and mummy room locations by selecting a random room from 
+;          the active quest-specific pool.
+; Inputs:  (quest_state) - 1: Ground Floor, Others: Classic
+; Outputs: Updates internal init locations for Green/Red/Cyan keys and Mummy.
+; ==============================================================================
 set_key_positions:
-                ld      a, (mod_selection)
-                and     %00000100
-                add     a, a
-                ld      e, a                
-                ld      d, 0
+                ld      a, (quest_state)
+                cp      1
+                jr      z, .is_gf_mod           ; If Quest 1, use offset 8
+                ld      e, 0                    ; Offset 0 (Classic)
+                jr      .set_keys
+.is_gf_mod:
+                ld      e, 8                    ; Offset 8 (Ground Floor)
+.set_keys:
+                ld      d, 0                    ; DE = Offset (0 or 8)
+
                 ; --- Green Key ---
                 ld      hl, green_key_rooms
                 add     hl, de
                 ld      a, (sysvar_FRAMES)
                 ld      b, a
-                ld      a, r                ; Mix with R register
-                xor     b                   ; A is now "randomized"
+                ld      a, r                    ; Mix with R register
+                xor     b
                 call    get_key_room
-                ld      (green_key_init+1), a ; set green key room
-                ld      a, (sysvar_FRAMES)
-                ld      c, a
-                ld      a, (counter_low)
-                add     a, c
-                ; --- Red Key ---
+                ld      (green_key_init+1), a   ; Set green key room
+
+                ; --- Red Key & Mummy ---
                 ld      hl, red_key_rooms
                 add     hl, de
                 ld      a, (counter_low)
                 ld      b, a
-                ld      a, r                ; Mix R again
-                add     a, b                ; Use ADD for a different spread
+                ld      a, r
+                add     a, b
                 call    get_key_room
-                ld      (red_key_init+1), a  ; set red key room
-                ld      (byte_640D+1), a     ; set Mummy room to match
+                ld      (red_key_init+1), a     ; Set red key room
+                ld      (byte_640D+1), a        ; Set Mummy room to match
+
                 ; --- Cyan Key ---
                 ld      hl, cyan_key_rooms
                 add     hl, de
@@ -8994,25 +9019,35 @@ set_key_positions:
                 ld      a, r
                 xor     b
                 call    get_key_room
-                ld      (cyan_key_init+1), a ; set cyan key room
+                ld      (cyan_key_init+1), a    ; Set cyan key room
                 ret
 
+; ==============================================================================
+; Routine: get_key_room
+; ------------------------------------------------------------------------------
+; Flow:    Randomly selects a room from the 8-byte pool pointed to by HL.
+; Inputs:  HL = Pointer to current 8-byte room pool, A = Random seed.
+; Outputs: A = Selected room ID.
+; ==============================================================================
 get_key_room:
-                and     7
+                and     7                       ; Constrain to 0-7
                 ld      c, a
                 ld      b, 0
                 add     hl, bc
                 ld      a, (hl)
                 ret
 
-green_key_rooms:db  5, 6, 7, &6d, &25, &24, &23, &22
-                ;db  1, 2, 3, 4, 5, 6, 7, &19, &6d
-                db  18, &07, &05, 4, &6e, 6, 2, &6d
-red_key_rooms:  db  &17, &13, 9, &0d, &89, &87, &80, &85
-                db  &17, 3, 5, 7, 9, &13, &17, &0D
-                ;db  &0f, &0b, &0D, &0e, &6f, &10, &70
-cyan_key_rooms: db  &53, &8f, &41, &94, &33, &91, &39, &4c
-                db  &00, &00, &00, &00, &06, &07, &0A, &6B
+green_key_rooms:
+green_classic:  db  5, 6, 7, &6d, &25, &24, &23, &22
+green_acg:      db  18, &07, &05, 4, &6e, 6, 2, &6d
+
+red_key_rooms:
+red_classic:    db  &17, &13, 9, &0d, &89, &87, &80, &85
+red_acg:      db  &17, 3, 5, 7, 9, &13, &17, &0D
+
+cyan_key_rooms: 
+cyan_classic    db  &53, &8f, &41, &94, &33, &91, &39, &4c
+cyan_acg        db  &00, &00, &00, &00, &06, &07, &0A, &6B
 
 ; periodically replenish consumed food
 replenish_food:

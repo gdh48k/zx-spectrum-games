@@ -1990,7 +1990,7 @@ menu_descriptors:
 
                 ; Entry 3: Quest Selection
                 dw      quest_txt_table
-                db      &58, &03
+                db      &58, &05
                 dw      quest_state 
 
                 ; Entry 4: First Room Selection
@@ -2022,10 +2022,10 @@ char_txt_table:
                 dw      knight_txt, wizard_txt, thief_txt
 
 mode_txt_table:
-                dw      classicm_txt, open_txt
+                dw      classicm_txt, explorer_txt
 
 quest_txt_table:
-                dw      classicq_txt, ground_txt, collect5_txt
+                dw      classicq_txt, ground_txt, collect5_txt, collect10_txt, collect15_txt
 
 first_txt_table:
                 dw      acg_txt, random_txt
@@ -2047,12 +2047,14 @@ knight_txt:     db      '2  KNIGH', &D4
 wizard_txt:     db      '2  WIZAR', &C4
 thief_txt:      db      '2  SERF ', &A0
 
-classicm_txt:   db      '3  CLASSIC MODE   ', &A0
-open_txt:       db      '3  OPEN CASTLE MOD', &C5  
+classicm_txt:   db      '3  CLASSIC MODE', &A0
+explorer_txt:   db      '3  EXPLORER MOD', &C5  
 
 classicq_txt:   db      '4  CLASSIC QUEST   ', &A0
 ground_txt:     db      '4  GROUND FLOOR ONL', &D9  
-collect5_txt:   db      '4  COLLECT 3 ITEMS ', &A0
+collect5_txt:   db      '4  COLLECT 5 ITEMS ', &A0
+collect10_txt:   db      '4  COLLECT 10 ITEMS ', &A0
+collect15_txt:   db      '4  COLLECT 15 ITEMS ', &A0
 
 acg_txt:        db      '5  ACG START ROOM  ', &A0  
 random_txt:     db      '5  RANDOM START ROO', &CD
@@ -2210,6 +2212,9 @@ decor_loop:
                 ld      hl, game_flags       ; b0 set if room content drawn
                 bit     0, (hl)              ; room drawn yet?
                 jr      nz, loc_7E55         ; jump if so
+
+                
+
                 call    draw_entities        ; draw all non-monster entities in the current room
 loc_7E55:
                 ld      hl, game_flags       ; b0 set if room content drawn
@@ -4680,26 +4685,46 @@ chk_match:
                 ld      h, 0
                 add     hl, hl                  ; Multiply by 2 (2-byte stride)
                 ld      de, item_history
-                add     hl, de                  ; HL points to destination
+                add     hl, de                  ; HL points to destination slot
 
+                ; --- Store new item into history ---
                 ld      a, (ix+0)               ; Offset +0: Sprite ID
                 ld      (hl), a                 ; Store Sprite ID
-                inc     hl
+                inc     hl                      ; Point to Attribute
                 ld      a, (ix+5)               ; Offset +5: Attribute
                 ld      (hl), a                 ; Store Attribute
                 
-                ld      hl, item_count          ; Increment global count
-                inc     (hl)
+                ; --- Increment global item_count ---
+                ld      de, item_count          ; DE points to count
+                ld      a, (de)                 ; Load count into A
+                inc     a                       ; Increment
+                ld      (de), a                 ; Store back to item_count
 
+                ; --- Quest Logic ---
                 ld      a, (quest_state)
-                cp      2                       ; 2 = item3_quest
-                ret     nz 
+                cp      2                       ; Lower bound (2)
+                ret     c                       ; Return if < 2
+                cp      5                       ; Upper bound (5)
+                ret     nc                      ; Return if >= 5
 
-chk_quest:      ld      a, (hl)
-                ld      hl, item_quest
-                cp      (hl)
-                ret     nz
-                jp      quest_complete
+                ; --- Map Quest State to Goal ---
+                sub     2                       ; Map 2,3,4 to 0,1,2 offset
+                ld      e, a
+                ld      d, 0
+                ld      hl, quest_map
+                add     hl, de                  ; HL points to goal
+                ld      a, (hl)
+                ld      (item_quest), a         ; Store goal (5, 10, or 15)
+
+                ; --- Compare Count to Goal ---
+                ld      hl, item_count          ; Pointer to tally
+                ld      a, (hl)                 ; A = item_count
+                ld      hl, item_quest          ; Pointer to goal
+                cp      (hl)                    ; Compare current tally to goal
+                ret     nz                      ; If not match, return
+                jp      quest_complete          ; Goal met
+
+quest_map:      db      5, 10, 15               ; Map: State 2=5, 3=10, 4=15
                 
 
 
@@ -5883,9 +5908,11 @@ loc_9295:
                 ld      a, (ix+0)
                 and     a                    ; slot used?
                 jr      z, loc_92A6          ; jump if not
+
                 ld      a, (player_room)
                 cp      (ix+1)               ; in player room?
                 jr      nz, loc_92A6         ; jump if not
+
                 call    draw_entity          ; draw entity graphic (no attrs)
 loc_92A6:
                 ld      de, 8                ; 8 bytes per entry
@@ -5896,6 +5923,7 @@ loc_92A6:
                 and     a
                 sbc     hl, de               ; more 8-byte entries to process?
                 jr      c, loc_9295          ; jump back if so
+
 loc_92B6:
                 ld      a, (ix+0)
                 and     a                    ; slot used?
@@ -5903,6 +5931,7 @@ loc_92B6:
                 ld      a, (player_room)
                 cp      (ix+1)               ; in player room?
                 jr      nz, loc_92C7         ; jump if not
+                
                 call    draw_entity          ; draw entity graphic (no attrs)
 loc_92C7:
                 ld      de, &10              ; 16 bytes per entry

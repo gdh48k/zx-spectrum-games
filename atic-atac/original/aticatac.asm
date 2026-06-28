@@ -1567,13 +1567,14 @@ reset_menu:
                 ;ld      (hl), 0              ; clear main_menu_selection
 
 init_menu:
-                call    clear_screen         ; clear display, attributes, and set black border
-                ld      hl, (current_menu)           
-                ld      de, mod_menu_data
-                or      a
-                sbc     hl, de               ;  current menu is mod menu?   
-                jp      z, menu_loop         ;  jp if so
-                call    draw_menu_icons      ; draw menu icons for controls and player acharacters
+                ;call    clear_screen         ; clear display, attributes, and set black border
+                ;ld      hl, (current_menu)           
+                ;ld      de, mod_menu_data
+                ;or      a
+                ;sbc     hl, de               ;  current menu is mod menu?   
+                ;jp      z, menu_loop         ;  jp if so
+                ;call    draw_menu_icons      ; draw menu icons for controls and player acharacters
+                jp      test_menu_loop
 
 menu_loop:
                 call    draw_menu_text

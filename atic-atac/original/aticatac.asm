@@ -7747,66 +7747,6 @@ draw_unvisited_room:
         jp      draw_pixel           ; tail call
 
 
-
-;----------------------------------------------------------
-; draw_visited_room_NEW
-; Purpose: Draws a hollow 3x3 square border on the minimap.
-; Input:   D = relative x, E = relative y
-; Logic:   Uses the current map anchors and floor offsets
-;          to plot 8 individual pixels around a center.
-; Corrupts: AF, AF', HL
-;----------------------------------------------------------
-draw_visited_room_NEW:
-        ; --- Top Row (y+0) ---
-        ld      h, e                    ; H = rel_y
-        ld      l, d                    ; L = rel_x
-        call    draw_pixel              ; Plot (0,0)
-        ld      h, e                    ; H = rel_y
-        ld      a, d                    ; A = rel_x
-        inc     a                       ; A = rel_x + 1
-        ld      l, a                    ; L = rel_x + 1
-        call    draw_pixel              ; Plot (1,0)
-        ld      h, e                    ; H = rel_y
-        ld      a, d                    ; A = rel_x
-        add     a, 2                    ; A = rel_x + 2
-        ld      l, a                    ; L = rel_x + 2
-        call    draw_pixel              ; Plot (2,0)
-
-        ; --- Middle Row (y+1) ---
-        ld      a, e                    ; A = rel_y
-        inc     a                       ; A = rel_y + 1
-        ld      h, a                    ; H = rel_y + 1
-        ld      l, d                    ; L = rel_x
-        call    draw_pixel              ; Plot (0,1)
-        ld      a, e                    ; A = rel_y (reload)
-        inc     a                       ; A = rel_y + 1
-        ld      h, a                    ; H = rel_y + 1
-        ld      a, d                    ; A = rel_x
-        add     a, 2                    ; A = rel_x + 2
-        ld      l, a                    ; L = rel_x + 2
-        call    draw_pixel              ; Plot (2,1)
-
-        ; --- Bottom Row (y+2) ---
-        ld      a, e                    ; A = rel_y
-        add     a, 2                    ; A = rel_y + 2
-        ld      h, a                    ; H = rel_y + 2
-        ld      l, d                    ; L = rel_x
-        call    draw_pixel              ; Plot (0,2)
-        ld      a, e                    ; A = rel_y (reload)
-        add     a, 2                    ; A = rel_y + 2
-        ld      h, a                    ; H = rel_y + 2
-        ld      a, d                    ; A = rel_x
-        inc     a                       ; A = rel_x + 1
-        ld      l, a                    ; L = rel_x + 1
-        call    draw_pixel              ; Plot (1,2)
-        ld      a, e                    ; A = rel_y (reload)
-        add     a, 2                    ; A = rel_y + 2
-        ld      h, a                    ; H = rel_y + 2
-        ld      a, d                    ; A = rel_x
-        add     a, 2                    ; A = rel_x + 2
-        ld      l, a                    ; L = rel_x + 2
-        call    draw_pixel              ; Plot (2,2)
-        ret
 ;----------------------------------------------------------
 ; draw_visited_room
 ; Hollow 3x3 square border — 8 pixels

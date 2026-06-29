@@ -1750,6 +1750,7 @@ loc_7CC1:
 test_menu_loop:
                 call    clear_screen
                 call    draw_test_menu
+                call    draw_menu_icon  
 .tm_loop:
                 
 
@@ -1845,6 +1846,7 @@ test_menu_loop:
 .store:         ld      (hl), a
                 call    drop_sound
                 call    draw_test_menu
+                call    draw_menu_icon
                 
                 ; 4. Debounce
 .wait_release:
@@ -1901,9 +1903,9 @@ draw_test_menu:
                 ld      hl, &b800           ; copyright at 0,184
                 ld      de, copyright_msg
                 call    colour_text          ; show a line of text, first byte is attr
-                ld      hl, &20              ; header at 32,0
-                ld      de, header_msg
-                jp      colour_text          ; show a line of text, first byte is attr
+                ;ld      hl, &20              ; header at 32,0
+                ;ld      de, header_msg
+                ;jp      colour_text          ; show a line of text, first byte is attr
 
 
                 ;pop     ix
@@ -11105,6 +11107,7 @@ loc_A31A:
                 ldir
                 push    hl
                 push    de
+
                 call    draw_entity          ; draw entity graphic (no attrs)
                 call    set_entity_attrs     ; paint entity with its current attr colour
                 pop     de
@@ -11112,6 +11115,58 @@ loc_A31A:
                 pop     bc
                 djnz    loc_A31A
                 ret
+
+draw_menu_icon: 
+                ld      ix, entity_to_draw
+                ld      a, (control_state)
+                add     a, a              ; * 2
+                add     a, a              ; * 4
+                add     a, a              ; * 8
+                add     a, a              ; * 16
+
+                ; --- Add offset to menu_entity base ---
+                ld      hl, menu_entity
+                ld      e, a            ; Store offset in DE
+                ld      d, 0
+                add     hl, de          ; HL now points to the correct icon block
+
+                ld      b, 2
+
+icon_loop:      push    bc              ; Save loop count
+                
+                ; --- Copy 8 bytes from current HL to entity_to_draw ---
+                ld      de, entity_to_draw
+                ld      bc, 8
+                push    hl              ; Save current table pointer
+                ldir                    ; Copy data (HL now points to next entry)
+                
+                ; --- Draw the entity ---
+                ;call    remove_entity
+                call    draw_entity
+                call    set_entity_attrs
+                
+                pop     hl              ; Restore start of current entry
+                ld      de, 8           ; Add 8 to move HL to next icon
+                add     hl, de
+                
+                pop     bc              ; Restore loop count
+                djnz    icon_loop
+                ret
+
+
+
+menu_entity:  
+                db  &48, 0, 0, &20, &1c, &43, 0, 0 ; keyboard (left)
+                db  &49, 0, 0, &30, &1c, &43, 0, 0 ; keyboard (right)
+                db  &4a, 0, 0, &20, &1c, &44, 0, 0 ; kempston (left)
+                db  &4b, 0, 0, &30, &1c, &44, 0, 0 ; kempston (right)
+                db  &32, 0, 0, &20, &1c, &46, 0, 0 ; cursor (left)
+                db  &33, 0, 0, &30, &1c, &46, 0, 0 ; cursor (right)
+                
+                db  1, 0, 0, &28, &67, &47, 0, 0 ; knight (facing left)
+                db  &11, 0, 0, &28, &7f, &47, 0, 0 ; wizard (facing left)
+                db  &21, 0, 0, &28, &97, &47, 0, 0 ; serf (facing left)        
+
 
 menu_entities:  db  &32, 0, 0, &20, &4f, &46, 0, 0 ; cursor (left)
                 db  &33, 0, 0, &30, &4f, &46, 0, 0 ; cursor (right)

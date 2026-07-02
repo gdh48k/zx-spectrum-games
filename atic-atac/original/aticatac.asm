@@ -9729,6 +9729,14 @@ loc_9E6F:
                 jr      nz, loc_9E60
                 ret
 
+; -----------------------------------------------------------------------------
+; ROUTINE: get_sprite_a / get_sprite_addr
+; FLOW:    Uses the 'saved_graphic' ID to index into a jump table (sprite_table),
+;          retrieving the memory address of the corresponding sprite graphic.
+; INPUTS:  'saved_graphic' contains the 1-based index of the desired sprite.
+; OUTPUTS: DE = The memory address of the sprite definition data.
+; -----------------------------------------------------------------------------
+
 ; return address of sprite A in DE
 get_sprite_a:
                 ld      a, (saved_graphic)
@@ -9925,6 +9933,15 @@ loc_9F4D:
                 ld      c, a
                 jp      loc_9E9B
 
+; -----------------------------------------------------------------------------
+; ROUTINE: undraw_entity
+; FLOW:    Calls prepare_draw23 to identify screen coordinates, then executes 
+;          a cleanup operation to remove the entity from the display.
+; INPUTS:  IX must point to the current entity (sprite ID, coords, attribute).
+; OUTPUTS: Modifies screen memory at the entity's location (XOR operation).
+; -----------------------------------------------------------------------------
+
+
 undraw_entity:
                 call    prepare_draw23       ; prepare for 2-3 byte drawing
 loc_9F59:
@@ -9950,6 +9967,14 @@ loc_9F6D:
                 call    prepare_draw2_de
                 exx
                 jr      loc_9FD1
+
+; -----------------------------------------------------------------------------
+; ROUTINE: prepare_draw23 / prepare_draw23_de
+; FLOW:    Calculates the screen display address based on stored entity coordinates
+;          and determines the shifting offset required for the sprite data.
+; INPUTS:  (saved_x), (saved_y) contain the target screen coordinates.
+; OUTPUTS: HL = display memory address; (jr_23+1) = calculated shift offset.
+; -----------------------------------------------------------------------------
 
 ; prepare for 2-3 byte drawing
 prepare_draw23:
@@ -11116,56 +11141,89 @@ loc_A31A:
                 djnz    loc_A31A
                 ret
 
-draw_menu_icon: 
+
+
+; -----------------------------------------------------------------------------
+; ROUTINE: draw_menu_icon
+; -----------------------------------------------------------------------------
+; FLOW: 
+;   1. Initialize IX pointer to the entity_to_draw buffer.
+;   2. Use the existing entity metadata in the buffer to call undraw_entity.
+;      This clears the specific area currently occupied by the character.
+;   3. Calculate the new memory offset based on char_state.
+;   4. Perform a block copy (ldir) to update the buffer with the new 
+;      character's data.
+;   5. Render the new character and apply its specific attributes.
+;
+; INPUTS: char_state (0, 1, or 2)
+; OUTPUTS: Updated entity_to_draw buffer and screen graphic
+; -----------------------------------------------------------------------------
+
+draw_menu_icon:
                 ld      ix, entity_to_draw
-                ld      a, (control_state)
-                add     a, a              ; * 2
-                add     a, a              ; * 4
-                add     a, a              ; * 8
-                add     a, a              ; * 16
 
-                ; --- Add offset to menu_entity base ---
-                ld      hl, menu_entity
-                ld      e, a            ; Store offset in DE
+                ; --- 1. Clear old icon using its own dimensions ---
+                ; This uses the data currently in the buffer (IX) 
+                ; before it gets overwritten by the next character.
+                ld      a, (ix+0)        ; Load graphic ID from current buffer
+                ld      (saved_graphic), a ; Update engine's record
+undraw:         call    undraw_entity
+                
+                ; --- 2. Calculate offset: char_state * 8 ---
+                ld      a, (char_state)
+                add     a, a
+                add     a, a
+                add     a, a
+
+                ; --- 3. Locate new character data ---
+                ld      hl, char_entity
+                ld      e, a
                 ld      d, 0
-                add     hl, de          ; HL now points to the correct icon block
-
-                ld      b, 2
-
-icon_loop:      push    bc              ; Save loop count
-                
-                ; --- Copy 8 bytes from current HL to entity_to_draw ---
-                ld      de, entity_to_draw
-                ld      bc, 8
-                push    hl              ; Save current table pointer
-                ldir                    ; Copy data (HL now points to next entry)
-                
-                ; --- Draw the entity ---
-                ;call    remove_entity
-                call    draw_entity
-                call    set_entity_attrs
-                
-                pop     hl              ; Restore start of current entry
-                ld      de, 8           ; Add 8 to move HL to next icon
                 add     hl, de
                 
-                pop     bc              ; Restore loop count
-                djnz    icon_loop
+                ; --- 4. Update buffer ---
+                ld      de, entity_to_draw
+                ld      bc, 8
+                ldir
+                
+                
+                
+                ; --- 5. Render the new character ---
+draw:           call    draw_entity
+                call    set_entity_attrs
                 ret
 
+; -----------------------------------------------------------------------------
+; TABLE: menu_entity
+; -----------------------------------------------------------------------------
+; DESCRIPTION: Defines the static layout and attributes for menu icons.
+;              Each entry occupies a fixed 8-byte structure used by 
+;              draw_menu_icon for memory-to-entity buffer copying.
+; 
+; STRUCTURE (8-byte record):
+;   +0: Sprite ID (1 byte)
+;   +1: Reserved (1 byte)
+;   +2: Reserved (1 byte)
+;   +3: Screen Y-coord (1 byte)
+;   +4: Screen X-coord (1 byte)
+;   +5: Attribute/Colour (1 byte)
+;   +6: Reserved (1 byte)
+;   +7: Reserved (1 byte)
+; -----------------------------------------------------------------------------
 
 
 menu_entity:  
-                db  &48, 0, 0, &20, &1c, &43, 0, 0 ; keyboard (left)
+cont_entity:    db  &48, 0, 0, &20, &1c, &43, 0, 0 ; keyboard (left)
                 db  &49, 0, 0, &30, &1c, &43, 0, 0 ; keyboard (right)
                 db  &4a, 0, 0, &20, &1c, &44, 0, 0 ; kempston (left)
                 db  &4b, 0, 0, &30, &1c, &44, 0, 0 ; kempston (right)
                 db  &32, 0, 0, &20, &1c, &46, 0, 0 ; cursor (left)
                 db  &33, 0, 0, &30, &1c, &46, 0, 0 ; cursor (right)
                 
-                db  1, 0, 0, &28, &67, &47, 0, 0 ; knight (facing left)
-                db  &11, 0, 0, &28, &7f, &47, 0, 0 ; wizard (facing left)
-                db  &21, 0, 0, &28, &97, &47, 0, 0 ; serf (facing left)        
+char_entity:    
+                db  &01, 0, 0, &28, &3c, &47, 0, 0 ; knight (facing left)
+                db  &11, 0, 0, &28, &3c, &47, 0, 0 ; wizard (facing left)
+                db  &21, 0, 0, &28, &3c, &47, 0, 0 ; serf (facing left)        
 
 
 menu_entities:  db  &32, 0, 0, &20, &4f, &46, 0, 0 ; cursor (left)
@@ -13136,7 +13194,7 @@ g_wizard_up2:   db  &14
                 db  1, &c0
                 db  1, &c0
                 db  0, &80
-g_wizard_up3:   db  &14
+g_wizard_up3:   db  &16
                 db  0, &3c
                 db  &0f, &32
                 db  &16, &f8

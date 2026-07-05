@@ -1750,9 +1750,10 @@ loc_7CC1:
 test_menu_loop:
                 call    clear_screen
                 
+                
+                call    draw_test_text  
                 ld      ix, char_item
                 call    draw_test_icon
-                call    draw_test_text  
 .tm_loop:
                 
 
@@ -1865,11 +1866,13 @@ test_menu_loop:
 .store:         
                 ld      (ix+7), a           ; Save new state to descriptor
                 
-                ; 3. Update icon first (IX is still pointing to the active item)
-                call    draw_test_icon      ; Safe to call now
+                
                 
                 ; 4. Update text last (IX will be trashed during the loop)
-                call    draw_test_text      
+                call    draw_test_text    
+
+                ; 3. Update icon first (IX is still pointing to the active item)
+                call    draw_test_icon      ; Safe to call now  
                 
                 
                 ; 4. Debounce
@@ -2001,36 +2004,42 @@ draw_item:
 ; INPUT:   IX = Pointer to active menu_descriptor (7-byte struct)
 ; ==============================================================================
 draw_test_icon:
-               
-                ; --- 1. Set Coordinates (16-bit safe) ---
-                ;ld      a, (ix+5)           ; Y-coord (Offset 5)
-                ;ld      (saved_y), a        ; Set low byte only
                 
-                ;ld      a, fixed_x          ; Fixed X constant
-                ;ld      (saved_x), a        ; Set low byte only
+                ld      ix, entity_to_draw
 
-
-                ; --- 2. Clear old icon --- 
-                ld      de, entity_to_draw
-                ld      a, (de)
+                ; --- 1. Clear old icon --- 
+                ; Uses the engine's current state to remove the graphic
+                ;ld      de, entity_to_draw
+                ld      a, (ix+0)
                 ld      (saved_graphic), a
                 call    undraw_entity
                 
-                ; --- 3. Calculate New Sprite Address ---
-                ld      a, (ix+7)           ; CURRENT state (Offset 7)
-                call    .get_entity_addr    ; Returns sprite address in HL
+                ; --- 2. Calculate New Sprite Address ---
+                ; Load index (0, 1, 2)
+                ld      a, (char_state)
                 
-                ; --- 4. Update buffer ---
+                ; Multiply by 8 to find the offset in the sprite table
+                add     a, a            ; * 2
+                add     a, a            ; * 4
+                add     a, a            ; * 8
+                
+                ; Add to base of sprite data
+                ld      hl, char_entity 
+                ld      e, a
+                ld      d, 0
+                add     hl, de          ; HL is now the source of the correct sprite    
+                
+                ; --- 3. Update buffer ---
                 ld      de, entity_to_draw
-                ld      bc, 8
+                ld      bc, 8               ; Size of entity structure
                 ldir
                   
-                ; --- 5. Render new character ---
+                ; --- 4. Render new character ---
                 call    draw_entity
                 call    set_entity_attrs
                 ret
 
-.get_entity_addr:
+.get_icon_entity:
                 add     a, a                ; * 2
                 add     a, a                ; * 4
                 add     a, a                ; * 8

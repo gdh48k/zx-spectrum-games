@@ -1749,12 +1749,12 @@ loc_7CC1:
 ; ==============================================================================
 test_menu_loop:
                 call    clear_screen
-                ;ld      iy, char_item
+                ld      iy, cont_item
                 call    draw_test_icon
                 
                 call    draw_test_text  
                 
-.tm_loop:
+.tm_loop: 
                 
 
                 ; 1. Scan for '1' (Control Category)
@@ -1869,8 +1869,10 @@ test_menu_loop:
                 
                 
                 ; 3. Update icon first (IX is still pointing to the active item)
-                ;ld      iy, char_item
-                call    draw_test_icon      ; Safe to call now
+                push    ix  
+                pop     iy
+                call    draw_test_icon
+                
 
                 ; 4. Update text last (IX will be trashed during the loop)
                 call    draw_test_text    
@@ -2008,7 +2010,7 @@ draw_item:
 ; ==============================================================================
 draw_test_icon:
                
-                ld      iy, cont_item
+                ;ld      iy, cont_item
 
                 ; --- 1. Setup pointers ---
                 ; IX = Engine buffer (Required for engine calls)

@@ -1567,14 +1567,14 @@ reset_menu:
                 ;ld      (hl), 0              ; clear main_menu_selection
 
 init_menu:
-                ;call    clear_screen         ; clear display, attributes, and set black border
-                ;ld      hl, (current_menu)           
-                ;ld      de, mod_menu_data
-                ;or      a
-                ;sbc     hl, de               ;  current menu is mod menu?   
-                ;jp      z, menu_loop         ;  jp if so
-                ;call    draw_menu_icons      ; draw menu icons for controls and player acharacters
-                jp      test_menu_loop
+                call    clear_screen         ; clear display, attributes, and set black border
+                ld      hl, (current_menu)           
+                ld      de, mod_menu_data
+                or      a
+                sbc     hl, de               ;  current menu is mod menu?   
+                jp      z, menu_loop         ;  jp if so
+                call    draw_menu_icons      ; draw menu icons for controls and player acharacters
+                ;jp      test_menu_loop
 
 menu_loop:
                 call    draw_menu_text
@@ -1744,13 +1744,15 @@ loc_7CC1:
 
 ; ==============================================================================
 ; ROUTINE: test_menu_loop
-; FLOW:    Draws both categories via draw_test_menu, then handles 
+; FLOW:    Draws both categories via draw_test_text, then handles 
 ;          input to cycle the state of the specific selected category.
 ; ==============================================================================
 test_menu_loop:
                 call    clear_screen
-                call    draw_test_menu
-                call    draw_menu_icon  
+                
+                ld      ix, char_item
+                call    draw_test_icon
+                call    draw_test_text  
 .tm_loop:
                 
 
@@ -1808,45 +1810,67 @@ test_menu_loop:
                 
                 jr      .tm_loop
 
+; ==============================================================================
+; ROUTINE: Handle Selection logic
+; FLOW:    Populates IX with the address of the selected descriptor label
+;          and proceeds to cycle the state for that item.
+; ==============================================================================
 .handle_1:
-                         
-
-                ld      ix, menu_descriptors     ; Control is at index 0
+                ld      ix, control_item
                 jr      .cycle_state
 
 .handle_2:
-                ld      ix, menu_descriptors + 6 ; Char is at index 1
+                ld      ix, char_item
                 jr      .cycle_state
 
 .handle_3:
-                ld      ix, menu_descriptors + 12 ; Mode is at index 2
+                ld      ix, mode_item
                 jr      .cycle_state
 
 .handle_4:
-                ld      ix, menu_descriptors + 18 ; Mode is at index 3
+                ld      ix, quest_item
                 jr      .cycle_state
 
 .handle_5:
-                ld      ix, menu_descriptors + 24 ; Mode is at index 4
+                ld      ix, first_room_item
                 jr      .cycle_state
 
 .handle_6:
-                ld      ix, menu_descriptors + 30 ; Mode is at index 4
+                ld      ix, pickup_item
                 jr      .cycle_state
 
+.handle_7:
+                ld      ix, start_game_item
+                jr      .cycle_state
+
+
+; ==============================================================================
+; ROUTINE: .cycle_state
+; FLOW:    1. Backs up current state to the previous state slot.
+;          2. Increments the state and wraps to 0 if max is exceeded.
+;          3. Stores the new state and triggers screen updates.
+; INPUT:   IX = Pointer to the active descriptor (label-based)
+; ==============================================================================
+
 .cycle_state:
-                ; Now we have the correct IX for the target category
-                ld      l, (ix+4)
-                ld      h, (ix+5)
-                ld      a, (hl)
-                inc     a
-                cp      (ix+3)
-                jr      c, .store
-                xor     a
-.store:         ld      (hl), a
-                call    drop_sound
-                call    draw_test_menu
-                call    draw_menu_icon
+                ; 1. Move Current to Previous (Backup for Undraw)
+                ld      a, (ix+7)           ; Load current state
+                ld      (ix+8), a           ; Store in Previous slot
+                
+                ; 2. Calculate New State
+                inc     a                   ; Increment current
+                cp      (ix+6)              ; Compare against Max Items
+                jr      c, .store           ; If A < Max, store it
+                xor     a                   ; Else, reset to 0
+.store:         
+                ld      (ix+7), a           ; Save new state to descriptor
+                
+                ; 3. Update icon first (IX is still pointing to the active item)
+                call    draw_test_icon      ; Safe to call now
+                
+                ; 4. Update text last (IX will be trashed during the loop)
+                call    draw_test_text      
+                
                 
                 ; 4. Debounce
 .wait_release:
@@ -1870,31 +1894,34 @@ test_menu_loop:
 
 
 ; ==============================================================================
-; ROUTINE: draw_test_menu
-; FLOW:    Iterates through the menu_descriptors table and renders the 
-;          currently active item for every available category.
+; ROUTINE: draw_test_text
+; FLOW:    1. Initializes pointer to the menu_descriptors table.
+;          2. Iterates through each category (9-byte stride).
+;          3. Extracts the current state at (IX+7) and renders the item.
+;          4. Renders the copyright message after the loop concludes.
+; INPUT:   menu_max = Number of categories to process
+; OUTPUT:  Updated screen text for menu items and footer.
 ; ==============================================================================
-draw_test_menu:
+draw_test_text:
                 ;push    af
                 ;push    bc
                 ;push    hl
                 ;push    ix
 
                 ld      ix, menu_descriptors
-                ld      a, (menu_items)
-                ld      b, a            ; B = Number of categories (2)
+                ld      a, (menu_max)
+                ld      b, a            ; B = Number of menu_max
 
 .cat_loop:
                 push    bc              ; Protect category counter
                 
                 ; --- Draw active item for this category ---
-                ld      l, (ix+4)       ; State Address LSB
-                ld      h, (ix+5)       ; State Address MSB
-                ld      a, (hl)         ; A = current active index
-                call    draw_item       ; Print item A at coordinates (IX+2)
-                
+                ld      a, (ix+7)       ; A = current state value 
+                call    draw_item       ; Print item A at coordinates (IX+2
+
+                        
                 ; --- Move IX to next category descriptor ---
-                ld      de, 6           ; Descriptor size
+                ld      de, 9           ; Descriptor size
                 add     ix, de
                 
                 pop     bc              ; Restore category counter
@@ -1914,11 +1941,12 @@ draw_test_menu:
                 ;pop     af
                 ret
 
-; ==============================================================================
+; =========== ===================================================================
 ; ROUTINE: draw_item
-; FLOW:    Fetches current index from state address (via IX+4/5),
-;          calculates string pointer, and executes print via double-EX.
-; INPUT:   IX = Pointer to the 6-byte descriptor
+; FLOW:    1. Fetches pointer from descriptor (ix+1).
+;          2. Dynamically fetches current state from descriptor (ix+7).
+;          3. Calculates string address and renders at Y-coord (ix+5).
+; INPUT:   IX = Pointer to the 9-byte descriptor
 ; ==============================================================================
 draw_item:
                 ; --- 1. Protect Registers ---
@@ -1932,33 +1960,30 @@ draw_item:
                 ld      (charset_addr), hl
 
                 ; --- 3. Lookup Pointer ---
-                ld      l, (ix+0)       ; Load Table Base from Descriptor
-                ld      h, (ix+1)
+                ld      l, (ix+1)           ; Text Table Base (Offset 1)
+                ld      h, (ix+2)
                 
                 ; --- 4. Fetch Index Dynamically ---
-                ; Dereference the State Address stored in the descriptor
-                ld      c, (ix+4)       ; State Address LSB
-                ld      b, (ix+5)       ; State Address MSB
-                ld      a, (bc)         ; Get current index (0, 1, 2...) from RAM
+                ld      a, (ix+7)           ; Current state (Offset 7)
                 
-                add     a, a            ; Multiply by 2 for table offset
+                add     a, a                ; Multiply by 2 for table offset
                 ld      e, a
                 ld      d, 0
-                add     hl, de          ; Add offset to table base
-                ld      e, (hl)         ; Fetch LSB of string address
+                add     hl, de              ; Add offset to table base
+                ld      e, (hl)             ; Fetch LSB of string address
                 inc     hl
-                ld      d, (hl)         ; Fetch MSB of string address
-                ; At this point, DE holds the string pointer
+                ld      d, (hl)             ; Fetch MSB of string address
+                ; DE holds the string pointer
 
                 ; --- 5. The Double-EX Handshake ---
-                ex      de, hl          ; Pointer now safely in HL
-                ld      a, (ix+2)       ; Fetch Y-coord from Descriptor
-                ld      d, a            ; D = Y, E = X
-                ld      e, fixed_x      ; Fixed X
-                ex      de, hl          ; Pointer back in DE, Coords in HL
+                ex      de, hl              ; Pointer now safely in HL
+                ld      a, (ix+5)           ; Y-coord (Offset 5)
+                ld      d, a                ; D = Y, E = X
+                ld      e, fixed_x          ; Fixed X
+                ex      de, hl              ; Pointer back in DE, Coords in HL
 
                 ; --- 6. Print to Screen ---
-                ld      a, bright_cyan  ; Attribute
+                ld      a, bright_cyan      ; Attribute
                 ld      (text_attr), a
                 call    print_text
 
@@ -1970,53 +1995,124 @@ draw_item:
                 ret
 
 ; ==============================================================================
-; --- Menu Descriptor Table (6 bytes per entry) ---
-; Format: dw (Ptr Table), db (Y-Coord), db (Max Items), db (State Address)
+; ROUTINE: draw_test_icon
+; FLOW:    1. Sets up 16-bit coordinates in engine globals.
+;          2. Clears old icon, updates buffer, and renders new icon.
+; INPUT:   IX = Pointer to active menu_descriptor (7-byte struct)
 ; ==============================================================================
-menu_items      db      &07
+draw_test_icon:
+               
+                ; --- 1. Set Coordinates (16-bit safe) ---
+                ;ld      a, (ix+5)           ; Y-coord (Offset 5)
+                ;ld      (saved_y), a        ; Set low byte only
+                
+                ;ld      a, fixed_x          ; Fixed X constant
+                ;ld      (saved_x), a        ; Set low byte only
+
+
+                ; --- 2. Clear old icon --- 
+                ld      de, entity_to_draw
+                ld      a, (de)
+                ld      (saved_graphic), a
+                call    undraw_entity
+                
+                ; --- 3. Calculate New Sprite Address ---
+                ld      a, (ix+7)           ; CURRENT state (Offset 7)
+                call    .get_entity_addr    ; Returns sprite address in HL
+                
+                ; --- 4. Update buffer ---
+                ld      de, entity_to_draw
+                ld      bc, 8
+                ldir
+                  
+                ; --- 5. Render new character ---
+                call    draw_entity
+                call    set_entity_attrs
+                ret
+
+.get_entity_addr:
+                add     a, a                ; * 2
+                add     a, a                ; * 4
+                add     a, a                ; * 8
+                ld      l, a                ; HL = offset
+                ld      h, 0
+                ld      e, (ix+3)           ; Base address (Icon Pointer at Offset 3)
+                ld      d, (ix+4)
+                add     hl, de              ; HL = target entry
+                ret
+
+; ==============================================================================
+; --- Menu Descriptor Table (7 bytes per entry)---
+; Offset 0 (id), 1-2 (Txt ptr), 3-4 (Icon ptr) 5 (Y-Coord), 6 (Max Items), 7-8 (Current & Prev)
+; ==============================================================================
+menu_max      db      &07
 
 menu_descriptors:
-                ; Entry 0: Control Selection
-                dw      control_txt_table
-                db      &10, &03        ; Y=&10, Max=3
-                dw      control_state      ; State Address
 
-                ; Entry 1: Character Selection
-                dw      char_txt_table
-                db      &28, &03        ; Y=&20, Max=3
-                dw      char_state      ; State Address
+control_item:
+                db      0                       ; +0 ID
+                dw      control_txt_table       ; +1 Txt ptr
+                dw      cont_entity_ptr         ; +3 Icon ptr
+                db      &10                     ; +5 Y-coord
+                db      3                       ; +6 Max
+control_state:  db      0, 0                    ; +7 Curr/Prev
 
-                ; Entry 2: Mode Selection
-                dw      mode_txt_table
-                db      &40, &02        
-                dw      mode_state
+char_item:
+                db      1                       ; +0 ID
+                dw      char_txt_table          ; +1 Txt ptr
+                dw      char_entity_ptr         ; +3 Icon ptr
+                db      &28                     ; +5 Y-coord
+                db      3                       ; +6 Max
+char_state:     db      0, 0                    ; +7 Curr/Prev
 
-                ; Entry 3: Quest Selection
-                dw      quest_txt_table
-                db      &58, &05
-                dw      quest_state 
+                mode_item:
+                db      2                       ; ID
+                dw      mode_txt_table          ; Text Pointer
+                dw      0                       ; Icon Pointer
+                db      &40                     ; Y-coord
+                db      2                       ; Max
+mode_state:     db      0, 0                    ; Curr/Prev
 
-                ; Entry 4: First Room Selection
-                dw      first_txt_table
-                db      &70, &02
-                dw      first_state 
+quest_item:
+                db      3                       ; ID
+                dw      quest_txt_table         ; Text Pointer
+                dw      0                       ; Icon Pointer
+                db      &58                     ; Y-coord
+                db      5                       ; Max
+quest_state:    db      0, 0                    ; Curr/Prev
 
-                ; Entry 4: Pick up Selection
-                dw      pickup_txt_table
-                db      &88, &02
-                dw      pickup_state 
+first_room_item:
+                db      4                       ; ID
+                dw      first_txt_table         ; Text Pointer
+                dw      0                       ; Icon Pointer
+                db      &70                     ; Y-coord
+                db      2                       ; Max
+first_room_state:
+                db      0, 0                    ; Curr/Prev
 
-                ; Entry 0: Start_Game
-                dw      start_txt_table
-                db      &a0, &01
-                dw      start_state 
+pickup_item:
+                db      5                       ; ID
+                dw      pickup_txt_table        ; Text Pointer
+                dw      0                       ; Icon Pointer
+                db      &88                     ; Y-coord
+                db      2                       ; Max
+pickup_state:   db      0, 0                    ; Curr/Prev
+
+start_game_item:
+                db      6                       ; ID
+                dw      start_txt_table         ; Text Pointer
+                dw      0                       ; Icon Pointer
+                db      &A0                     ; Y-coord
+                db      1                       ; Max
+start_game_state:
+                db      0, 0                    ; Curr/Prev
 
                  
 
 
                   
 ; ==============================================================================
-; 2. POINTER TABLES (The Directory)
+; 2. TEXT PTR TABLES (The Directory)
 ; ==============================================================================
 control_txt_table:
                 dw      keyboard_txt, kempston_txt, sinclair_txt
@@ -2079,14 +2175,52 @@ header_msg:     db      &47
 ; 4. STATE TRACKERS
 ; ==============================================================================
 
-control_state:  db      &00             ; Current index for Control (0-3)
-char_state:     db      &00             ; Current index for Character (0-2)
-mode_state:     db      &00 
-quest_state:    db      &00
-first_state:    db      &00
-start_state:    db      &00
-pickup_state:   db      &00 
-fixed_x:        equ     &58     
+item_changed:   db      &00             ; Menu item selected (Control or Char)
+ 
+fixed_x:        equ     &58
+
+; ==============================================================================
+; 5. ICON POINTER TABLE (SPRITE DATA)
+; ==============================================================================
+
+icon_entity_ptr:
+cont_entity_ptr:dw      cont_entity    ; Index 0
+char_entity_ptr:dw      char_entity    ; Index 1
+
+; -----------------------------------------------------------------------------
+; TABLE: menu_entity
+; -----------------------------------------------------------------------------
+; DESCRIPTION: Defines the static layout and attributes for menu icons.
+;              Each entry occupies a fixed 8-byte structure used by 
+;              draw_test_icon for memory-to-entity buffer copying.
+; 
+; STRUCTURE (8-byte record):
+;   +0: Sprite ID (1 byte)
+;   +1: Reserved (1 byte)
+;   +2: Reserved (1 byte)
+;   +3: Screen Y-coord (1 byte)
+;   +4: Screen X-coord (1 byte)
+;   +5: Attribute/Colour (1 byte)
+;   +6: Reserved (1 byte)
+;   +7: Reserved (1 byte)
+; -----------------------------------------------------------------------------
+
+
+menu_entity:  
+
+cont_entity:    db  &48, 0, 0, &20, &1c, &43, 0, 0 ; keyboard (left)
+                db  &49, 0, 0, &30, &1c, &43, 0, 0 ; keyboard (right)
+                db  &4a, 0, 0, &20, &1c, &44, 0, 0 ; kempston (left)
+                db  &4b, 0, 0, &30, &1c, &44, 0, 0 ; kempston (right)
+                db  &32, 0, 0, &20, &1c, &46, 0, 0 ; cursor (left)
+                db  &33, 0, 0, &30, &1c, &46, 0, 0 ; cursor (right)
+                
+char_entity:    
+                db  &01, 0, 0, &28, &3c, &47, 0, 0 ; knight (facing left)
+                db  &11, 0, 0, &28, &3c, &47, 0, 0 ; wizard (facing left)
+                db  &21, 0, 0, &28, &3c, &47, 0, 0 ; serf (facing left) 
+                
+
 
 
 print_text:
@@ -4178,7 +4312,7 @@ draw_escapee:
                 ;and     &30                     ; Extract character type from menu
                 ;or      7                       ; Offset to first graphic
 
-                ld      a, (char_state)   ; Load 0, 1, or 2
+                ld      a, (char_state)  ; Load state directly
                 
                 ; Multiply by 16 (Row Size)
                 add     a, a              ; * 2
@@ -4704,7 +4838,7 @@ chk_match:
                 ld      (de), a                 ; Store back to item_count
 
                 ; --- Quest Logic ---
-                ld      a, (quest_state)
+                ld      a, (quest_state)        ; Load state from descriptor offset 5
                 cp      2                       ; Lower bound (2)
                 ret     c                       ; Return if < 2
                 cp      5                       ; Upper bound (5)
@@ -6225,7 +6359,7 @@ read_cursor:
 ; FLOW:    Reads the new control_state index (0=Kybd, 1=Kemp, 2=Curs)
 ; ==============================================================================
 read_controls:
-                ld      a, (control_state) ; Load 0, 1, or 2
+                ld      a, (control_state)  ; Load state from descriptor offset 5
                 or      a                  ; Is it 0 (Keyboard)?
                 jr      z, read_keyboard
                 cp      1                  ; Is it 1 (Kempston)?
@@ -6303,14 +6437,14 @@ h_blank:
                 ret
                 
 h_barrel:
-                ld      a, (mode_state)      
+                ld      a, (mode_state) ; Load state from descriptor offset 19     
                 cp      1                   ; 1 = Open castle mode selected?
                 jp z,   bypass_char_chk     ; jump if so
                 ld      a, (player)
                 sub     &21                  ; subtract serf base graphic
                 jr      loc_9433
-h_bookcase:
-                ld      a, (mode_state)      
+
+h_bookcase:     ld      a, (mode_state) ; Load state from descriptor offset 19     
                 cp      1                   ; 1 = Open castle mode selected?
                 jp z,   bypass_char_chk     ; jump if so
                 
@@ -6318,7 +6452,7 @@ h_bookcase:
                 sub     &11                  ; subtract wizard base graphic
                 jr      loc_9433
 h_clock:
-                ld      a, (mode_state)      
+                ld      a, (mode_state) ; Load state from descriptor offset 19      
                 cp      1                   ; 1 = Open castle mode selected?
                 jp z,   bypass_char_chk     ; jump if so
 
@@ -6429,7 +6563,7 @@ set_acg_positions:
                 
                 ; --- Check Quest selection ---
                 ld      c, a                    ; Save index
-                ld      a, (quest_state)
+                ld      a, (mode_state)
                 cp      1                       ; 1 = Ground Floor?
                 jr      z, .add_offset          ; If so, add offset
                 
@@ -6608,7 +6742,7 @@ loc_95A3:
 ; Outputs: Updates 6 door/trap object structures in game memory.
 ; ==============================================================================
 gf_mod:
-                ld      a, (quest_state)
+                ld      a, (mode_state)
                 cp      1
                 jr      z, .set_offset
                 ld      c, 0                    ; Offset 0: Classic mode
@@ -6690,7 +6824,7 @@ gf_doors:
 start_room_mod:
                 
                             
-                ld      a, (start_state)
+                ld      a, (first_room_state)
                 cp      0                   ; 0 = classic start?
 
                 jr      z, srm_exit         ; jump if start
@@ -8329,7 +8463,7 @@ game_complete:
                 ld      hl, player           
                 call    draw_entity_hl       ; undraw player
 
-                call    draw_escapee
+                ;call    draw_escapee
 
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
@@ -8589,7 +8723,7 @@ mushroom_death:
 ; Outputs: Updates internal init locations for Green/Red/Cyan keys and Mummy.
 ; ==============================================================================
 set_key_positions:
-                ld      a, (quest_state)
+                ld      a, (mode_state)
                 cp      1
                 jr      z, .is_gf_mod           ; If Quest 1, use offset 8
                 ld      e, 0                    ; Offset 0 (Classic)
@@ -10677,7 +10811,7 @@ loc_A210:
 ; FLOW:    Reads char_state index and selects header map.
 ; ==============================================================================
 draw_side_panel:
-                ld      a, (char_state)       ; Load index (0, 1, or 2)
+                ld      a, (char_state)      ; Load index (0, 1, or 2)
                 
                 or      a                     ; Knight selected (0)
                 jr      z, .load_kni
@@ -11143,87 +11277,9 @@ loc_A31A:
 
 
 
-; -----------------------------------------------------------------------------
-; ROUTINE: draw_menu_icon
-; -----------------------------------------------------------------------------
-; FLOW: 
-;   1. Initialize IX pointer to the entity_to_draw buffer.
-;   2. Use the existing entity metadata in the buffer to call undraw_entity.
-;      This clears the specific area currently occupied by the character.
-;   3. Calculate the new memory offset based on char_state.
-;   4. Perform a block copy (ldir) to update the buffer with the new 
-;      character's data.
-;   5. Render the new character and apply its specific attributes.
-;
-; INPUTS: char_state (0, 1, or 2)
-; OUTPUTS: Updated entity_to_draw buffer and screen graphic
-; -----------------------------------------------------------------------------
-
-draw_menu_icon:
-                ld      ix, entity_to_draw
-
-                ; --- 1. Clear old icon using its own dimensions ---
-                ; This uses the data currently in the buffer (IX) 
-                ; before it gets overwritten by the next character.
-                ld      a, (ix+0)        ; Load graphic ID from current buffer
-                ld      (saved_graphic), a ; Update engine's record
-undraw:         call    undraw_entity
-                
-                ; --- 2. Calculate offset: char_state * 8 ---
-                ld      a, (char_state)
-                add     a, a
-                add     a, a
-                add     a, a
-
-                ; --- 3. Locate new character data ---
-                ld      hl, char_entity
-                ld      e, a
-                ld      d, 0
-                add     hl, de
-                
-                ; --- 4. Update buffer ---
-                ld      de, entity_to_draw
-                ld      bc, 8
-                ldir
-                
-                
-                
-                ; --- 5. Render the new character ---
-draw:           call    draw_entity
-                call    set_entity_attrs
-                ret
-
-; -----------------------------------------------------------------------------
-; TABLE: menu_entity
-; -----------------------------------------------------------------------------
-; DESCRIPTION: Defines the static layout and attributes for menu icons.
-;              Each entry occupies a fixed 8-byte structure used by 
-;              draw_menu_icon for memory-to-entity buffer copying.
-; 
-; STRUCTURE (8-byte record):
-;   +0: Sprite ID (1 byte)
-;   +1: Reserved (1 byte)
-;   +2: Reserved (1 byte)
-;   +3: Screen Y-coord (1 byte)
-;   +4: Screen X-coord (1 byte)
-;   +5: Attribute/Colour (1 byte)
-;   +6: Reserved (1 byte)
-;   +7: Reserved (1 byte)
-; -----------------------------------------------------------------------------
 
 
-menu_entity:  
-cont_entity:    db  &48, 0, 0, &20, &1c, &43, 0, 0 ; keyboard (left)
-                db  &49, 0, 0, &30, &1c, &43, 0, 0 ; keyboard (right)
-                db  &4a, 0, 0, &20, &1c, &44, 0, 0 ; kempston (left)
-                db  &4b, 0, 0, &30, &1c, &44, 0, 0 ; kempston (right)
-                db  &32, 0, 0, &20, &1c, &46, 0, 0 ; cursor (left)
-                db  &33, 0, 0, &30, &1c, &46, 0, 0 ; cursor (right)
-                
-char_entity:    
-                db  &01, 0, 0, &28, &3c, &47, 0, 0 ; knight (facing left)
-                db  &11, 0, 0, &28, &3c, &47, 0, 0 ; wizard (facing left)
-                db  &21, 0, 0, &28, &3c, &47, 0, 0 ; serf (facing left)        
+   
 
 
 menu_entities:  db  &32, 0, 0, &20, &4f, &46, 0, 0 ; cursor (left)

@@ -1749,11 +1749,11 @@ loc_7CC1:
 ; ==============================================================================
 test_menu_loop:
                 call    clear_screen
-                
+                ;ld      iy, char_item
+                call    draw_test_icon
                 
                 call    draw_test_text  
-                ld      ix, char_item
-                call    draw_test_icon
+                
 .tm_loop:
                 
 
@@ -1817,7 +1817,7 @@ test_menu_loop:
 ;          and proceeds to cycle the state for that item.
 ; ==============================================================================
 .handle_1:
-                ld      ix, control_item
+                ld      ix, cont_item
                 jr      .cycle_state
 
 .handle_2:
@@ -1868,11 +1868,14 @@ test_menu_loop:
                 
                 
                 
+                ; 3. Update icon first (IX is still pointing to the active item)
+                ;ld      iy, char_item
+                call    draw_test_icon      ; Safe to call now
+
                 ; 4. Update text last (IX will be trashed during the loop)
                 call    draw_test_text    
 
-                ; 3. Update icon first (IX is still pointing to the active item)
-                call    draw_test_icon      ; Safe to call now  
+
                 
                 
                 ; 4. Debounce
@@ -2004,37 +2007,39 @@ draw_item:
 ; INPUT:   IX = Pointer to active menu_descriptor (7-byte struct)
 ; ==============================================================================
 draw_test_icon:
-                
-                ld      ix, entity_to_draw
+               
+                ld      iy, cont_item
 
-                ; --- 1. Clear old icon --- 
-                ; Uses the engine's current state to remove the graphic
-                ;ld      de, entity_to_draw
+                ; --- 1. Setup pointers ---
+                ; IX = Engine buffer (Required for engine calls)
+                ld      ix, entity_to_draw
+                ; IY = Descriptor (Used to fetch base address/state)
+                ; (This assumes the caller has set IY to the current item)
+                
+                ; --- 2. Clear old icon --- 
                 ld      a, (ix+0)
                 ld      (saved_graphic), a
                 call    undraw_entity
                 
-                ; --- 2. Calculate New Sprite Address ---
-                ; Load index (0, 1, 2)
-                ld      a, (char_state)
+                ; --- 3. Calculate New Sprite Address ---
+                ld      a, (iy+7)           ; Load 'Current State' from descriptor
                 
-                ; Multiply by 8 to find the offset in the sprite table
-                add     a, a            ; * 2
-                add     a, a            ; * 4
-                add     a, a            ; * 8
+                ; --- 4. Call calculation (using IY for descriptor access) ---
+                add     a, a                ; * 2
+                add     a, a                ; * 4
+                add     a, a                ; * 8
+                ld      l, a                ; HL = offset
+                ld      h, 0
+                ld      e, (iy+3)           ; Base address L
+                ld      d, (iy+4)           ; Base address H
+                add     hl, de              ; HL = absolute source address
                 
-                ; Add to base of sprite data
-                ld      hl, char_entity 
-                ld      e, a
-                ld      d, 0
-                add     hl, de          ; HL is now the source of the correct sprite    
-                
-                ; --- 3. Update buffer ---
+                ; --- 5. Update buffer ---
                 ld      de, entity_to_draw
-                ld      bc, 8               ; Size of entity structure
+                ld      bc, 8               ; 8 bytes per sprite
                 ldir
                   
-                ; --- 4. Render new character ---
+                ; --- 6. Render new character ---
                 call    draw_entity
                 call    set_entity_attrs
                 ret
@@ -2051,17 +2056,17 @@ draw_test_icon:
                 ret
 
 ; ==============================================================================
-; --- Menu Descriptor Table (7 bytes per entry)---
+; --- Menu Descriptor Table (9 bytes per entry)---
 ; Offset 0 (id), 1-2 (Txt ptr), 3-4 (Icon ptr) 5 (Y-Coord), 6 (Max Items), 7-8 (Current & Prev)
 ; ==============================================================================
 menu_max      db      &07
 
 menu_descriptors:
 
-control_item:
+cont_item:
                 db      0                       ; +0 ID
                 dw      control_txt_table       ; +1 Txt ptr
-                dw      cont_entity_ptr         ; +3 Icon ptr
+                dw      cont_entity             ; +3 Icon ptr
                 db      &10                     ; +5 Y-coord
                 db      3                       ; +6 Max
 control_state:  db      0, 0                    ; +7 Curr/Prev
@@ -2069,7 +2074,7 @@ control_state:  db      0, 0                    ; +7 Curr/Prev
 char_item:
                 db      1                       ; +0 ID
                 dw      char_txt_table          ; +1 Txt ptr
-                dw      char_entity_ptr         ; +3 Icon ptr
+                dw      char_entity             ; +3 Icon ptr
                 db      &28                     ; +5 Y-coord
                 db      3                       ; +6 Max
 char_state:     db      0, 0                    ; +7 Curr/Prev
@@ -2192,9 +2197,9 @@ fixed_x:        equ     &58
 ; 5. ICON POINTER TABLE (SPRITE DATA)
 ; ==============================================================================
 
-icon_entity_ptr:
-cont_entity_ptr:dw      cont_entity    ; Index 0
-char_entity_ptr:dw      char_entity    ; Index 1
+;icon_entity_ptr:
+;cont_entity_ptr:dw      cont_entity    ; Index 0
+;char_entity_ptr:dw      char_entity    ; Index 1
 
 ; -----------------------------------------------------------------------------
 ; TABLE: menu_entity

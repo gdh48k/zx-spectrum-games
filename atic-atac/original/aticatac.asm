@@ -1749,7 +1749,10 @@ loc_7CC1:
 ; ==============================================================================
 test_menu_loop:
                 call    clear_screen
+                                
                 ld      iy, cont_item
+                call    draw_test_icon
+                ld      iy, char_item
                 call    draw_test_icon
                 
                 call    draw_test_text  
@@ -1925,7 +1928,7 @@ draw_test_text:
                 
                 ; --- Draw active item for this category ---
                 ld      a, (ix+7)       ; A = current state value 
-                call    draw_item       ; Print item A at coordinates (IX+2
+                call    draw_item_text  ; Print item A at coordinates (IX+2
 
                         
                 ; --- Move IX to next category descriptor ---
@@ -1950,13 +1953,13 @@ draw_test_text:
                 ret
 
 ; =========== ===================================================================
-; ROUTINE: draw_item
+; ROUTINE: draw_item_text
 ; FLOW:    1. Fetches pointer from descriptor (ix+1).
 ;          2. Dynamically fetches current state from descriptor (ix+7).
 ;          3. Calculates string address and renders at Y-coord (ix+5).
 ; INPUT:   IX = Pointer to the 9-byte descriptor
 ; ==============================================================================
-draw_item:
+draw_item_text:
                 ; --- 1. Protect Registers ---
                 push    af
                 push    bc
@@ -2006,27 +2009,53 @@ draw_item:
 ; ROUTINE: draw_test_icon
 ; FLOW:    1. Sets up 16-bit coordinates in engine globals.
 ;          2. Clears old icon, updates buffer, and renders new icon.
-; INPUT:   IX = Pointer to active menu_descriptor (7-byte struct)
+; INPUT:   IY = Pointer to active menu_descriptor (7-byte struct)
 ; ==============================================================================
 draw_test_icon:
                
-                ;ld      iy, cont_item
+                
 
                 ; --- 1. Setup pointers ---
-                ; IX = Engine buffer (Required for engine calls)
-                ld      ix, entity_to_draw
-                ; IY = Descriptor (Used to fetch base address/state)
-                ; (This assumes the caller has set IY to the current item)
                 
-                ; --- 2. Clear old icon --- 
-                ld      a, (ix+0)
-                ld      (saved_graphic), a
+                ld      ix, entity_to_draw     ; scratchpad for icon block
+                                
+                ; --- 2. Clear old icon (Only if not first run) --- 
+                ld      a, (iy+8)       ; Get Prev state
+                cp      &FF             ; Is it the initial flag?
+                jr      z, .draw_new    ; If yes, skip undraw
+                
+                call    prepare_entity
+
+                call    save_entity         ; Copy current IX buffer to saved_x/y/graphic
+                
                 call    undraw_entity
                 
-                ; --- 3. Calculate New Sprite Address ---
-                ld      a, (iy+7)           ; Load 'Current State' from descriptor
+
+.draw_new:
+                ; --- 3. Draw new icon ---
+                ld      a, (iy+7)       ; Get CURRENT state
+                call    prepare_entity
                 
-                ; --- 4. Call calculation (using IY for descriptor access) ---
+                call    draw_entity
+                call    set_entity_attrs
+                
+
+                ; --- 4. Finalize ---
+                ld      a, (iy+7)       ; Current -> Previous
+                ld      (iy+8), a       ; Sync history for next cycle
+                ret
+
+prepare_entity:
+                ; Uses A (state) and IY (descriptor) to update entity_to_draw
+                push    af                  ; Save state
+                call    get_icon_entity     ; Calculates source address in HL
+                pop     af                  ; Restore state
+                ld      de, entity_to_draw  ; Destination buffer
+                ld      bc, 8               ; 8 bytes per sprite
+                ldir                        ; Populate buffer
+                ret
+
+get_icon_entity:
                 add     a, a                ; * 2
                 add     a, a                ; * 4
                 add     a, a                ; * 8
@@ -2035,26 +2064,6 @@ draw_test_icon:
                 ld      e, (iy+3)           ; Base address L
                 ld      d, (iy+4)           ; Base address H
                 add     hl, de              ; HL = absolute source address
-                
-                ; --- 5. Update buffer ---
-                ld      de, entity_to_draw
-                ld      bc, 8               ; 8 bytes per sprite
-                ldir
-                  
-                ; --- 6. Render new character ---
-                call    draw_entity
-                call    set_entity_attrs
-                ret
-
-.get_icon_entity:
-                add     a, a                ; * 2
-                add     a, a                ; * 4
-                add     a, a                ; * 8
-                ld      l, a                ; HL = offset
-                ld      h, 0
-                ld      e, (ix+3)           ; Base address (Icon Pointer at Offset 3)
-                ld      d, (ix+4)
-                add     hl, de              ; HL = target entry
                 ret
 
 ; ==============================================================================
@@ -2071,7 +2080,7 @@ cont_item:
                 dw      cont_entity             ; +3 Icon ptr
                 db      &10                     ; +5 Y-coord
                 db      3                       ; +6 Max
-control_state:  db      0, 0                    ; +7 Curr/Prev
+control_state:  db      0, &ff                    ; +7 Curr/Prev
 
 char_item:
                 db      1                       ; +0 ID
@@ -2079,15 +2088,15 @@ char_item:
                 dw      char_entity             ; +3 Icon ptr
                 db      &28                     ; +5 Y-coord
                 db      3                       ; +6 Max
-char_state:     db      0, 0                    ; +7 Curr/Prev
+char_state:     db      0, &ff                  ; +7 Curr/Prev
 
-                mode_item:
+mode_item:
                 db      2                       ; ID
                 dw      mode_txt_table          ; Text Pointer
                 dw      0                       ; Icon Pointer
                 db      &40                     ; Y-coord
                 db      2                       ; Max
-mode_state:     db      0, 0                    ; Curr/Prev
+mode_state:     db      0, 0                  ; Curr/Prev
 
 quest_item:
                 db      3                       ; ID
@@ -2224,12 +2233,10 @@ fixed_x:        equ     &58
 
 menu_entity:  
 
-cont_entity:    db  &48, 0, 0, &20, &1c, &43, 0, 0 ; keyboard (left)
-                db  &49, 0, 0, &30, &1c, &43, 0, 0 ; keyboard (right)
-                db  &4a, 0, 0, &20, &1c, &44, 0, 0 ; kempston (left)
-                db  &4b, 0, 0, &30, &1c, &44, 0, 0 ; kempston (right)
-                db  &32, 0, 0, &20, &1c, &46, 0, 0 ; cursor (left)
-                db  &33, 0, 0, &30, &1c, &46, 0, 0 ; cursor (right)
+cont_entity:    db  &48, 0, 0, &28, &1c, &43, 0, 0 ; keyboard (left)
+                db  &4a, 0, 0, &28, &1c, &44, 0, 0 ; kempston (left)
+                db  &32, 0, 0, &28, &1c, &46, 0, 0 ; cursor (left)
+                
                 
 char_entity:    
                 db  &01, 0, 0, &28, &3c, &47, 0, 0 ; knight (facing left)

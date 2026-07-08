@@ -2029,6 +2029,7 @@ draw_test_icon:
                 
                 ld      a, (iy+8) 
                 call    prepare_entity2
+                call    save_entity
                 call    undraw_entity           ; Clear right half
                 
 

@@ -2005,45 +2005,67 @@ draw_item_text:
                 pop     af
                 ret
 
-; ==============================================================================
+; -----------------------------------------------------------------------------
 ; ROUTINE: draw_test_icon
-; FLOW:    1. Sets up 16-bit coordinates in engine globals.
-;          2. Clears old icon, updates buffer, and renders new icon.
-; INPUT:   IY = Pointer to active menu_descriptor (7-byte struct)
-; ==============================================================================
+; FLOW:    Handles the conditional undraw and draw phases for single and 
+;          double-sprite entities using the patching buffer approach.
+; -----------------------------------------------------------------------------
 draw_test_icon:
-               
-                
-
                 ; --- 1. Setup pointers ---
-                
-                ld      ix, entity_to_draw     ; scratchpad for icon block
-                                
+                ld      ix, entity_to_draw      ; Scratchpad for icon block
+                                        
                 ; --- 2. Clear old icon (Only if not first run) --- 
-                ld      a, (iy+8)       ; Get Prev state
-                cp      &FF             ; Is it the initial flag?
-                jr      z, .draw_new    ; If yes, skip undraw
+                ld      a, (iy+8)               ; Get Prev state
+                cp      &FF                     ; Is it the initial flag?
+                jr      z, .draw_new            ; If yes, skip undraw
                 
-                call    prepare_entity
-
-                call    save_entity         ; Copy current IX buffer to saved_x/y/graphic
+                ; First Undraw (Left)
+                call    undraw_icon
                 
-                call    undraw_entity
+                ; Check for Second Undraw (Right part of Control item)
+                ld      a, (iy+0)               ; Check ID
+                cp      0                       ; Is it 'Control'?
+                jr      nz, .draw_new           ; If not, skip
+                
+                ld      a, (iy+8) 
+                call    prepare_entity2
+                call    undraw_entity           ; Clear right half
                 
 
 .draw_new:
                 ; --- 3. Draw new icon ---
-                ld      a, (iy+7)       ; Get CURRENT state
-                call    prepare_entity
+                ld      a, (iy+7)               ; Get CURRENT state
+                call    draw_icon               ; Draw Left
                 
+                ; Check for Second Draw (Right part of Control item)
+                ld      a, (iy+0)               ; Check ID
+                cp      0                       ; Is it 'Control'?
+                jr      nz, .finalize
+                
+                ld      a, (iy+7)               ; Get CURRENT state
+                call    prepare_entity2
+                call    draw_entity             ; Draw right half
+                call    set_entity_attrs        ; Apply attributes
+
+.finalize:
+                ; --- 4. Finalize ---
+                ld      a, (iy+7)               ; Current -> Previous
+                ld      (iy+8), a               ; Sync history for next cycle
+                ret
+
+undraw_icon:  
+                call    prepare_entity
+                call    save_entity         
+                call    undraw_entity  
+                ret  
+
+
+draw_icon: 
+
+                call    prepare_entity
                 call    draw_entity
                 call    set_entity_attrs
-                
-
-                ; --- 4. Finalize ---
-                ld      a, (iy+7)       ; Current -> Previous
-                ld      (iy+8), a       ; Sync history for next cycle
-                ret
+                ret  
 
 prepare_entity:
                 ; Uses A (state) and IY (descriptor) to update entity_to_draw
@@ -2055,16 +2077,52 @@ prepare_entity:
                 ldir                        ; Populate buffer
                 ret
 
+; -----------------------------------------------------------------------------
+; ROUTINE: get_icon_entity
+; FLOW:    Calculates address based on index in A. Adds an extra 
+;          multiplier if the item is a 'Control' type.
+; INPUTS:  A = Sprite index (0 or 1), IY = Menu item descriptor
+; -----------------------------------------------------------------------------
 get_icon_entity:
                 add     a, a                ; * 2
                 add     a, a                ; * 4
                 add     a, a                ; * 8
+                
+                ; --- Conditional Multiplier ---
+                ; Check if Control item (ID 0)
+                ld      c, a                ; Save our *8 result
+                ld      a, (iy+0)           ; Check Item ID
+                cp      0                   ; Is it 'Control'?
+                ld      a, c                ; Restore our *8 result
+                jr      nz, .calc_done      ; If not Control, skip extra shift
+                
+                add     a, a                ; * 16 (Only for Control items)
+
+.calc_done:
                 ld      l, a                ; HL = offset
                 ld      h, 0
                 ld      e, (iy+3)           ; Base address L
                 ld      d, (iy+4)           ; Base address H
                 add     hl, de              ; HL = absolute source address
                 ret
+
+; -----------------------------------------------------------------------------
+; ROUTINE: prepare_entity2
+; FLOW:    Grabs the sprite data from (Base + 8) and LDIRs it to entity_to_draw
+; -----------------------------------------------------------------------------
+prepare_entity2:
+                push    af              ; Save state
+                call    get_icon_entity ; HL = Base + (Index * 8 or 16)
+                pop     af              ; Restore state
+                
+                ld      bc, 8           ; Offset for the right-hand sprite
+                add     hl, bc          ; Add it to the correct base
+                
+                ld      de, entity_to_draw
+                ld      bc, 8
+                ldir                    ; Copy the right-hand sprite
+                ret
+
 
 ; ==============================================================================
 ; --- Menu Descriptor Table (9 bytes per entry)---
@@ -2233,17 +2291,22 @@ fixed_x:        equ     &58
 
 menu_entity:  
 
-cont_entity:    db  &48, 0, 0, &28, &1c, &43, 0, 0 ; keyboard (left)
-                db  &4a, 0, 0, &28, &1c, &44, 0, 0 ; kempston (left)
-                db  &32, 0, 0, &28, &1c, &46, 0, 0 ; cursor (left)
-                
-                
+cont_entity: 
+                db  &48, 0, 0, &20, &1c, &43, 0, 0 ; keyboard (left)
+                db  &49, 0, 0, &30, &1c, &43, 0, 0 ; keyboard (right)
+                db  &4a, 0, 0, &20, &1c, &44, 0, 0 ; kempston (left)
+                db  &4b, 0, 0, &30, &1c, &44, 0, 0 ; kempston (right)
+                db  &32, 0, 0, &20, &1c, &46, 0, 0 ; cursor (left)
+                db  &33, 0, 0, &30, &1c, &46, 0, 0 ; cursor (right)
+
 char_entity:    
                 db  &01, 0, 0, &28, &3c, &47, 0, 0 ; knight (facing left)
                 db  &11, 0, 0, &28, &3c, &47, 0, 0 ; wizard (facing left)
                 db  &21, 0, 0, &28, &3c, &47, 0, 0 ; serf (facing left) 
                 
-
+;db  &48, 0, 0, &28, &1c, &43, 0, 0 ; keyboard (left)
+                ;db  &4a, 0, 0, &28, &1c, &44, 0, 0 ; kempston (left)
+                ;db  &32, 0, 0, &28, &1c, &46, 0, 0 ; cursor (left)
 
 
 print_text:

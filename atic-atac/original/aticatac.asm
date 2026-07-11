@@ -1871,19 +1871,23 @@ test_menu_loop:
                 
                 
                 
-                ; 3. Update icon first (IX is still pointing to the active item)
-                push    ix  
-                pop     iy
-                call    draw_test_icon
-                
+                ; 3. CHECK: Only draw icon if ID is 0 or 1
+                ld      a, (ix+0)               ; Load ID from IX+0
+                cp      2                       ; Is ID < 2? (Checks 0 and 1)
+                jr      nc, .skip_icon_draw     ; If 2 or higher, skip drawing
 
-                ; 4. Update text last (IX will be trashed during the loop)
-                call    draw_test_text    
+                push    ix                      ; Preserve IX
+                pop     iy                      ; Move to IY for draw_test_icon
+                call    draw_test_icon          ; Update icon
+.skip_icon_draw:
+
+                ; 4. Always update text
+                call    draw_test_text          ; Update text last   
 
 
                 
                 
-                ; 4. Debounce
+                ; 5. Debounce
 .wait_release:
                 ; Check row 1-5
                 ld      a, &F7
@@ -1941,9 +1945,9 @@ draw_test_text:
                 ld      hl, &b800           ; copyright at 0,184
                 ld      de, copyright_msg
                 call    colour_text          ; show a line of text, first byte is attr
-                ;ld      hl, &20              ; header at 32,0
-                ;ld      de, header_msg
-                ;jp      colour_text          ; show a line of text, first byte is attr
+                ld      hl, &50              ; header at 32,0
+                ld      de, header_msg
+                jp      colour_text          ; show a line of text, first byte is attr
 
 
                 ;pop     ix
@@ -2252,8 +2256,8 @@ copyright_msg : db      &47
                 db      &c4
 
 header_msg:     db      &47
-                db      'ATICATAC GAME SELECTIO'
-                db      &ce  
+                db      'ATICATAC 202'
+                db      &b6  
 
 ; ==============================================================================
 ; 4. STATE TRACKERS
@@ -2301,9 +2305,9 @@ cont_entity:
                 db  &33, 0, 0, &30, &1c, &46, 0, 0 ; cursor (right)
 
 char_entity:    
-                db  &01, 0, 0, &28, &3c, &47, 0, 0 ; knight (facing left)
-                db  &11, 0, 0, &28, &3c, &47, 0, 0 ; wizard (facing left)
-                db  &21, 0, 0, &28, &3c, &47, 0, 0 ; serf (facing left) 
+                db  &01, 0, 0, &28, &38, &47, 0, 0 ; knight (facing left)
+                db  &11, 0, 0, &28, &38, &47, 0, 0 ; wizard (facing left)
+                db  &21, 0, 0, &28, &38, &47, 0, 0 ; serf (facing left) 
                 
 ;db  &48, 0, 0, &28, &1c, &43, 0, 0 ; keyboard (left)
                 ;db  &4a, 0, 0, &28, &1c, &44, 0, 0 ; kempston (left)

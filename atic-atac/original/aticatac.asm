@@ -13360,7 +13360,7 @@ g_wizard_up2:   db  &14
                 db  1, &c0
                 db  1, &c0
                 db  0, &80
-g_wizard_up3:   db  &16
+g_wizard_up3:   db  &14
                 db  0, &3c
                 db  &0f, &32
                 db  &16, &f8

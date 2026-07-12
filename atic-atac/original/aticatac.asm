@@ -21,75 +21,75 @@ sysvar_FRAMES:  equ &5c78
 ; Menu Table Offsets
 ; 0: selection, 1 attrs, 3:ycoords, 5:options, 7:copyright, 9:header, 11:count. 12:xcoord
 
-main_menu_data: 
-main_selection  db 0
-                dw main_attrs, main_ycoords, main_options, main_copyright, main_header 
-main_count      db &07
-main_xcoords    db &58
+;main_menu_data: 
+;main_selection  db 0
+;                dw main_attrs, main_ycoords, main_options, main_copyright, main_header 
+;main_count      db &07
+;main_xcoords    db &58
 
 
-main_attrs:     db  &45, &45, &45, &45, &45, &45, &47
-main_ycoords:   db  &10, &28, &40, &58, &70, &88, &a0
+;main_attrs:     db  &45, &45, &45, &45, &45, &45, &47
+;main_ycoords:   db  &10, &28, &40, &58, &70, &88, &a0
 
-main_options:   db  '1  KEYBOAR'
-                db  &c4
-                db  '2  KEMPSTON JOYSTIC'
-                db  &cb
-                db  '3  CURSOR   JOYSTIC'
-                db  &cb
-                db  '4  KNIGH'
-                db  &d4
-                db  '5  WIZAR'
-                db  &c4
-                db  '6  SER'
-                db  &c6
-                db  '0  STAR'
-                db  &d4
+;main_options:   db  '1  KEYBOAR'
+;                db  &c4
+;                db  '2  KEMPSTON JOYSTIC'
+;                db  &cb
+;                db  '3  CURSOR   JOYSTIC'
+;                db  &cb
+;                db  '4  KNIGH'
+;                db  &d4
+;                db  '5  WIZAR'
+;                db  &c4
+;                db  '6  SER'
+;                db  &c6
+;                db  '0  STAR'
+;                db  &d4
 
-main_copyright: db  &47
-                db  '%1983 A.C.G. ALL RIGHTS RESERVE'
-                db  &c4
+;main_copyright: db  &47
+;                db  '%1983 A.C.G. ALL RIGHTS RESERVE'
+;                db  &c4
 
-main_header:    db  &47
-                db  'ATICATAC GAME SELECTIO'
-                db  &ce
+;main_header:    db  &47
+;                db  'ATICATAC GAME SELECTIO'
+;                db  &ce
 
-mod_menu_data:  
-mod_selection   db 0
-                dw mod_attrs, mod_ycoords, mod_options, mod_copyright, mod_header
-mod_count       db &07
-mod_xcoords     db &08
+;mod_menu_data:  
+;mod_selection   db 0
+;                dw mod_attrs, mod_ycoords, mod_options, mod_copyright, mod_header
+;mod_count       db &07
+;mod_xcoords     db &08
 
-mod_attrs:      db  &47, &47, &47, &47, &47, &47, &47 
-mod_ycoords:    db  &10, &28, &40, &58, &70, &88, &a0 
+;mod_attrs:      db  &47, &47, &47, &47, &47, &47, &47 
+;mod_ycoords:    db  &10, &28, &40, &58, &70, &88, &a0 
 
-mod_options:    db  '1  CLASSIC MOD'
-                db  &c5
-                db  '2  EXPLORER MODE - OPEN CASTL'
-                db  &c5
-                db  '3  MINI MODE - GROUND FLR ONL'
-                db  &d9
-                db  '4  CLASSIC FEATURE'
-                db  &d3
-                db  '5  AUTO-PICKU'
-                db  &d0
-                db  '6  RANDOM STAR'
-                db  &d4  
-                db  '0  ENTE'
-                db  &d2
+;mod_options:    db  '1  CLASSIC MOD'
+;                db  &c5
+;                db  '2  EXPLORER MODE - OPEN CASTL'
+;                db  &c5
+;                db  '3  MINI MODE - GROUND FLR ONL'
+;                db  &d9
+;                db  '4  CLASSIC FEATURE'
+;                db  &d3
+;                db  '5  AUTO-PICKU'
+;                db  &d0
+;                db  '6  RANDOM STAR'
+;                db  &d4  
+;                db  '0  ENTE'
+;                db  &d2
 
-mod_copyright:  db  &44
-                db  '%2026 GDH48K NO RIGHTS RESERVE'
-                db  &c4
+;mod_copyright:  db  &44
+;                db  '%2026 GDH48K NO RIGHTS RESERVE'
+;                db  &c4
 
-mod_header:    db  &44
-               db  '    THE SECRET PASSAG'
-               db  &c5
+;mod_header:    db  &44
+;               db  '    THE SECRET PASSAG'
+;               db  &c5
 
-        ; Shared X-coordinate
+;current_menu:   dw  0
+        
 
-
-current_menu:   dw  0
+main_selection  db  0
 charset_addr:   dw  0
 last_FRAMES:    db  0
 in_handlers:    db  0                         ; flag set but never read
@@ -1562,184 +1562,201 @@ room_none:      dw  0
 reset_menu:
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
-                ld      hl, main_menu_data
-                ld      (current_menu), hl
+
+                ld      a, 0                    ; Reset Current State 
+                ld      (cont_item+7), a
+                ld      (char_item+7), a
+                
+                ld      a, &FF                  ; Force "Skip Undraw" flag
+                ld      (cont_item+8), a
+                ld      (char_item+8), a
+
+                ; Set Text Pointer for Control Item
+                ld      hl, control_txt_table
+                ld      (cont_item+1), hl   ; Reset Text Ptr
+                
+                ; Set Icon Pointer for Control Item
+                ld      hl, char_txt_table
+                ld      (char_item+1), hl   ; Reset Icon Ptr
+
+                ;ld      hl, main_menu_data
+                ;ld      (current_menu), hl
                 ;ld      (hl), 0              ; clear main_menu_selection
 
 init_menu:
                 call    clear_screen         ; clear display, attributes, and set black border
-                ld      hl, (current_menu)           
-                ld      de, mod_menu_data
-                or      a
-                sbc     hl, de               ;  current menu is mod menu?   
-                jp      z, menu_loop         ;  jp if so
-                call    draw_menu_icons      ; draw menu icons for controls and player acharacters
-                ;jp      test_menu_loop
+                ;ld      hl, (current_menu)           
+                ;ld      de, mod_menu_data
+                ;or      a
+                ;sbc     hl, de               ;  current menu is mod menu?   
+                ;jp      z, menu_loop         ;  jp if so
+                ;call    draw_menu_icons      ; draw menu icons for controls and player acharacters
+                jp      test_menu_loop
 
-menu_loop:
-                call    draw_menu_text
-                ld      a, &f7               ; xxx54321
-                out     (&fd), a
-                in      a, (&fe)
-                cpl                          ; set bits now mean pressed keys
-                ld      e, a
-
-
-                ld      ix,(current_menu)    
-                ld      a, (ix+0)           ; a =  menu_selection of current menu
-
-                bit     0, e                 ; 1 pressed?
-                jr      z, loc_7C43          ; jump if not
-                and     &f9                  ; Mask b1 & b2 (11111001) - select Keyboard/Classic Mode (11111001)
-loc_7C43:
-                bit     1, e                 ; 2 pressed?
-                jr      z, loc_7C4B          ; jump if not
-                and     &f9
-                or      2                    ; select Kempston joystick
-loc_7C4B:
-                bit     2, e                 ; 3 pressed?
-                jr      z, loc_7C53          ; jump if not
-                and     &f9
-                or      4                    ; select Cursor joystick
-loc_7C53:
-                bit     3, e                 ; 4 pressed?
-                jr      z, loc_7C59          ; jump if not
-                and     &e7                 ; select Knight
-loc_7C59:
-                bit     4, e                 ; 5 pressed?
-                jr      z, loc_7C61          ; jump if not
-                and     &e7                  ; Mask b3& b4 (1110011)
-                or      8                    ; Set b3 - select Wizard/Auto-pickup
-                ;or      %00001000
-loc_7C61:
-                ld      d, a
-                ld      a, &ef              ; xxx67890
-                out     (&fd), a
-                in      a, (&fe)
-                cpl                          ; set bits now mean pressed keys
-                ld      e, a
-                ld      a, d
-                bit     4, e                 ; 6 pressed?
-                jr      z, loc_7C73          ; jump if not
-                and     &e7
-                or      &10                  ; Set b4 - select Serf/Random Start
-                ;or      %00010000
-loc_7C73:
-                ld      ix,(current_menu)    
-                ld      (ix+0), a           ; store menu_selection in current menu's table          
-                ld      c, a                 ; c = menu_selection (main or mod)
-
-                bit     0, e                 ; 0 pressed?
-                jp      nz, zero_pressed     ; jump if so
+;menu_loop:
+;                call    draw_menu_text
+;                ld      a, &f7               ; xxx54321
+;                out     (&fd), a
+;                in      a, (&fe)
+;                cpl                          ; set bits now mean pressed keys
+;                ld      e, a
 
 
-                ld      l, (ix+1)            ; remove hardcoding so ix point to main or mod's attrs
-                ld      h, (ix+2) 
-                ld      b, 3
-                ld      a, c
-                call    set_menu_attrs       ; highlight keyboard/kempston/cursor
-                ld      b, 3
-                ld      a, c
-                rrca
-                rrca
-                call    set_menu_attrs       ; highlight knight/wizard/serf
-                jp      menu_loop         
+;                ld      ix,(current_menu)    
+;                ld      a, (ix+0)           ; a =  menu_selection of current menu
 
-zero_pressed:   ld      hl, (current_menu)           
-                ld      de, mod_menu_data
-                or      a
-                sbc     hl, de               ; current menu = mod menu?
-                jp      z, test_menu_loop        ; jump if so
+;                bit     0, e                 ; 1 pressed?
+;                jr      z, loc_7C43          ; jump if not
+;                and     &f9                  ; Mask b1 & b2 (11111001) - select Keyboard/Classic Mode (11111001)
+;loc_7C43:
+;                bit     1, e                 ; 2 pressed?
+;                jr      z, loc_7C4B          ; jump if not
+;                and     &f9
+;                or      2                    ; select Kempston joystick
+;loc_7C4B:
+;                bit     2, e                 ; 3 pressed?
+;                jr      z, loc_7C53          ; jump if not
+;                and     &f9
+;                or      4                    ; select Cursor joystick
+;loc_7C53:
+;                bit     3, e                 ; 4 pressed?
+;                jr      z, loc_7C59          ; jump if not
+;                and     &e7                 ; select Knight
+;loc_7C59:
+;                bit     4, e                 ; 5 pressed?
+;                jr      z, loc_7C61          ; jump if not
+;                and     &e7                  ; Mask b3& b4 (1110011)
+;                or      8                    ; Set b3 - select Wizard/Auto-pickup
                 
-switch_mod:     ld      hl, mod_menu_data
-                ld      (current_menu), hl
-zero_released:  ld      a, &ef              ; Scan Row 67890 again
-                in      a, (&fe)
-                cpl
-                bit     0, a                ; Is 0 still held?
-                jr      nz, zero_released   ; jump if so           
-                jp      init_menu
+;loc_7C61:
+;                ld      d, a
+;                ld      a, &ef              ; xxx67890
+;                out     (&fd), a
+;                in      a, (&fe)
+;                cpl                          ; set bits now mean pressed keys
+;                ld      e, a
+;                ld      a, d
+;                bit     4, e                 ; 6 pressed?
+;                jr      z, loc_7C73          ; jump if not
+;                and     &e7
+;                or      &10                  ; Set b4 - select Serf/Random Start
+
+;loc_7C73:
+;                ld      ix,(current_menu)    
+;                ld      (ix+0), a           ; store menu_selection in current menu's table          
+;                ld      c, a                 ; c = menu_selection (main or mod)
+;
+;                bit     0, e                 ; 0 pressed?
+;                jp      nz, zero_pressed     ; jump if so
+
+
+;                ld      l, (ix+1)            ; remove hardcoding so ix point to main or mod's attrs
+;                ld      h, (ix+2) 
+;                ld      b, 3
+;                ld      a, c
+;                call    set_menu_attrs       ; highlight keyboard/kempston/cursor
+;                ld      b, 3
+;                ld      a, c
+;                rrca
+;                rrca
+;                call    set_menu_attrs       ; highlight knight/wizard/serf
+;                jp      menu_loop         
+
+;zero_pressed:   ld      hl, (current_menu)           
+;                ld      de, mod_menu_data
+;                or      a
+;                sbc     hl, de               ; current menu = mod menu?
+;                jp      z, test_menu_loop        ; jump if so
+                
+;switch_mod:     ld      hl, mod_menu_data
+;                ld      (current_menu), hl
+;zero_released:  ld      a, &ef              ; Scan Row 67890 again
+;                in      a, (&fe)
+;                cpl
+;                bit     0, a                ; Is 0 still held?
+;                jr      nz, zero_released   ; jump if so           
+;                jp      init_menu
 
 
 
 
 ; set menu attrs to reflect current selection (a=menu_selection; hl=main attrs)
-set_menu_attrs:
-                rrca
-loc_7C91:
-                and     3
-                jr      z, loc_7C9C
-                call    set_flash_off
-loc_7C98:
-                dec     a
-                djnz    loc_7C91
-                ret
-loc_7C9C:
-                call    set_flash_on
-                jr      loc_7C98
-                set     7, (hl)              ; flash on
-                inc     hl
-
-set_flash_off:
-                res     7, (hl)              ; clear flash attribute
-                inc     hl
-                ret
-                res     7, (hl)              ; clear flash attribute
-                inc     hl
-
-set_flash_on:
-                set     7, (hl)              ; set flash attribute
-                inc     hl
-                ret
-
-
+;set_menu_attrs:
+;                rrca
+;loc_7C91:
+;                and     3
+;                jr      z, loc_7C9C
+;                call    set_flash_off
+;loc_7C98:
+;                dec     a
+;                djnz    loc_7C91
+;                ret
+;loc_7C9C:
+;                call    set_flash_on
+;                jr      loc_7C98
+;                set     7, (hl)              ; flash on
+;                inc     hl
+;
+;set_flash_off:
+;                res     7, (hl)              ; clear flash attribute
+;                inc     hl
+;                ret
+;                res     7, (hl)              ; clear flash attribute
+;                inc     hl
+;
+;set_flash_on:
+;                set     7, (hl)              ; set flash attribute
+;                inc     hl
+;                ret
 
 
 
 
-draw_menu_text:
-                ld      hl, charset - 256
-                ld      (charset_addr), hl
-                ld      ix,(current_menu)
-                ld      e, (ix+1)            
-                ld      d, (ix+2) 
-                ;ld      de, main_attrs
-                exx
-                ld      l, (ix+3)            
-                ld      h, (ix+4)
-                ;ld      hl, menu_ycoords
-                ld      e, (ix+5)            
-                ld      d, (ix+6)
-                ;ld      de, menu_options      
-                ld      b, (ix+11)           ; b = number of menu options
-loc_7CC1:
-                exx
-                ld      a, (de)              ; text attribute colour
-                ld      (text_attr), a
-                inc     de
-                exx
-                push    bc
-                ld      a, (hl)              ; next text character
-                inc     hl
-                push    hl
-                ld      h, a
-                ld      l, (ix+12)
+
+
+;draw_menu_text:
+;                ld      hl, charset - 256
+;                ld      (charset_addr), hl
+;                ld      ix,(current_menu)
+;                ld      e, (ix+1)            
+;                ld      d, (ix+2) 
+;                ;ld      de, main_attrs
+;                exx
+;                ld      l, (ix+3)            
+;                ld      h, (ix+4)
+
+;                ld      e, (ix+5)            
+;                ld      d, (ix+6)
+;                     
+;                ld      b, (ix+11)           ; b = number of menu options
+;loc_7CC1:
+;                exx
+;                ld      a, (de)              ; text attribute colour
+;                ld      (text_attr), a
+;                inc     de
+;                exx
+;                push    bc
+;                ld      a, (hl)              ; next text character
+;                inc     hl
+;                push    hl
+;                ld      h, a
+;                ld      l, (ix+12)
 ;                ld      l, &58               ; x coord for text  (***REPLACE WITH TABLE ENTRY FOR X COORD eg ld, l, (ix+12)***)
-                call    print_text
-                exx
-                pop     hl
-                pop     bc
-                inc     de
-                djnz    loc_7CC1
-                ld      hl, &b800           ; copyright at 0,184
-                ld      ix,(current_menu)
-                ld      e, (ix+7)            ; load DE = COPYRIGHT MSG via IX, not hardcoded
-                ld      d, (ix+8)
-                call    colour_text          ; show a line of text, first byte is attr
-                ld      hl, &20              ; header at 32,0
-                ld      e, (ix+9)            ; DE = HEADER MSG via IX, not hardcoded
-                ld      d, (ix+10)
-                jp      colour_text          ; show a line of text, first byte is attr
+;                call    print_text
+;                exx
+;                pop     hl
+;                pop     bc
+;                inc     de
+;                djnz    loc_7CC1
+;                ld      hl, &b800           ; copyright at 0,184
+;                ld      ix,(current_menu)
+;                ld      e, (ix+7)            ; load DE = COPYRIGHT MSG via IX, not hardcoded
+;                ld      d, (ix+8)
+;                call    colour_text          ; show a line of text, first byte is attr
+;                ld      hl, &20              ; header at 32,0
+;               ld      e, (ix+9)            ; DE = HEADER MSG via IX, not hardcoded
+;                ld      d, (ix+10)
+;                jp      colour_text          ; show a line of text, first byte is attr
 
 
 ; ==============================================================================
@@ -2068,6 +2085,7 @@ undraw_icon:
 draw_icon: 
 
                 call    prepare_entity
+                call    save_entity
                 call    draw_entity
                 call    set_entity_attrs
                 ret  
@@ -2077,10 +2095,29 @@ prepare_entity:
                 push    af                  ; Save state
                 call    get_icon_entity     ; Calculates source address in HL
                 pop     af                  ; Restore state
-                ld      de, entity_to_draw  ; Destination buffer
+.populate       ld      de, entity_to_draw  ; Destination buffer
                 ld      bc, 8               ; 8 bytes per sprite
                 ldir                        ; Populate buffer
                 ret
+
+; -----------------------------------------------------------------------------
+; ROUTINE: prepare_entity2
+; FLOW:    Grabs the sprite data from (Base + 8) and LDIRs it to entity_to_draw
+; -----------------------------------------------------------------------------
+prepare_entity2:
+                push    af              ; Save state
+                call    get_icon_entity ; HL = Base + (Index * 8 or 16)
+                pop     af              ; Restore state
+                
+                ld      bc, 8           ; Offset for the right-hand sprite
+                add     hl, bc          ; Add it to the correct base
+
+                jr .populate
+                
+                ;ld      de, entity_to_draw
+                ;ld      bc, 8
+                ;ldir                    ; Copy the right-hand sprite
+                ;ret
 
 ; -----------------------------------------------------------------------------
 ; ROUTINE: get_icon_entity
@@ -2111,22 +2148,7 @@ get_icon_entity:
                 add     hl, de              ; HL = absolute source address
                 ret
 
-; -----------------------------------------------------------------------------
-; ROUTINE: prepare_entity2
-; FLOW:    Grabs the sprite data from (Base + 8) and LDIRs it to entity_to_draw
-; -----------------------------------------------------------------------------
-prepare_entity2:
-                push    af              ; Save state
-                call    get_icon_entity ; HL = Base + (Index * 8 or 16)
-                pop     af              ; Restore state
-                
-                ld      bc, 8           ; Offset for the right-hand sprite
-                add     hl, bc          ; Add it to the correct base
-                
-                ld      de, entity_to_draw
-                ld      bc, 8
-                ldir                    ; Copy the right-hand sprite
-                ret
+
 
 
 ; ==============================================================================
@@ -2305,13 +2327,10 @@ cont_entity:
                 db  &33, 0, 0, &30, &1c, &46, 0, 0 ; cursor (right)
 
 char_entity:    
-                db  &01, 0, 0, &28, &38, &47, 0, 0 ; knight (facing left)
-                db  &11, 0, 0, &28, &38, &47, 0, 0 ; wizard (facing left)
-                db  &21, 0, 0, &28, &38, &47, 0, 0 ; serf (facing left) 
+                db  &01, 0, 0, &28, &39, &47, 0, 0 ; knight (facing left)
+                db  &11, 0, 0, &28, &39, &47, 0, 0 ; wizard (facing left)
+                db  &21, 0, 0, &28, &39, &47, 0, 0 ; serf (facing left) 
                 
-;db  &48, 0, 0, &28, &1c, &43, 0, 0 ; keyboard (left)
-                ;db  &4a, 0, 0, &28, &1c, &44, 0, 0 ; kempston (left)
-                ;db  &32, 0, 0, &28, &1c, &46, 0, 0 ; cursor (left)
 
 
 print_text:
@@ -2326,7 +2345,7 @@ print_text:
 
 start_game:
                 call    clear_game_data      ; clear 5E10-5FFF
-                ld      a, 3                 ; 3 lives on startup
+                ld      a, 0                 ; 3 lives on startup
                 ld      (lives), a
                 ld      hl, food_items
                 ld      (food_ptr), hl
@@ -11346,25 +11365,25 @@ colour_acg_key3:
 
 
 ; draw menu icons for controls and player acharacters
-draw_menu_icons:
-                ld      ix, entity_to_draw
-                ld      hl, menu_entities    ; entities for icons in the menu position
-                ld      b, 9                 ; 3*2 icons for controls, 3 player characters
-loc_A31A:
-                push    bc
-                ld      de, entity_to_draw
-                ld      bc, 8
-                ldir
-                push    hl
-                push    de
-
-                call    draw_entity          ; draw entity graphic (no attrs)
-                call    set_entity_attrs     ; paint entity with its current attr colour
-                pop     de
-                pop     hl
-                pop     bc
-                djnz    loc_A31A
-                ret
+;draw_menu_icons:
+;                ld      ix, entity_to_draw
+;                ld      hl, menu_entities    ; entities for icons in the menu position
+;                ld      b, 9                 ; 3*2 icons for controls, 3 player characters
+;loc_A31A:
+;                push    bc
+;                ld      de, entity_to_draw
+;                ld      bc, 8
+;                ldir
+;                push    hl
+;                push    de
+;
+;                call    draw_entity          ; draw entity graphic (no attrs)
+;                call    set_entity_attrs     ; paint entity with its current attr colour
+;                pop     de
+;                pop     hl
+;                pop     bc
+;                djnz    loc_A31A
+;                ret
 
 
 
@@ -11373,15 +11392,15 @@ loc_A31A:
    
 
 
-menu_entities:  db  &32, 0, 0, &20, &4f, &46, 0, 0 ; cursor (left)
-                db  &33, 0, 0, &30, &4f, &46, 0, 0 ; cursor (right)
-                db  &4a, 0, 0, &20, &37, &44, 0, 0 ; kempston (left)
-                db  &4b, 0, 0, &30, &37, &44, 0, 0 ; kempston (right)
-                db  &48, 0, 0, &20, &1c, &43, 0, 0 ; keyboard (left)
-                db  &49, 0, 0, &30, &1c, &43, 0, 0 ; keyboard (right)
-                db  1, 0, 0, &28, &67, &47, 0, 0 ; knight (facing left)
-                db  &11, 0, 0, &28, &7f, &47, 0, 0 ; wizard (facing left)
-                db  &21, 0, 0, &28, &97, &47, 0, 0 ; serf (facing left)
+;menu_entities:  db  &32, 0, 0, &20, &4f, &46, 0, 0 ; cursor (left)
+;                db  &33, 0, 0, &30, &4f, &46, 0, 0 ; cursor (right)
+;                db  &4a, 0, 0, &20, &37, &44, 0, 0 ; kempston (left)
+;                db  &4b, 0, 0, &30, &37, &44, 0, 0 ; kempston (right)
+;                db  &48, 0, 0, &20, &1c, &43, 0, 0 ; keyboard (left)
+;                db  &49, 0, 0, &30, &1c, &43, 0, 0 ; keyboard (right)
+;                db  1, 0, 0, &28, &67, &47, 0, 0 ; knight (facing left)
+;                db  &11, 0, 0, &28, &7f, &47, 0, 0 ; wizard (facing left)
+;                db  &21, 0, 0, &28, &97, &47, 0, 0 ; serf (facing left)
 
 ; determine Bresenham line slope step
 line_slope:

@@ -2180,7 +2180,7 @@ mode_item:
                 dw      mode_txt_table          ; Text Pointer
                 dw      0                       ; Icon Pointer
                 db      &40                     ; Y-coord
-                db      2                       ; Max
+                db      3                       ; Max
 mode_state:     db      0, 0                  ; Curr/Prev
 
 quest_item:
@@ -2188,7 +2188,7 @@ quest_item:
                 dw      quest_txt_table         ; Text Pointer
                 dw      0                       ; Icon Pointer
                 db      &58                     ; Y-coord
-                db      5                       ; Max
+                db      4                       ; Max
 quest_state:    db      0, 0                    ; Curr/Prev
 
 first_room_item:
@@ -2231,10 +2231,10 @@ char_txt_table:
                 dw      knight_txt, wizard_txt, thief_txt
 
 mode_txt_table:
-                dw      classicm_txt, explorer_txt
+                dw      classicm_txt, explorer_txt, ground_txt
 
 quest_txt_table:
-                dw      classicq_txt, ground_txt, collect5_txt, collect10_txt, collect15_txt
+                dw      classicq_txt, collect5_txt, collect10_txt, collect15_txt
 
 first_txt_table:
                 dw      acg_txt, random_txt
@@ -2256,11 +2256,11 @@ knight_txt:     db      '2  KNIGH', &D4
 wizard_txt:     db      '2  WIZAR', &C4
 thief_txt:      db      '2  SERF ', &A0
 
-classicm_txt:   db      '3  CLASSIC MODE', &A0
-explorer_txt:   db      '3  EXPLORER MOD', &C5  
+classicm_txt:   db      '3  CLASSIC CASTL', &C5
+explorer_txt:   db      '3  OPEN CASTLE  ', &A0
+ground_txt:     db      '3  MINI CASTLE  ', &A0   
 
 classicq_txt:   db      '4  CLASSIC QUEST   ', &A0
-ground_txt:     db      '4  GROUND FLOOR ONL', &D9  
 collect5_txt:   db      '4  COLLECT 5 ITEMS ', &A0
 collect10_txt:   db      '4  COLLECT 10 ITEMS ', &A0
 collect15_txt:   db      '4  COLLECT 15 ITEMS ', &A0
@@ -2278,7 +2278,7 @@ copyright_msg : db      &47
                 db      &c4
 
 header_msg:     db      &47
-                db      'ATICATAC 202'
+                db      'ATIC ATAC 202'
                 db      &b6  
 
 ; ==============================================================================
@@ -4949,9 +4949,9 @@ chk_match:
 
                 ; --- Quest Logic ---
                 ld      a, (quest_state)        ; Load state from descriptor offset 5
-                cp      2                       ; Lower bound (2)
+                cp      1                       ; Lower bound (2)
                 ret     c                       ; Return if < 2
-                cp      5                       ; Upper bound (5)
+                cp      4                       ; Upper bound (5)
                 ret     nc                      ; Return if >= 5
 
                 ; --- Map Quest State to Goal ---
@@ -6674,7 +6674,7 @@ set_acg_positions:
                 ; --- Check Quest selection ---
                 ld      c, a                    ; Save index
                 ld      a, (mode_state)
-                cp      1                       ; 1 = Ground Floor?
+                cp      2                       ; 2 = Ground Floor?
                 jr      z, .add_offset          ; If so, add offset
                 
                 ; Classic Mode (0 or other)
@@ -6846,14 +6846,14 @@ loc_95A3:
                 ret
 ; ==============================================================================
 ; Routine: gf_mod
-; Flow:    Determines the active door configuration based on quest_state.
+; Flow:    Determines the active door configuration based on mode_state.
 ;          Reads 'gf_doors' table and writes payload data to door objects.
-; Inputs:  (quest_state) - 1: Ground Floor Mod, Others: Classic
+; Inputs:  (mode_state) - 2: Ground Floor Mod, Others: Classic
 ; Outputs: Updates 6 door/trap object structures in game memory.
 ; ==============================================================================
 gf_mod:
                 ld      a, (mode_state)
-                cp      1
+                cp      2
                 jr      z, .set_offset
                 ld      c, 0                    ; Offset 0: Classic mode
                 jr      .start_loop
@@ -8834,8 +8834,8 @@ mushroom_death:
 ; ==============================================================================
 set_key_positions:
                 ld      a, (mode_state)
-                cp      1
-                jr      z, .is_gf_mod           ; If Quest 1, use offset 8
+                cp      2
+                jr      z, .is_gf_mod           ; If Mode = 2 (GF), use offset 8
                 ld      e, 0                    ; Offset 0 (Classic)
                 jr      .set_keys
 .is_gf_mod:
@@ -8895,15 +8895,15 @@ get_key_room:
 
 green_key_rooms:
 green_classic:  db  5, 6, 7, &6d, &25, &24, &23, &22
-green_acg:      db  18, &07, &05, 4, &6e, 6, 2, &6d
+green_gf:       db  18, &07, &05, 4, &6e, 6, 2, &6d
 
 red_key_rooms:
 red_classic:    db  &17, &13, 9, &0d, &89, &87, &80, &85
-red_acg:      db  &17, 3, 5, 7, 9, &13, &17, &0D
+red_gf:         db  &17, 3, 5, 7, 9, &13, &17, &0D
 
 cyan_key_rooms: 
 cyan_classic    db  &53, &8f, &41, &94, &33, &91, &39, &4c
-cyan_acg        db  &00, &00, &00, &00, &06, &07, &0A, &6B
+cyan_gf         db  &00, &00, &00, &00, &06, &07, &0A, &6B
 
 ; periodically replenish consumed food
 replenish_food:

@@ -8895,7 +8895,7 @@ get_key_room:
 
 green_key_rooms:
 green_classic:  db  5, 6, 7, &6d, &25, &24, &23, &22
-green_gf:       db  18, &07, &05, 4, &6e, 6, 2, &6d
+green_gf:       db  &18, &07, &05, 4, &6e, 6, 2, 1
 
 red_key_rooms:
 red_classic:    db  &17, &13, 9, &0d, &89, &87, &80, &85

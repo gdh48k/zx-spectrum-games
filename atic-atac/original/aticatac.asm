@@ -1567,7 +1567,7 @@ reset_menu:
                 ld      (cont_item+7), a
                 ld      (char_item+7), a
                 
-                ld      a, &FF                  ; Force "Skip Undraw" flag
+                ld      a, &FF                  ; Reset Previous State
                 ld      (cont_item+8), a
                 ld      (char_item+8), a
 
@@ -1948,7 +1948,7 @@ draw_test_text:
                 push    bc              ; Protect category counter
                 
                 ; --- Draw active item for this category ---
-                ld      a, (ix+7)       ; A = current state value 
+                ;ld      a, (ix+7)       ; A = current state value 
                 call    draw_item_text  ; Print item A at coordinates (IX+2
 
                         

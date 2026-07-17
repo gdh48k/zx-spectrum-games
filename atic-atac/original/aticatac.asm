@@ -1895,12 +1895,16 @@ test_menu_loop:
 
                 push    ix                      ; Preserve IX
                 pop     iy                      ; Move to IY for draw_test_icon
+
+                push    ix                      ; Preserve IX for draw_item_text
                 call    draw_test_icon          ; Update icon
+                pop     ix                      ; Restore IX
 .skip_icon_draw:
 
                 ; 4. Always update text
-                call    draw_test_text          ; Update text last   
-
+                
+                ;call    draw_test_text          ; Update text last   
+                call    draw_item_text
 
                 
                 

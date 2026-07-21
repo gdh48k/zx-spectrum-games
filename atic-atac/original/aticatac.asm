@@ -1893,8 +1893,8 @@ test_menu_loop:
                 cp      2                       ; Is ID < 2? (Checks 0 and 1)
                 jr      nc, .skip_icon_draw     ; If 2 or higher, skip drawing
 
-                push    ix                      ; Preserve IX
-                pop     iy                      ; Move to IY for draw_test_icon
+                push    ix                      ; 
+                pop     iy                      ; Move IX to IY for draw_test_icon
 
                 push    ix                      ; Preserve IX for draw_item_text
                 call    draw_test_icon          ; Update icon
@@ -13107,120 +13107,100 @@ g_serf_up3:     db      &12
                 db      &03, &60
                 db      &01, &40
                 db      &00, &80
-g_serf_left1:   db  &12
-                db  3, &70
-                db  &0f, &78
-                db  &3f, &1c
-                db  &fb, &ec
-                db  &cb, &10
-                db  &77, &88
-                db  7, &c8
-                db  &37, &88
-                db  &77, &30
-                db  &0f, &c0
-                db  &11, &50
-                db  &60, &b8
-                db  &68, &68
-                db  &19, &d0
-                db  7, &a8
-                db  &19, &58
-                db  &16, &f0
-                db  &0a, &a0
-g_serf_left2:   db  &12
-                db  &3f, &e0
-                db  &2f, &e0
-                db  &24, &c0
-                db  &19, &e0
-                db  3, &f0
-                db  6, &38
-                db  6, &18
-                db  7, &18
-                db  7, &30
-                db  &0f, &c0
-                db  &11, &50
-                db  &60, &b8
-                db  &68, &68
-                db  &19, &d0
-                db  7, &a8
-                db  &19, &58
-                db  &16, &f0
-                db  &0a, &a0
-g_serf_left3:   db  &12
-                db  3, &f0
-                db  &3a, &f8
-                db  &5a, &5c
-                db  &4d, &9c
-                db  &30, &30
-                db  7, &f8
-                db  8, &7a
-                db  &18, &1a
-                db  7, &3c
-                db  &0f, &c0
-                db  &11, &50
-                db  &60, &b8
-                db  &68, &68
-                db  &19, &d0
-                db  7, &a8
-                db  &19, &58
-                db  &16, &f0
-                db  &0a, &a0
-g_serf_right1:  db  &12
-                db  &0f, &c0
-                db  &1f, &5c
-                db  &3a, &5a
-                db  &39, &b2
-                db  &0c, &0c
-                db  &1f, &e0
-                db  &5e, &10
-                db  &58, &18
-                db  &3c, &e0
-                db  3, &f0
-                db  5, &88
-                db  &1d, 6
-                db  &16, &16
-                db  &0b, &98
-                db  &15, &e0
-                db  &1a, &98
-                db  &0f, &e8
-                db  5, &50
-g_serf_right2:  db  &12
-                db  7, &fc
-                db  7, &f4
-                db  3, &24
-                db  7, &98
-                db  &0f, &c0
-                db  &1c, &60
-                db  &18, &60
-                db  &18, &e0
-                db  &0c, &e0
-                db  3, &f0
-                db  5, &88
-                db  &1d, 6
-                db  &16, &16
-                db  &0b, &98
-                db  &15, &e0
-                db  &1a, &98
-                db  &0f, &e8
-                db  5, &50
-g_serf_right3:  db  &12
-                db  &0e, &c0
-                db  &1e, &f0
-                db  &31, &fc
-                db  &37, &df
-                db  8, &d3
-                db  &11, &ee
-                db  &13, &e0
-                db  &11, &ec
-                db  &0c, &ee
-                db  3, &f0
-                db  5, &88
-                db  &1d, 6
-                db  &16, &16
-                db  &0b, &98
-                db  &15, &e0
-                db  &1a, &98
-                db  &0f, &e8
-                db  5, &50
+g_serf_left1:   db      &0F
+                db      &00, &98
+                db      &01, &FC
+                db      &03, &AC
+                db      &13, &04
+                db      &3A, &2C
+                db      &75, &98
+                db      &85, &88
+                db      &74, &08
+                db      &3A, &68
+                db      &13, &64
+                db      &03, &8A
+                db      &07, &F1
+                db      &06, &11
+                db      &00, &0A
+                db      &00, &04
+g_serf_left2:   db      &0F
+                db      &00, &84
+                db      &01, &EA
+                db      &03, &F1
+                db      &13, &51
+                db      &3A, &2A
+                db      &75, &94
+                db      &85, &88
+                db      &74, &08
+                db      &3A, &68
+                db      &12, &64
+                db      &03, &0A
+                db      &03, &F1
+                db      &01, &D1
+                db      &00, &8A
+                db      &00, &04
+g_serf_left3:   db      &0E
+                db      &00, &04
+                db      &06, &0A
+                db      &07, &D1
+                db      &13, &F1
+                db      &3A, &2A
+                db      &75, &94
+                db      &85, &88
+                db      &74, &08
+                db      &3A, &6C
+                db      &12, &64
+                db      &03, &0C
+                db      &03, &FC
+                db      &01, &D8
+                db      &00, &80
+g_serf_right1:  db      &0F
+                db      &19, &00
+                db      &3F, &80
+                db      &35, &C0
+                db      &20, &C8
+                db      &34, &5C
+                db      &19, &AE
+                db      &11, &A1
+                db      &10, &2E
+                db      &16, &5C
+                db      &26, &C8
+                db      &51, &C0
+                db      &8F, &E0
+                db      &88, &60
+                db      &50, &00
+                db      &20, &00
+g_serf_right2:  db      &0F
+                db      &21, &00
+                db      &53, &80
+                db      &8B, &C0
+                db      &8E, &C8
+                db      &54, &5C
+                db      &29, &AE
+                db      &11, &A1
+                db      &10, &2E
+                db      &16, &5C
+                db      &26, &48
+                db      &50, &C0
+                db      &8F, &C0
+                db      &8B, &80
+                db      &51, &00
+                db      &20, &00
+g_serf_right3:  db      &0E
+                db      &20, &00
+                db      &50, &60
+                db      &8B, &E0
+                db      &8F, &C8
+                db      &54, &5C
+                db      &29, &AE
+                db      &11, &A1
+                db      &10, &2E
+                db      &36, &7C
+                db      &26, &68
+                db      &30, &C0
+                db      &3F, &C0
+                db      &1B, &80
+                db      &01, &00
 g_clock:        db  4, &20
                 db  0, &3f, &fc, 0
                 db  0, &70, &0e, 0

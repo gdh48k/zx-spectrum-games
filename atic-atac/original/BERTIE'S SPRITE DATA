@@ -118,4 +118,98 @@ g_serf_up3:     db      &12
                 db      &03, &60
                 db      &01, &40
                 db      &00, &80
+g_serf_left1:   db      &0F
+                db      &00, &98
+                db      &01, &FC
+                db      &03, &AC
+                db      &13, &04
+                db      &3A, &2C
+                db      &75, &98
+                db      &85, &88
+                db      &74, &08
+                db      &3A, &68
+                db      &13, &64
+                db      &03, &8A
+                db      &07, &F1
+                db      &06, &11
+                db      &00, &0A
+                db      &00, &04
+g_serf_left2:   db      &0F
+                db      &00, &84
+                db      &01, &EA
+                db      &03, &F1
+                db      &13, &51
+                db      &3A, &2A
+                db      &75, &94
+                db      &85, &88
+                db      &74, &08
+                db      &3A, &68
+                db      &12, &64
+                db      &03, &0A
+                db      &03, &F1
+                db      &01, &D1
+                db      &00, &8A
+                db      &00, &04
+g_serf_left3:   db      &0E
+                db      &00, &04
+                db      &06, &0A
+                db      &07, &D1
+                db      &13, &F1
+                db      &3A, &2A
+                db      &75, &94
+                db      &85, &88
+                db      &74, &08
+                db      &3A, &6C
+                db      &12, &64
+                db      &03, &0C
+                db      &03, &FC
+                db      &01, &D8
+                db      &00, &80
+g_serf_right1:  db      &0F
+                db      &19, &00
+                db      &3F, &80
+                db      &35, &C0
+                db      &20, &C8
+                db      &34, &5C
+                db      &19, &AE
+                db      &11, &A1
+                db      &10, &2E
+                db      &16, &5C
+                db      &26, &C8
+                db      &51, &C0
+                db      &8F, &E0
+                db      &88, &60
+                db      &50, &00
+                db      &20, &00
+g_serf_right2:  db      &0F
+                db      &21, &00
+                db      &53, &80
+                db      &8B, &C0
+                db      &8E, &C8
+                db      &54, &5C
+                db      &29, &AE
+                db      &11, &A1
+                db      &10, &2E
+                db      &16, &5C
+                db      &26, &48
+                db      &50, &C0
+                db      &8F, &C0
+                db      &8B, &80
+                db      &51, &00
+                db      &20, &00
+g_serf_right3:  db      &0E
+                db      &20, &00
+                db      &50, &60
+                db      &8B, &E0
+                db      &8F, &C8
+                db      &54, &5C
+                db      &29, &AE
+                db      &11, &A1
+                db      &10, &2E
+                db      &36, &7C
+                db      &26, &68
+                db      &30, &C0
+                db      &3F, &C0
+                db      &1B, &80
+                db      &01, &00
 

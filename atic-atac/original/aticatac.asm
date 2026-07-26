@@ -1931,7 +1931,7 @@ test_menu_loop:
 
 ; ==============================================================================
 ; ROUTINE: draw_test_text
-; FLOW:    1. Initializes pointer to the menu_descriptors table.
+; FLOW:    1. Initializes pointer to the menu_items table.
 ;          2. Iterates through each category (9-byte stride).
 ;          3. Extracts the current state at (IX+7) and renders the item.
 ;          4. Renders the copyright message after the loop concludes.
@@ -1944,7 +1944,7 @@ draw_test_text:
                 ;push    hl
                 ;push    ix
 
-                ld      ix, menu_descriptors
+                ld      ix, menu_items
                 ld      a, (menu_max)
                 ld      b, a            ; B = Number of menu_max
 
@@ -2161,7 +2161,7 @@ get_icon_entity:
 ; ==============================================================================
 menu_max      db      &07
 
-menu_descriptors:
+menu_items:
 
 cont_item:
                 db      0                       ; +0 ID
@@ -2256,9 +2256,9 @@ keyboard_txt:   db      '1  KEYBOAR', &C4
 kempston_txt:   db      '1  KEMPSTO', &CE
 sinclair_txt:   db      '1  CURSOR ', &A0
 
-knight_txt:     db      '2  KNIGH', &D4
-wizard_txt:     db      '2  WIZAR', &C4
-thief_txt:      db      '2  SERF ', &A0
+knight_txt:     db      '2  KNIGHT', &A0
+wizard_txt:     db      '2  BEAR  ', &A0
+thief_txt:      db      '2  TURTLE', &A0
 
 classicm_txt:   db      '3  CLASSIC CASTL', &C5
 explorer_txt:   db      '3  OPEN CASTLE  ', &A0

@@ -8577,7 +8577,7 @@ game_complete:
                 ld      hl, player           
                 call    draw_entity_hl       ; undraw player
 
-                ;call    draw_escapee
+                call    draw_escapee
 
                 ld      hl, charset - 256
                 ld      (charset_addr), hl

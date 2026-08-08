@@ -4953,13 +4953,13 @@ chk_match:
 
                 ; --- Quest Logic ---
                 ld      a, (quest_state)        ; Load state from descriptor offset 5
-                cp      1                       ; Lower bound (2)
+                cp      0                       ; Lower bound (1)
                 ret     c                       ; Return if < 2
-                cp      4                       ; Upper bound (5)
-                ret     nc                      ; Return if >= 5
+                cp      4                       ; Upper bound (3)
+                ret     nc                      ; Return if >= 4
 
                 ; --- Map Quest State to Goal ---
-                sub     2                       ; Map 2,3,4 to 0,1,2 offset
+                sub     1                       ; Map 1,2,3 to 0,1,2 offset
                 ld      e, a
                 ld      d, 0
                 ld      hl, quest_map
@@ -4975,7 +4975,7 @@ chk_match:
                 ret     nz                      ; If not match, return
                 jp      quest_complete          ; Goal met
 
-quest_map:      db      5, 10, 15               ; Map: State 2=5, 3=10, 4=15
+quest_map:      db      5, 10, 15               ; Map: State 1=5, 2=10, 3=15
                 
 
 

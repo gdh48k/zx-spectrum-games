@@ -1905,6 +1905,7 @@ test_menu_loop:
                 
                 ;call    draw_test_text          ; Update text last   
                 call    draw_item_text
+                call    drop_sound
 
                 
                 
@@ -4285,8 +4286,8 @@ complete_msg:   db  &47                       ; bright white
                 db  &a1 ; points to '!'
 
 quest_com_msg   db  &47
-                db  'Q U E S T   C O M P L E T E ' 
-                db  &a1
+                db  'Q U E S T   C O M P L E T ' 
+                db  &c5  
 
 ;test_msg:       db  &47                       ; bright white
 ;                db  "YESSSSS" 
@@ -8530,7 +8531,7 @@ quest_complete:
                 ld      (charset_addr), hl
                 
 
-                ld      hl, go_title_yx - 16
+                ld      hl, go_title_yx
                 ld      de, quest_com_msg   
                 call    colour_text
 

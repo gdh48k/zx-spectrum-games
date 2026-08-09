@@ -11,9 +11,14 @@ labels.txt
 atic-atac/original/.symbols
 atic-atac/original/-s
 
+
 # Exclude the build script
 build.bat
 
 # Exclude temporary Windows files
 Thumbs.db
-.DS_Store
+.DS_Storefilename.ext
+
+# Exclude data files
+atic-atac/original/ORLA's SPRITE DATA
+atic-atac/original/Original Wizard data

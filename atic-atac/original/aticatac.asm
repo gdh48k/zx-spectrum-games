@@ -553,11 +553,11 @@ door_0D_6F_c:   db  &0a, &0d, &34, &50, &b7, &80, 4, 6
                 db  &0a, &6f, &34, &50, &1f, 0, 4, &56
 door_6F_70:     db  2, &6f, &34, &50, &b7, &80, 4, 6
                 db  2, &70, &34, &70, &1f, 0, 4, &56
-door_70_71_s:   db  2, &70, &34, &30, &1f, 0, 4, &56 ; displayed
-                ;db  &25, &70, 0, &30, &17, 0, 4, &56 ; hidden #(byte4 = x, byte5 = y)
+door_70_71_s:   db  2, &70, &34, &30, &1f, 0, 4, &56 
                 db  3, &71, &38, &48, &b6, &80, &16, 8
-door_71_72_s:   db  2, &71, &34, &50, &28, 0, 4, &56
+door_71_72_s:   db  2, &71, &34, &50, &28, 0, 4, &56 
                 db  3, &72, &38, &48, &b6, &80, &16, 8
+
 door_72_35:     db  2, &72, &34, &50, &28, 0, 4, &56
                 db  1, &35, &34, &50, &a7, &80, 4, 6
 door_30_74:     db  1, &30, &34, &18, &6f, &e0, 6, 3
@@ -2185,7 +2185,7 @@ mode_item:
                 dw      mode_txt_table          ; Text Pointer
                 dw      0                       ; Icon Pointer
                 db      &40                     ; Y-coord
-                db      3                       ; Max
+                db      4                       ; Max
 mode_state:     db      0, 0                  ; Curr/Prev
 
 quest_item:
@@ -2236,7 +2236,7 @@ char_txt_table:
                 dw      knight_txt, wizard_txt, thief_txt
 
 mode_txt_table:
-                dw      classicm_txt, explorer_txt, ground_txt
+                dw      classicm_txt, explorer_txt, ground_txt,upside_txt
 
 quest_txt_table:
                 dw      classicq_txt, collect5_txt, collect10_txt, collect15_txt
@@ -2263,7 +2263,8 @@ thief_txt:      db      '2  TURTLE', &A0
 
 classicm_txt:   db      '3  CLASSIC CASTL', &C5
 explorer_txt:   db      '3  OPEN CASTLE  ', &A0
-ground_txt:     db      '3  MINI CASTLE  ', &A0   
+ground_txt:     db      '3  MINI CASTLE  ', &A0 
+upside_txt:     db      '3  UPSIDE DOWN  ', &A0  
 
 classicq_txt:   db      '4  CLASSIC QUEST   ', &A0
 collect5_txt:   db      '4  COLLECT 5 ITEMS ', &A0
@@ -2362,6 +2363,7 @@ start_game:
                 call    set_acg_positions    ; set locations of ACG key pieces
                 call    set_key_positions    ; set positions of red/green/cyan keys, and mummy
                 call    gf_mod
+                call    inversion_mod
                 call    reset_game_state     ; copy initial game state to working state area
                 call    randomise_doors      ; randomise which doors can open/close
                 call    start_room_mod
@@ -6851,10 +6853,12 @@ loc_95A3:
                 ret
 ; ==============================================================================
 ; Routine: gf_mod
-; Flow:    Determines the active door configuration based on mode_state.
-;          Reads 'gf_doors' table and writes payload data to door objects.
-; Inputs:  (mode_state) - 2: Ground Floor Mod, Others: Classic
-; Outputs: Updates 6 door/trap object structures in game memory.
+; Flow:    Evaluates 'mode_state' to toggle vertical transitions (stairs/traps).
+;          Reads the 'gf_doors' table to patch 6 target entity structures,
+;          applying visible parameters for Classic mode or hiding parameters
+;          (Sprite &25, X &00) for Ground Floor Only mode.
+; Inputs:  (mode_state) - 2: Ground Floor Only (Hide), Others: Classic (Unhide)
+; Outputs: Patches 4 target bytes (+0, +2, +4, +6) across 6 entity memory blocks
 ; ==============================================================================
 gf_mod:
                 ld      a, (mode_state)
@@ -6907,7 +6911,9 @@ gf_transfer:
 
 gf_doors:
 ; ---------------------------------------------------------------------------
-; Format: dw pointer, db open_data (4 bytes), db closed_data (4 bytes)
+; Format: dw entity_ptr
+;         db sprite_id, x_pos, state_flags, attribute  ; Classic payload  (Offset 0)
+;         db sprite_id, x_pos, state_flags, attribute  ; GF Mod payload   (Offset 4)
 ; ---------------------------------------------------------------------------
                 dw door_1A_06
 1A_06_open:     db &02, &34, &3f, &04
@@ -6932,6 +6938,72 @@ gf_doors:
                 dw trap_73_74
 73_74_open:     db &19, &34, &70, &24
 73_74_closed:   db &1b, &34, &70, &24
+
+
+
+inversion_flag db 0
+
+; ---------------------------------------------------------------------------
+; Header:  Conditionally invert or revert stairway styles based on mode_state
+;          and current inversion flag status.
+; Flow:    Checks if a state change is needed. If state matches target mode,
+;          exits early. Otherwise, toggles styles 5 <-> 6 and updates flag.
+; Inputs:  (mode_state) - Current game mode.
+;          (inversion_flag) - Current inversion state (0 or 1).
+; Outputs: room_attrs updated in-place only when necessary.
+; Registers modified: a, b, hl
+; ---------------------------------------------------------------------------
+
+inversion_mod:
+                ld      a, (mode_state)         ; load current mode_state
+                cp      3                       ; check if mode_state = 3
+                jr      z, .chk_flag_set
+
+.chk_flag_reset:
+                ; Want normal state: if already 0, no action needed
+                ld      a, (inversion_flag)
+                or      a                       ; test if inversion_flag = 0
+                ret     z                       ; exit if never inverted / already normal
+                
+                ; Mark as normal (0) and proceed to flip styles back
+                xor     a                       ; a = 0
+                ld      (inversion_flag), a
+                jr      .apply_inversion
+
+.chk_flag_set:
+                ; Want inverted state: if already 1, no action needed
+                ld      a, (inversion_flag)
+                or      a                       ; test if inversion_flag <> 0
+                ret     nz                      ; exit if already inverted
+                
+                ; Mark as inverted (1) and proceed to flip styles
+                ld      a, 1
+                ld      (inversion_flag), a
+
+.apply_inversion:
+                ld      hl, room_attrs          ; hl = base address of room_attrs
+                ld      b, 145                  ; b = loop counter (145 room entries)
+
+.imloop:
+                inc     hl                      ; advance pointer to high byte (offset +1)
+                ld      a, (hl)                 ; load current style ID
+
+                ; Check if style ID is below 5
+                cp      5
+                jr      c, .imnext              ; if a < 5, skip entry
+
+                ; Check if style ID is above 6
+                cp      7
+                jr      nc, .imnext             ; if a >= 7 (i.e. > 6), skip entry
+
+                ; Value is 5 or 6: toggle state via XOR 3
+                xor     3                       ; 5 <-> 6
+                ld      (hl), a                 ; write modified style byte
+
+.imnext:
+                inc     hl                      ; advance pointer to low byte of next entry (offset +2)
+                djnz    .imloop                 ; decrement loop counter and process next room
+                ret
 
 
 ; --- Random Start Room Mod ---

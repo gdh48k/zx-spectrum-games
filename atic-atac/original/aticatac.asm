@@ -2258,8 +2258,8 @@ kempston_txt:   db      '1  KEMPSTO', &CE
 sinclair_txt:   db      '1  CURSOR ', &A0
 
 knight_txt:     db      '2  KNIGHT', &A0
-wizard_txt:     db      '2  BEAR  ', &A0
-thief_txt:      db      '2  TURTLE', &A0
+wizard_txt:     db      '2  PANDA ', &A0
+thief_txt:      db      '2  TORTLE', &A0
 
 classicm_txt:   db      '3  CLASSIC CASTL', &C5
 explorer_txt:   db      '3  OPEN CASTLE  ', &A0
@@ -2351,7 +2351,7 @@ print_text:
 
 start_game:
                 call    clear_game_data      ; clear 5E10-5FFF
-                ld      a, 0                 ; 3 lives on startup
+                ld      a, 9                 ; 3 lives on startup
                 ld      (lives), a
                 ld      hl, food_items
                 ld      (food_ptr), hl
@@ -6943,67 +6943,64 @@ gf_doors:
 
 inversion_flag db 0
 
-; ---------------------------------------------------------------------------
-; Header:  Conditionally invert or revert stairway styles based on mode_state
-;          and current inversion flag status.
-; Flow:    Checks if a state change is needed. If state matches target mode,
-;          exits early. Otherwise, toggles styles 5 <-> 6 and updates flag.
-; Inputs:  (mode_state) - Current game mode.
-;          (inversion_flag) - Current inversion state (0 or 1).
-; Outputs: room_attrs updated in-place only when necessary.
-; Registers modified: a, b, hl
-; ---------------------------------------------------------------------------
+; ==============================================================================
+; Routine:       inversion_mod
+; Flow:          Evaluates mode_state to determine if inversion should be active 
+;                (mode_state == 3 -> active/1, else inactive/0). Compares target 
+;                state against inversion_flag. Exits if state is unchanged; 
+;                otherwise updates inversion_flag and flips stair styles.
+; Inputs:        (mode_state), (inversion_flag)
+; Outputs:       (inversion_flag) updated to target state (0 or 1)
+; Registers:     AF, HL modified
+; ==============================================================================
 
 inversion_mod:
-                ld      a, (mode_state)         ; load current mode_state
-                cp      3                       ; check if mode_state = 3
-                jr      z, .chk_flag_set
+                ld      a, (mode_state)         ; Load current mode_state
+                cp      3                       ; Check if mode_state = 3
+                ld      a, 0                    ; Default target state = 0 (preserves Z flag)
+                jr      nz, .chk_flag           ; If mode_state != 3, keep target state 0
+                inc     a                       ; Target state = 1
 
-.chk_flag_reset:
-                ; Want normal state: if already 0, no action needed
-                ld      a, (inversion_flag)
-                or      a                       ; test if inversion_flag = 0
-                ret     z                       ; exit if never inverted / already normal
-                
-                ; Mark as normal (0) and proceed to flip styles back
-                xor     a                       ; a = 0
-                ld      (inversion_flag), a
-                jr      .apply_inversion
+.chk_flag:
+                ld      hl, inversion_flag      ; Point HL to inversion_flag
+                cp      (hl)                    ; Compare target state (A) with current flag
+                ret     z                       ; Exit if already in desired state
 
-.chk_flag_set:
-                ; Want inverted state: if already 1, no action needed
-                ld      a, (inversion_flag)
-                or      a                       ; test if inversion_flag <> 0
-                ret     nz                      ; exit if already inverted
-                
-                ; Mark as inverted (1) and proceed to flip styles
-                ld      a, 1
-                ld      (inversion_flag), a
+                ld      (hl), a                 ; Store new state into inversion_flag
+                jr      invert_stair_style      ; Tail-call to toggle stair styles
 
-.apply_inversion:
+invert_stair_style:
                 ld      hl, room_attrs          ; hl = base address of room_attrs
                 ld      b, 145                  ; b = loop counter (145 room entries)
 
-.imloop:
+.issloop:
                 inc     hl                      ; advance pointer to high byte (offset +1)
                 ld      a, (hl)                 ; load current style ID
 
-                ; Check if style ID is below 5
+                ; Filter out styles below 5 or above 8
                 cp      5
-                jr      c, .imnext              ; if a < 5, skip entry
+                jr      c, .issnext              ; if a < 5, skip entry
+                cp      9
+                jr      nc, .issnext             ; if a >= 9 (i.e. > 8), skip entry
 
-                ; Check if style ID is above 6
+                ; Check if style is 5/6 vs 7/8
                 cp      7
-                jr      nc, .imnext             ; if a >= 7 (i.e. > 6), skip entry
+                jr      nc, .toggle_7_8         ; if a >= 7, handle 7 <-> 8
 
-                ; Value is 5 or 6: toggle state via XOR 3
-                xor     3                       ; 5 <-> 6
+.toggle_5_6:
+                xor     3                       ; 5 (%101) <-> 6 (%110)
+                jr      .save_style
+
+.toggle_7_8:
+                xor     15                      ; 7 (%0111) <-> 8 (%1000)
+
+.save_style:
                 ld      (hl), a                 ; write modified style byte
 
-.imnext:
+.issnext:
                 inc     hl                      ; advance pointer to low byte of next entry (offset +2)
-                djnz    .imloop                 ; decrement loop counter and process next room
-                ret
+                djnz    .issloop                 ; decrement loop counter and process next room
+                
 
 
 ; --- Random Start Room Mod ---

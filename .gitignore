@@ -14,6 +14,9 @@ atic-atac/original/-s
 
 # Exclude the build script
 build.bat
+assemble.bat
+test_mem.bat
+test.mem.sh
 
 # Exclude temporary Windows files
 Thumbs.db
@@ -22,3 +25,5 @@ Thumbs.db
 # Exclude data files
 atic-atac/original/ORLA's SPRITE DATA
 atic-atac/original/Original Wizard data
+atic-atac/original/BERTIE'S SPRITE DATA
+atic-atac/original/ORIGINAL SERF DATA

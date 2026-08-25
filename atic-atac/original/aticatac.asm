@@ -285,6 +285,7 @@ byte_640D:      db  &70, &17, 0, &50, &50, &47, 0, 0, 0, 0, 0, &68, &68, 0, 0, 0
                 db  &9c, &56, 0, &58, &38, &42, 0, 0, 0, 0, 0, &50, &60, 0, 0, 0 ; hunchback
 
 ; Key: _r/_g/_b/_y suffix for locked door colours, _s for stairs (one end is large doorway)
+door_table:
 door_07_00:     db  2, 7, &34, &50, &1f, 0, 4, &56
                 db  2, 0, &34, &50, &b7, &80, 4, 6
 door_19_00:     db  2, &19, &34, &a0, &6f, &60, &b7, 3
@@ -6955,14 +6956,14 @@ inversion_flag db 0
 ; ==============================================================================
 
 inversion_mod:
-                ld      a, (mode_state)         ; Load current mode_state
-                cp      3                       ; Check if mode_state = 3
+                ld      a, (mode_state)         
+                cp      3                       ; Mode = 3 = Inversion?
                 ld      a, 0                    ; Default target state = 0 (preserves Z flag)
-                jr      nz, .chk_flag           ; If mode_state != 3, keep target state 0
+                jr      nz, .chk_flag           ; If mode <> 3 jump
                 inc     a                       ; Target state = 1
 
 .chk_flag:
-                ld      hl, inversion_flag      ; Point HL to inversion_flag
+                ld      hl, inversion_flag      ; 
                 cp      (hl)                    ; Compare target state (A) with current flag
                 ret     z                       ; Exit if already in desired state
 
@@ -6996,11 +6997,110 @@ invert_stair_style:
 
 .save_style:
                 ld      (hl), a                 ; write modified style byte
+                call    invert_stair_door
 
 .issnext:
                 inc     hl                      ; advance pointer to low byte of next entry (offset +2)
                 djnz    .issloop                 ; decrement loop counter and process next room
-                
+                ret 
+
+
+; ==============================================================================
+; Data Table:    stair_door_table
+; Structure:     3 bytes per entry [Frame/Attribute ID, Y-coord, X-coord]
+; Mapping:       Index 0 (Style 5), Index 1 (Style 6), Index 2 (Style 7), Index 3 (Style 8)
+; ==============================================================================
+
+stair_door_table:
+                defb    &05, &40, &20           ; Style 5 parameters (Top-Left)
+                defb    &06, &40, &E0           ; Style 6 parameters (Top-Right)
+                defb    &07, &80, &20           ; Style 7 parameters (Bottom-Left)
+                defb    &08, &80, &E0           ; Style 8 parameters (Bottom-Right)
+
+; ==============================================================================
+; Routine:       invert_stair_door
+; Flow:          Calculates room index from loop counter B, locates door structure, 
+;                scans for Frame ID 2 or 3, and updates Entry 1 parameters from 
+;                stair_door_table using style A.
+; Inputs:        A = updated style ID (5, 6, 7, or 8)
+;                B = room loop counter (145 down to 1)
+; Outputs:       Door structure updated in-place if stair door exists
+; Registers:     AF, DE modified (BC, HL preserved)
+; ==============================================================================
+
+invert_stair_door:
+                push    bc                      ; Preserve loop counter B
+                push    hl                      ; Preserve room_attrs pointer HL
+
+                ; Calculate table source pointer DE: &stair_door_table + (style - 5) * 3
+                sub     5                       ; A = style index (0 to 3)
+                ld      l, a                    ; L = index
+                ld      h, 0                    ; HL = index
+                ld      e, l
+                ld      d, 0                    ; DE = index
+                add     hl, hl                  ; HL = index * 2
+                add     hl, de                  ; HL = index * 3
+                ld      de, stair_door_table
+                add     hl, de                  ; HL = source table address
+                ex      de, hl                  ; DE = source table address
+
+                ; Calculate room door list address
+                ld      a, 145
+                sub     b                       ; A = 0-based room index (0 to 144)
+                add     a, a                    ; A = index * 2 (low byte offset)
+                ld      l, a
+                ld      h, 0                    ; HL = index * 2
+                ld      bc, door_table
+                add     hl, bc                  ; HL = &room_door_ptrs[index * 2]
+
+                ld      c, (hl)                 ; Fetch door list address low byte
+                inc     hl
+                ld      b, (hl)                 ; BC = base door list address
+
+.door_scan_loop:
+                ld      a, (bc)                 ; Load Frame ID byte
+                cp      2                       ; Normal Frame ID
+                jr      z, .found_stair_door
+                cp      3                       ; Big Frame ID
+                jr      z, .found_stair_door
+                cp      5                       ; Check existing stair style IDs (5-8)
+                jr      c, .next_slot
+                cp      9
+                jr      c, .found_stair_door    ; Matches 5, 6, 7, or 8
+
+.next_slot:
+                ; Advance BC by 16 bytes (size of door structure pair)
+                ld      a, c
+                add     a, 16
+                ld      c, a
+                jr      nc, .no_carry
+                inc     b
+.no_carry:
+                dec     h                       ; Decrement slot count
+                jr      nz, .door_scan_loop
+                jr      .restore_and_exit       ; No stair door found in this room
+
+.found_stair_door:
+                ; Copy 3 bytes from table (DE) into door structure (BC)
+                ld      a, (de)                 ; Frame ID from table
+                ld      (bc), a                 ; Write to door Entry 1
+                inc     de
+                inc     bc
+
+                ld      a, (de)                 ; Y coord from table
+                ld      (bc), a                 ; Write to door Entry 1
+                inc     de
+                inc     bc
+
+                ld      a, (de)                 ; X coord from table
+                ld      (bc), a                 ; Write to door Entry 1
+
+.restore_and_exit:
+                pop     hl                      ; Restore room_attrs pointer
+                pop     bc                      ; Restore loop counter B
+                ret
+
+
 
 
 ; --- Random Start Room Mod ---

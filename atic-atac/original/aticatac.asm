@@ -304,10 +304,9 @@ door_05_04:     db  2, 5, &34, &50, &1f, 0, 4, &56
                 db  2, 4, &34, &50, &b7, &80, 4, 6
 door_06_05:     db  2, 6, &34, 8, &6f, &e0, 6, 3
                 db  2, 5, &34, &a0, &6f, &60, &b7, 3
-door_1A_06_s:   ;db  3, &1a, &38, &48, &b6, &80, &16, 8
-                db  2, &1a, &34, &50, &ae, &80, &16, 8
-
-door_1A_06:     db  2, 6, &34, &50, &3f, 0, 4, &56 ; displayed
+door_1A_06_s:   db  3, &1a, &38, &48, &b6, &80, &16, 8
+                ;db  2, &1a, &34, &50, &ae, &80, &16, 8 ; inverted
+door_1A_06:     db  2, 6, &34, &50, &3f, 0, 4, &56 
             
 door_08_06_g:   db  9, 8, &34, &50, &1f, 0, 4, &56
                 db  9, 6, &34, &50, &97, &80, 4, 6
@@ -347,13 +346,22 @@ door_18_17_g:   db  9, &18, &34, &50, &1f, 0, 4, &56
                 db  9, &17, &34, &50, &b7, &80, 4, 6
 door_18_02:     db  2, &18, &34, &50, &b7, &80, 4, 6
                 db  2, 2, &34, &50, &3f, 0, 4, &56 
-door_1A_1B:     ;db  2, &1a, &34, &50, &28, 0, 4, &56
-                db  3, &1a, &38, &48, &28, 0, 4, &56
+door_1A_1B:     db  2, &1a, &34, &50, &28, 0, 4, &56
+                ;db  3, &1a, &38, &48, &28, 0, 4, &56 ; inverted
                 db  2, &1b, &34, &50, &b7, &80, 4, 6
+
+
+
 door_1B_1C_s:   db  2, &1b, &34, &a0, &6f, &60, &b7, 3
                 db  3, &1c, &74, 8, &77, &e0, 8, &f5 
+                ;db  2, &1c, &74, 16, &6f, &e0, 8, &f5 ; new
 door_1C_1D:     db  2, &1c, &34, &98, &6f, &60, &af, 3
+                ;db  3, &1c, &34, &98, &78, &60, &af, 3 ; new
                 db  1, &1d, &34, &18, &6f, &e0, 6, 3
+
+
+
+
 door_1E_1F:     db  2, &1e, &34, &50, &1f, 0, 4, &56
                 db  2, &1f, &34, &50, &b7, &80, 4, 6
 door_1F_20:     db  2, &1f, &34, 8, &6f, &e0, 6, 3
@@ -2354,7 +2362,7 @@ print_text:
 
 start_game:
                 call    clear_game_data      ; clear 5E10-5FFF
-                ld      a, 9                 ; 3 lives on startup
+                ld      a, 3                 ; 3 lives on startup
                 ld      (lives), a
                 ld      hl, food_items
                 ld      (food_ptr), hl
@@ -6952,9 +6960,9 @@ inversion_flag db 0
 ;                (mode_state == 3 -> active/1, else inactive/0). Compares target 
 ;                state against inversion_flag. Exits if state is unchanged; 
 ;                otherwise updates inversion_flag and flips stair styles.
-; Inputs:        (mode_state), (inversion_flag)
+; Inputs:        (mode_state), (inversion_flag), room_attrs (16-bit entries)
 ; Outputs:       (inversion_flag) updated to target state (0 or 1)
-; Registers:     AF, HL modified
+; Registers:     AF, E, HL modified
 ; ==============================================================================
 
 inversion_mod:
@@ -6965,143 +6973,226 @@ inversion_mod:
                 inc     a                       ; Target state = 1
 
 .chk_flag:
-                ld      hl, inversion_flag      ; 
+                ld      hl, inversion_flag      
                 cp      (hl)                    ; Compare target state (A) with current flag
                 ret     z                       ; Exit if already in desired state
 
                 ld      (hl), a                 ; Store new state into inversion_flag
                 jr      invert_stair_style      ; Tail-call to toggle stair styles
 
+
+
+; ==============================================================================
+; Routine:       invert_stair_style
+; Flow:          Iterates over all 149 rooms in room_attrs. Toggles stair styles
+;                (5 <-> 6 and 7 <-> 8) and calls invert_stair_door for matches.
+; Inputs:        None
+; Outputs:       Styles updated in room_attrs and stair doors in main door buffers
+; Registers:     AF, BC, DE, HL modified
+; ==============================================================================
+
 invert_stair_style:
-                ld      hl, room_attrs          ; hl = base address of room_attrs
-                ld      b, 145                  ; b = loop counter (145 room entries)
+                ld      hl, room_attrs + 1      ; Start at high byte (style ID) of room 0
+                ld      e, 0                    ; E = implicit room ID (starts at 0)
 
 .issloop:
-                inc     hl                      ; advance pointer to high byte (offset +1)
-                ld      a, (hl)                 ; load current style ID
+                ld      a, e                    ; Load current room ID
+                cp      149                     ; Check if all 149 rooms have been processed (&95)
+                ret     z                       ; Exit if end of room_attrs reached
+
+                ld      a, (hl)                 ; Load current style ID (high byte)
 
                 ; Filter out styles below 5 or above 8
                 cp      5
-                jr      c, .issnext              ; if a < 5, skip entry
+                jr      c, .issnext             ; If style < 5, skip entry
                 cp      9
-                jr      nc, .issnext             ; if a >= 9 (i.e. > 8), skip entry
+                jr      nc, .issnext            ; If style >= 9, skip entry
 
                 ; Check if style is 5/6 vs 7/8
                 cp      7
-                jr      nc, .toggle_7_8         ; if a >= 7, handle 7 <-> 8
+                jr      nc, .toggle_7_8         ; If style >= 7, handle 7 <-> 8
 
 .toggle_5_6:
-                xor     3                       ; 5 (%101) <-> 6 (%110)
+                xor     3                       ; 5 (%0101) <-> 6 (%0110)
                 jr      .save_style
 
 .toggle_7_8:
                 xor     15                      ; 7 (%0111) <-> 8 (%1000)
 
 .save_style:
-                ld      (hl), a                 ; write modified style byte
-                ;call    invert_stair_door
-
+                ld      (hl), a                 ; Update modified style byte in room_attrs
+                push    hl                      ; Preserve table pointer
+                push    de                      ; Preserve implicit room ID (E)
+                call    invert_stair_door       ; Pass: E = room_id, A = new style_id
+                pop     de                      ; Restore room ID
+                pop     hl
 .issnext:
-                inc     hl                      ; advance pointer to low byte of next entry (offset +2)
-                djnz    .issloop                 ; decrement loop counter and process next room
-                ret 
+                inc     hl                      ; Advance from high byte to next room's low byte
+                inc     hl                      ; Advance from low byte to next room's high byte
+                inc     e                       ; Increment implicit room ID
+                jr      .issloop
 
-
-; ==============================================================================
-; Data Table:    stair_door_table
-; Structure:     3 bytes per entry [Frame/Attribute ID, Y-coord, X-coord]
-; Mapping:       Index 0 (Style 5), Index 1 (Style 6), Index 2 (Style 7), Index 3 (Style 8)
-; ==============================================================================
+; ------------------------------------------------------------------------------
+; Routine:       stair_door_table
+; Description:   Defines the 3-byte door table entries for stairways.
+;                Maps door styles to physical layout and direction:
+;                - Style 5: Vertical Ascending (Big top, Small lower)
+;                - Style 6: Vertical Descending (Big lower, Small upper)
+;                - Style 7: Descending Left (Small top, Big bottom)
+;                - Style 8: Descending Right (Big top, Small bottom)
+; ------------------------------------------------------------------------------
 
 stair_door_table:
-                defb    &05, &40, &20           ; Style 5 parameters (Top-Left)
-                defb    &06, &40, &E0           ; Style 6 parameters (Top-Right)
-                defb    &07, &80, &20           ; Style 7 parameters (Bottom-Left)
-                defb    &08, &80, &E0           ; Style 8 parameters (Bottom-Right)
+                defb    2, &34, &50             ; Style 5 (Small lower door)
+                defb    3, &38, &48             ; Style 5 (Big top door)
+                defb    2, &34, &50             ; Style 6 (Small upper door)
+                defb    3, &38, &48             ; Style 6 (Big lower door)
+                defb    2, &74, &10             ; Style 7 (Small door, top end)
+                defb    3, &34, &98             ; Style 7 (Big door, bottom end)
+                defb    2, &34, &98             ; Style 8 (Small door, bottom end)
+                defb    3, &74, &08             ; Style 8 (Big door, top end)
 
 ; ==============================================================================
 ; Routine:       invert_stair_door
-; Flow:          Calculates room index from loop counter B, locates door structure, 
-;                scans for Frame ID 2 or 3, and updates Entry 1 parameters from 
-;                stair_door_table using style A.
-; Inputs:        A = updated style ID (5, 6, 7, or 8)
-;                B = room loop counter (145 down to 1)
-; Outputs:       Door structure updated in-place if stair door exists
-; Registers:     AF, DE modified (BC, HL preserved)
+; Flow:          Indexes room_table with room_id (E), traverses room's door 
+;                pointer list (dw), checks if Byte 2 matches room_id (E) and
+;                Byte 1 is a stair door (2 or 3), then updates Sprite ID, X, Y.
+; Inputs:        E = target room_id (&00..&93)
+;                A = new style_id (5, 6, 7, or 8)
+; Outputs:       Stair door attributes updated in matching door structures
+; Registers:     AF, BC, DE, HL modified
 ; ==============================================================================
 
 invert_stair_door:
-                push    bc                      ; Preserve loop counter B
-                push    hl                      ; Preserve room_attrs pointer HL
+                push    af                      ; Preserve style_id
+                push    de                      ; Preserve room_id (E)
 
-                ; Calculate table source pointer DE: &stair_door_table + (style - 5) * 3
-                sub     5                       ; A = style index (0 to 3)
-                ld      l, a                    ; L = index
-                ld      h, 0                    ; HL = index
-                ld      e, l
-                ld      d, 0                    ; DE = index
-                add     hl, hl                  ; HL = index * 2
-                add     hl, de                  ; HL = index * 3
-                ld      de, stair_door_table
-                add     hl, de                  ; HL = source table address
-                ex      de, hl                  ; DE = source table address
-
-                ; Calculate room door list address
-                ld      a, 145
-                sub     b                       ; A = 0-based room index (0 to 144)
-                add     a, a                    ; A = index * 2 (low byte offset)
+                ; --------------------------------------------------------------
+                ; Step 1: Calculate Base Offset into stair_door_table
+                ; Offset = (style_id - 5) * 6
+                ; --------------------------------------------------------------
+                sub     5                       ; A = 0..3 for styles 5..8
                 ld      l, a
-                ld      h, 0                    ; HL = index * 2
-                ld      bc, door_table
-                add     hl, bc                  ; HL = &room_door_ptrs[index * 2]
-
-                ld      c, (hl)                 ; Fetch door list address low byte
-                inc     hl
-                ld      b, (hl)                 ; BC = base door list address
-
-.door_scan_loop:
-                ld      a, (bc)                 ; Load Frame ID byte
-                cp      2                       ; Normal Frame ID
-                jr      z, .found_stair_door
-                cp      3                       ; Big Frame ID
-                jr      z, .found_stair_door
-                cp      5                       ; Check existing stair style IDs (5-8)
-                jr      c, .next_slot
-                cp      9
-                jr      c, .found_stair_door    ; Matches 5, 6, 7, or 8
-
-.next_slot:
-                ; Advance BC by 16 bytes (size of door structure pair)
-                ld      a, c
-                add     a, 16
+                add     a, a                    ; A * 2
+                add     a, l                    ; A * 3
+                add     a, a                    ; A * 6
                 ld      c, a
-                jr      nc, .no_carry
-                inc     b
-.no_carry:
-                dec     h                       ; Decrement slot count
-                jr      nz, .door_scan_loop
-                jr      .restore_and_exit       ; No stair door found in this room
+                ld      b, 0
+                ld      hl, stair_door_table
+                add     hl, bc                  ; HL = pointer to style block (Small Door 2 first)
 
-.found_stair_door:
-                ; Copy 3 bytes from table (DE) into door structure (BC)
-                ld      a, (de)                 ; Frame ID from table
-                ld      (bc), a                 ; Write to door Entry 1
+                push    hl                      ; Save template base pointer on stack
+
+                ; --------------------------------------------------------------
+                ; Step 2: Index into room_table using room_id (E * 2)
+                ; --------------------------------------------------------------
+                ld      l, e                    ; L = room_id
+                ld      h, 0                    ; HL = room_id
+                add     hl, hl                  ; HL = room_id * 2
+                ld      bc, room_table
+                add     hl, bc                  ; HL = &room_table[E]
+
+                ; Dereference to get room list address (e.g., room_1A)
+                ld      c, (hl)
+                inc     hl
+                ld      b, (hl)
+                ld      h, b
+                ld      l, c                    ; HL = address of room's pointer table
+
+                pop     de                      ; DE = template base pointer (Entry 1: Small)
+
+.next_door_ptr:
+                ; --------------------------------------------------------------
+                ; Step 3: Read next door pointer from room_XX list (dw entry)
+                ; --------------------------------------------------------------
+                ld      c, (hl)
+                inc     hl
+                ld      b, (hl)
+                inc     hl                      ; HL points to next dw in room list
+
+                ; Check for end of door pointers (dw 0)
+                ld      a, b
+                or      c
+                jr      z, .exit_routine        ; Reached 0 delimiter, exit routine
+
+                ; BC now holds address of door entry (e.g., door_1A_1B)
+                push    hl                      ; Save room pointer list position
+                ld      h, b
+                ld      l, c                    ; HL = address of door entry buffer
+
+.check_sub_entry:
+                ; --------------------------------------------------------------
+                ; Step 4: Validate Byte 1 (Sprite ID) and Byte 2 (Room ID)
+                ; --------------------------------------------------------------
+                ld      a, (hl)                 ; Load Byte 1 (Sprite ID)
+                or      a                       ; Check end of door block delimiter (if any)
+                jr      z, .done_door_entry
+
+                cp      2                       ; Is it Small Door (2)?
+                jr      z, .check_room_id
+                cp      3                       ; Is it Big Door (3)?
+                jr      nz, .next_sub_entry     ; Not a stair door, move to next 8-byte block
+
+.check_room_id:
+                inc     hl                      ; HL -> Byte 2 (Room ID)
+                ld      a, (hl)                 ; Load Room ID
+                dec     hl                      ; HL -> Byte 1 (Sprite ID)
+                cp      e                       ; Does Byte 2 match target room_id (E)?
+                jr      nz, .next_sub_entry     ; Room ID doesn't match, skip block
+
+                ; --------------------------------------------------------------
+                ; Step 5: Match Found - Swap Small <-> Large and Update (X, Y)
+                ; --------------------------------------------------------------
+                ld      a, (hl)                 ; Reload current Sprite ID (2 or 3)
+                push    de                      ; Save base template pointer
+
+                cp      3                       ; Is current door Big (3)?
+                jr      z, .apply_swap          ; Want Small (2) -> DE stays at Offset +0
+
+.want_big:
+                inc     de                      ; Want Big (3) -> Advance DE +3 bytes to Entry 2
                 inc     de
-                inc     bc
-
-                ld      a, (de)                 ; Y coord from table
-                ld      (bc), a                 ; Write to door Entry 1
                 inc     de
-                inc     bc
 
-                ld      a, (de)                 ; X coord from table
-                ld      (bc), a                 ; Write to door Entry 1
+.apply_swap:
+                ; Write Sprite ID (Byte 1)
+                ld      a, (de)                 ; Load new Sprite ID from template
+                ld      (hl), a                 ; Overwrite Byte 1
+                inc     de                      ; DE -> Template X
 
-.restore_and_exit:
-                pop     hl                      ; Restore room_attrs pointer
-                pop     bc                      ; Restore loop counter B
+                ; Write X Coord (Byte 3)
+                inc     hl                      ; HL -> Byte 2 (Room ID)
+                inc     hl                      ; HL -> Byte 3 (X Coord)
+                ld      a, (de)                 ; Load Template X
+                ld      (hl), a                 ; Overwrite Byte 3
+                inc     de                      ; DE -> Template Y
+
+                ; Write Y Coord (Byte 4)
+                inc     hl                      ; HL -> Byte 4 (Y Coord)
+                ld      a, (de)                 ; Load Template Y
+                ld      (hl), a                 ; Overwrite Byte 4
+
+                pop     de                      ; Restore base template pointer into DE
+
+                ; Advance HL past remaining 4 bytes of this sub-entry to start of next
+                ld      bc, 4
+                add     hl, bc
+                jr      .check_sub_entry
+
+.next_sub_entry:
+                ; Advance HL by 8 bytes to check next sub-entry in same door structure
+                ld      bc, 8
+                add     hl, bc
+                jr      .check_sub_entry
+
+.done_door_entry:
+                pop     hl                      ; Restore room list pointer position
+                jr      .next_door_ptr
+
+.exit_routine:
+                pop     de                      ; Restore original room_id (E)
+                pop     af                      ; Restore original style_id
                 ret
-
 
 
 

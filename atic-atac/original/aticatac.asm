@@ -304,8 +304,8 @@ door_05_04:     db  2, 5, &34, &50, &1f, 0, 4, &56
                 db  2, 4, &34, &50, &b7, &80, 4, 6
 door_06_05:     db  2, 6, &34, 8, &6f, &e0, 6, 3
                 db  2, 5, &34, &a0, &6f, &60, &b7, 3
-door_1A_06_s:   db  3, &1a, &38, &48, &b6, &80, &16, 8
-                ;db  2, &1a, &34, &50, &ae, &80, &16, 8 ; inverted
+door_1A_06_s:   ;db  3, &1a, &38, &48, &b6, &80, &16, 8
+                db  2, &1a, &34, &50, &ae, &80, &16, 8 ; inverted
 door_1A_06:     db  2, 6, &34, &50, &3f, 0, 4, &56 
             
 door_08_06_g:   db  9, 8, &34, &50, &1f, 0, 4, &56
@@ -351,13 +351,13 @@ door_1A_1B:     db  2, &1a, &34, &50, &28, 0, 4, &56
                 ;db  3, &1a, &38, &48, &28, 0, 4, &56 ; inverted
                 db  2, &1b, &34, &50, &b7, &80, 4, 6
 
-
+ 
 
 door_1B_1C_s:   db  2, &1b, &34, &a0, &6f, &60, &b7, 3 ; external
                 db  3, &1c, &74, 8, &77, &e0, 8, &f5 
-                ;db  2, &1c, &74, 16, &6f, &e0, 8, &f5 ; inverted
+                ;db  2, &1c, &34, 16, &6f, &e0, 8, &f5 ; inverted
 door_1C_1D:     db  2, &1c, &34, &98, &6f, &60, &af, 3
-                ;db  3, &1c, &34, &98, &78, &60, &af, 3 ; inverted
+                ;db  3, &1c, &34, &98, &78, &60, &af, &f5 ; inverted
                 db  1, &1d, &34, &18, &6f, &e0, 6, 3 ; external
 
 
@@ -379,10 +379,14 @@ door_24_25:     db  2, &24, &34, &a0, &6f, &60, &b7, 3
                 db  2, &25, &34, 8, &6f, &e0, 6, 3
 door_25_1E_c:   db  &0a, &25, &34, &50, &1f, 0, 4, &56
                 db  &0a, &1e, &34, &50, &b7, &80, 4, 6
+
 door_24_26_s:   db  2, &24, &34, &50, &3f, 0, 4, &56
-                db  3, &26, &38, &48, &b6, &80, &16, 8
+                db  3, &26, &34, &48, &b6, &80, &16, 8
+                ;db  2, &26, &34, &50, &ae, &80, &16, 8 ; inverted
 door_03_26:     db  2, 2, &34, &50, &97, &80, 4, 6 
-                db  2, &26, &34, &50, &28, 0, 4, &56
+                db  2, &26, &34, &50, &28, 0, 4, &56 
+                ;db  3, &26, &34, &48, &28, 0, 4, &56  ; inverted
+
 door_27_28:     db  2, &27, &34, &50, &b7, &80, 4, 6
                 db  2, &28, &34, &50, &1f, 0, 4, &56
 door_28_29_c:   db  &0a, &28, &34, &50, &b7, &80, 4, 6
@@ -654,6 +658,9 @@ door_93_94:     db  1, &93, &34, &90, &6f, &60, &b7, 3
                 db  1, &94, &34, &18, &6f, &e0, 6, 3
 door_3A_94:     db  1, &3a, &34, &50, &2f, 0, 4, &56
                 db  1, &94, &34, &50, &a7, &80, 4, 6
+
+
+
 trap_73_74:     db  &19, &73, &34, &50, &70, 3, &24, &e4 ; display
                 ;db  &1b, &73, &34, &50, &70, 3, &24, &e4 ; hide
                 db  &1b, &74, &34, &48, &74, 3, 0, 0
@@ -679,6 +686,9 @@ trap_78_8A:     db  &19, &78, &34, &70, &70, 3, &24, &e4
                 db  &1b, &8a, &34, &68, &74, 3, 0, 0
 trap_29_09:     db  &19, &29, &34, &50, &80, 3, &24, &e4
                 db  &1b, 9, &34, &48, &74, 3, 0, 0
+
+
+
 picture_0B_0C:  db  &11, &0b, 0, &50, &97, &81, 0, 0
                 db  &11, &0c, 0, &50, &97, &81, 0, 0
 barrels_91_3D:  db  &27, &91, 0, &50, &8f, 0, 0, 0
@@ -7028,7 +7038,7 @@ invert_stair_style:
                 ld      (hl), a                 ; Update modified style byte in room_attrs
                 push    hl                      ; Preserve table pointer
                 push    de                      ; Preserve implicit room ID (E)
-                call    invert_stair_door       ; Pass: E = room_id, A = style_id
+                ;call    invert_stair_door       ; Pass: E = room_id, A = style_id
                 pop     de                      ; Restore room ID
                 pop     hl
 .issnext:
@@ -7049,20 +7059,21 @@ invert_stair_style:
 
 stair_door_table:
                 ; --- Style 5: Ascending down
-                defb            2, &50, &28             ; Door A: Small upper entrance (Spr 2, X &50, Y &28)
-                defb            3, &48, &B6             ; Door B: Big lower exit (Spr 3, X &48, Y &B6)
+                defb            2, &50, &ae             ; Door A: Small upper entrance (Spr 2, X &50, Y &28)
+                defb            3, &48, &28             ; Door B: Big lower exit (Spr 3, X &48, Y &B6)
 
                 ; --- Style  6: Ascending up
-                defb            3, &48, &28             ; Door A: Big upper exit (Spr 3, X &48, Y &28)
                 defb            2, &50, &AE             ; Door B: Small lower entrance (Spr 2, X &50, Y &AE)
+                defb            3, &48, &28             ; Door A: Big upper exit (Spr 3, X &48, Y &28)
 
                 ; --- Style 7: Ascending right 
                 defb            2, &10, &6F             ; Door A: Small entrance (Spr 2, X &10, Y &6F)
                 defb            3, &98, &78             ; Door B: Big stair exit (Spr 3, X &98, Y &78)
 
                 ; --- Style 8: Ascending left 
-                defb            3, &08, &77             ; Door A: Big upper exit (Spr 3, X &08, Y &77)
-                defb            2, &98, &6F             ; Door B: Small lower entrance (Spr 2, X &98, Y &6F)
+                defb            2, &10, &6f             ; Door B: Small lower entrance (Spr 2, X &98, Y &6F)
+                defb            3, &98, &78             ; Door A: Big upper exit (Spr 3, X &08, Y &77)
+                
 
 ; ------------------------------------------------------------------------------
 ; Routine:       invert_stair_door
@@ -7204,9 +7215,9 @@ get_stair_door_template:
 update_door_record:
                push    iy                      ; Save original door base address
 
-               ld      a, (iy+1)               ; Read Room ID of first 8-byte half
-               cp      e                       ; Does it match target stair room E?
-               jr      nz, .write_data         ; If NOT E, first half is interior side -> skip offset
+               ld      a, (iy+1)               ; Read room ID of first 8-byte half
+               cp      e                       ; Match target?
+               jr      z, .write_data          ; If so, first half is interior side
 
                ; If first half is external room, shift to second 8-byte half
                push    iy

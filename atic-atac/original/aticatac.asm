@@ -304,8 +304,11 @@ door_05_04:     db  2, 5, &34, &50, &1f, 0, 4, &56
                 db  2, 4, &34, &50, &b7, &80, 4, 6
 door_06_05:     db  2, 6, &34, 8, &6f, &e0, 6, 3
                 db  2, 5, &34, &a0, &6f, &60, &b7, 3
-door_1A_06_s:   ;db  3, &1a, &38, &48, &b6, &80, &16, 8
-                db  2, &1a, &34, &50, &ae, &80, &16, 8 ; inverted
+
+; Style 5 stairway - GF to BM (Part1)
+
+door_1A_06_s:   db  3, &1a, &38, &48, &b6, &80, &16, 8
+                ;db  2, &1a, &34, &50, &ae, &80, &16, 8 ; inverted
 door_1A_06:     db  2, 6, &34, &50, &3f, 0, 4, &56 
             
 door_08_06_g:   db  9, 8, &34, &50, &1f, 0, 4, &56
@@ -347,12 +350,13 @@ door_18_17_g:   db  9, &18, &34, &50, &1f, 0, 4, &56
 door_18_02:     db  2, &18, &34, &50, &b7, &80, 4, 6
                 db  2, 2, &34, &50, &3f, 0, 4, &56 
 
+; Style 5 stairway - GF to BM (Part2)
 door_1A_1B:     db  2, &1a, &34, &50, &28, 0, 4, &56
                 ;db  3, &1a, &38, &48, &28, 0, 4, &56 ; inverted
                 db  2, &1b, &34, &50, &b7, &80, 4, 6
 
  
-
+; Style 8 stairway - BM to CV
 door_1B_1C_s:   db  2, &1b, &34, &a0, &6f, &60, &b7, 3 ; external
                 db  3, &1c, &74, 8, &77, &e0, 8, &f5 
                 ;db  2, &1c, &34, 16, &6f, &e0, 8, &f5 ; inverted
@@ -380,6 +384,7 @@ door_24_25:     db  2, &24, &34, &a0, &6f, &60, &b7, 3
 door_25_1E_c:   db  &0a, &25, &34, &50, &1f, 0, 4, &56
                 db  &0a, &1e, &34, &50, &b7, &80, 4, 6
 
+; Style 6 stairway - GF to FF
 door_24_26_s:   db  2, &24, &34, &50, &3f, 0, 4, &56
                 db  3, &26, &34, &48, &b6, &80, &16, 8
                 ;db  2, &26, &34, &50, &ae, &80, &16, 8 ; inverted
@@ -2373,7 +2378,7 @@ print_text:
 
 start_game:
                 call    clear_game_data      ; clear 5E10-5FFF
-                ld      a, 3                 ; 3 lives on startup
+                ld      a, 1                 ; 3 lives on startup
                 ld      (lives), a
                 ld      hl, food_items
                 ld      (food_ptr), hl
@@ -6994,7 +6999,7 @@ inversion_mod:
                 ret     z                       ; Exit if no state change needed
 
                 ld      (hl), a                 ; Update inversion_flag
-                jr      invert_stair_style      ; Apply style and door updates
+                jr      invert_stair_style      ; Apply style updates
 
 
 ; ==============================================================================
@@ -7011,7 +7016,7 @@ invert_stair_style:
                 ld      e, 0                    ; E = implicit room ID (starts at 0)
 
 .issloop:
-                ld      a, e                    ; Load current room ID
+                ld      a,   e                    ; Load current room ID
                 cp      149                     ; Check if all 149 rooms have been processed (&95)
                 ret     z                       ; Exit if end of room_attrs reached
 
@@ -7038,7 +7043,7 @@ invert_stair_style:
                 ld      (hl), a                 ; Update modified style byte in room_attrs
                 push    hl                      ; Preserve table pointer
                 push    de                      ; Preserve implicit room ID (E)
-                ;call    invert_stair_door       ; Pass: E = room_id, A = style_id
+                call    invert_stair_door       ; Pass: E = room_id, A = style_id
                 pop     de                      ; Restore room ID
                 pop     hl
 .issnext:
@@ -7048,119 +7053,90 @@ invert_stair_style:
                 jr      .issloop
 
 ; ------------------------------------------------------------------------------
-; Table:         stair_door_table
-; Description:   Defines door attributes for stair styles 5 to 8.
-;                Each style contains 12 bytes (2 states x 2 doors x 3 bytes):
-;                  Bytes 0-2: Door A (Normal)   [Sprite ID, X, Y]
-;                  Bytes 3-5: Door B (Normal)   [Sprite ID, X, Y]
-;                  Bytes 6-8: Door A (Inverted) [Sprite ID, X, Y]
-;                  Bytes 9-11: Door B (Inverted) [Sprite ID, X, Y]
+; Table:        stair_door_table
+; Description:  Defines interior door attributes for stairway styles 5 to 8.
+;               Data is structured as 3-byte records per door:
+;               Byte 0: Sprite ID (2 = Normal, 3 = Large)
+;               Byte 1: X coordinate
+;               Byte 2: Y coordinate
+; Inputs:       None (Static Data)
+; Outputs:      Data structure referenced by stair initialization routines
 ; ------------------------------------------------------------------------------
 
 stair_door_table:
-                ; --- Style 5: Ascending down
-                defb            2, &50, &ae             ; Door A: Small upper entrance (Spr 2, X &50, Y &28)
-                defb            3, &48, &28             ; Door B: Big lower exit (Spr 3, X &48, Y &B6)
+                ; --- Style 5: Ascending bottom
+ss5:            defb    2, &50, &AE     ; Door A (Normal): X = &50, Y = &AE
+                defb    3, &48, &28     ; Door B (Large):  X = &48, Y = &28
 
-                ; --- Style  6: Ascending up
-                defb            2, &50, &AE             ; Door B: Small lower entrance (Spr 2, X &50, Y &AE)
-                defb            3, &48, &28             ; Door A: Big upper exit (Spr 3, X &48, Y &28)
+                ; --- Style 6: Ascending top
+ss6:            defb    2, &50, &AE     ; Door B (Normal): X = &50, Y = &AE
+                defb    3, &48, &28     ; Door A (Large):  X = &48, Y = &28
 
-                ; --- Style 7: Ascending right 
-                defb            2, &10, &6F             ; Door A: Small entrance (Spr 2, X &10, Y &6F)
-                defb            3, &98, &78             ; Door B: Big stair exit (Spr 3, X &98, Y &78)
+                ; --- Style 7: Ascending right
+ss7:            defb    2, &10, &6F     ; Door A (Normal): X = &10, Y = &6F
+                defb    3, &98, &78     ; Door B (Large):  X = &98, Y = &78
 
-                ; --- Style 8: Ascending left 
-                defb            2, &10, &6f             ; Door B: Small lower entrance (Spr 2, X &98, Y &6F)
-                defb            3, &98, &78             ; Door A: Big upper exit (Spr 3, X &08, Y &77)
-                
+                ; --- Style 8: Ascending left
+ss8:            defb    2, &10, &6F     ; Door B (Normal): X = &10, Y = &6F
+                defb    3, &98, &78     ; Door A (Large):  X = &98, Y = &78             
 
 ; ------------------------------------------------------------------------------
 ; Routine:       invert_stair_door
-; Flow:          1. Resolves style template pointer from stair_door_table (IX).
-;                2. Indexes room_table using Room ID E to find stair room base.
-;                3. Reads Door A (+0) and Door B (+2) pointers.
-;                4. Evaluates inversion_flag; swaps template assignments if set.
-;                5. Calls update_door_record for Door A and Door B.
+; Flow:          1. Calls get_stair_door_block to resolve Door A template (IX).
+;                2. Caches Stair Room ID in register A.
+;                3. Indexes room_table to get stair room structure pointer (HL).
+;                4. Reads Door A (+0) into BC and Door B (+2) into DE.
+;                5. Updates Door A using template IX and Room ID in E.
+;                6. Advances IX by 3 bytes and updates Door B.
 ; Inputs:        A = Target Style ID (5, 6, 7, or 8)
 ;                E = Stair Room ID (e.g., &1C)
 ; Outputs:       Stair-facing records for Door A and Door B updated in RAM
 ; Alters:        AF, BC, DE, HL, IX, IY
 ; ------------------------------------------------------------------------------
 invert_stair_door:
-               push    de                      ; Preserve target Stair Room ID (E)
+                push            de                      ; Preserve Stair Room ID (E)
+                call            get_stair_door_block
+                pop             de                      ; Restore Stair Room ID into E
+                ld              a, e                    ; Cache Stair Room ID in A
 
-               ; 1. Locate base template in stair_door_table (6-byte block)
-               call    get_stair_door_template ; IX = base template address
+                ; Index room_table to get stair room structure pointer
+                ld              l, e
+                ld              h, 0                    ; HL = room index (E)
+                add             hl, hl                  ; HL = E * 2 (16-bit word offset)
+                ld              bc, room_table
+                add             hl, bc                  ; HL = room pointer
 
-               pop     de                      ; Restore Stair Room ID into E
+                ; Dereference stair room structure address into HL
+                ld              c, (hl)
+                inc             hl
+                ld              b, (hl)                 ; BC = room pointer
+                ld              l, c
+                ld              h, b                    ; HL = address of room
 
-               ; 2. Index room_table to get stair room structure pointer
-               ld      l, e
-               ld      h, 0                    ; HL = room index (E)
-               add     hl, hl                  ; HL = E * 2 (16-bit word table)
-               ld      bc, room_table
-               add     hl, bc                  ; HL = &room_table[E]
+                ; Fetch Door A (+0) and Door B (+2) record pointers
+                ld              c, (hl)
+                inc             hl
+                ld              b, (hl)                 ; BC = Door A record pointer
+                
+                inc             hl
+                ld              e, (hl)
+                inc             hl
+                ld              d, (hl)                 ; DE = Door B record pointer
 
-               ld      c, (hl)
-               inc     hl
-               ld      b, (hl)                 ; BC = base address of stair room block
+                ; --- Update Door A ---
+                push            de                      ; Stack = Door B record pointer
+                push            bc
+                pop             iy                      ; IY = Door A record pointer
+                ld              e, a                    ; E = Stair Room ID
+                call            update_door_record
 
-               ; 3. Fetch Door A (+0) and Door B (+2) record pointers from room block
-               ld      l, c
-               ld      h, b                    ; HL = stair room block address
-               
-               push    de                      ; Preserve Stair Room ID (E)
-               ld      e, (hl)
-               inc     hl
-               ld      d, (hl)                 ; DE = Door A record pointer (word +0)
-               inc     hl
-               ld      c, (hl)
-               inc     hl
-               ld      b, (hl)                 ; BC = Door B record pointer (word +2)
-               pop     hl                      ; L = Stair Room ID (E) preserved
-
-               ; 4. Prepare Tuple A (IX) and Tuple B (HL) template pointers
-               push    ix
-               pop     iy
-               push    iy
-               pop     hl                      ; HL = Tuple A pointer
-               inc     hl
-               inc     hl
-               inc     hl                      ; HL = IX + 3 (Tuple B pointer)
-
-               ; 5. Swap template pointers if inversion_flag is non-zero
-               push    de                      ; Preserve Door A record pointer
-               ld      a, (inversion_flag)
-               or      a
-               jr      z, .apply_updates
-
-               ; Inverted: Swap IX (Tuple A) and HL (Tuple B)
-               push    ix
-               push    hl
-               pop     ix                      ; IX = Tuple B (applied to Door A)
-               pop     hl                      ; HL = Tuple A (applied to Door B)
-
-.apply_updates:
-               pop     de                      ; DE = Door A record pointer
-
-               ; --- Update Door A ---
-               push    bc                      ; Preserve Door B record pointer
-               push    hl                      ; Preserve Door B template pointer
-               push    de                      ; Preserve Door A record pointer
-
-               push    de
-               pop     iy                      ; IY = Door A record pointer
-               ld      e, l                    ; E = Stair Room ID
-               call    update_door_record      ; Updates Door A using template IX
-
-               pop     de                      ; Restore Door A record pointer
-               pop     ix                      ; IX = Door B template pointer
-               pop     iy                      ; IY = Door B record pointer
-
-               ; --- Update Door B ---
-               call    update_door_record      ; Updates Door B using template IX
-               ret
+                ; --- Update Door B ---
+                pop             iy                      ; IY = Door B record pointer
+                ld              bc, 3                   ; Offset to Door B template (3 bytes)
+                add             ix, bc                  ; IX = Door B template pointer
+                ld              e, a                    ; E = Stair Room ID
+                call            update_door_record
+                ret
 
 ; ------------------------------------------------------------------------------
 ; Routine:       get_stair_door_template
@@ -7171,7 +7147,7 @@ invert_stair_door:
 ; Outputs:       IX = Source template address (Door A = IX+0, Door B = IX+3)
 ; Alters:        AF, DE, HL, IX
 ; ------------------------------------------------------------------------------
-get_stair_door_template:
+get_stair_door_block:
                sub     5                       ; A = zero-based index (0..3)
                ld      l, a
                ld      h, 0                    ; HL = index
@@ -7215,7 +7191,7 @@ get_stair_door_template:
 update_door_record:
                push    iy                      ; Save original door base address
 
-               ld      a, (iy+1)               ; Read room ID of first 8-byte half
+               ld      a, (iy+1)               ; A = room ID
                cp      e                       ; Match target?
                jr      z, .write_data          ; If so, first half is interior side
 
@@ -7232,10 +7208,10 @@ update_door_record:
                ld      (iy+0), a               ; Write Sprite ID to +0
 
                ; --- Set Render Flag at +2 ---
-               cp      3                       ; Is it a staircase sprite?
-               ld      a, &38                  ; Stair render flag
+               cp      3                       ; Big door?
+               ld      a, &38                  ; If so change +2 to &38
                jr      z, .set_flag
-               ld      a, &34                  ; Door render flag
+               ld      a, &34                  ; If mot change +2 to &34
 .set_flag:
                ld      (iy+2), a               ; Write Render Flag to +2
 

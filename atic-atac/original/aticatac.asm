@@ -7128,7 +7128,9 @@ invert_stair_door:
                 push            bc
                 pop             iy                      ; IY = Door A record pointer
                 ld              e, a                    ; E = Stair Room ID
+                push            af
                 call            update_door_record
+                pop             af
 
                 ; --- Update Door B ---
                 pop             iy                      ; IY = Door B record pointer

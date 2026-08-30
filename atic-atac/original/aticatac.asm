@@ -7064,21 +7064,21 @@ invert_stair_style:
 ; ------------------------------------------------------------------------------
 
 stair_door_table:
-                ; --- Style 5: Ascending bottom
-ss5:            defb    2, &50, &AE     ; Door A (Normal): X = &50, Y = &AE
-                defb    3, &48, &28     ; Door B (Large):  X = &48, Y = &28
+                ; --- Style 5: Ascending down  
+ss5:            defb    2, &50, &28     ; Door A (Normal): X = &50, Y = &AE
+                defb    3, &48, &b6     ; Door B (Large):  X = &48, Y = &28
 
-                ; --- Style 6: Ascending top
+                ; --- Style 6: Ascending up  GOOD
 ss6:            defb    2, &50, &AE     ; Door B (Normal): X = &50, Y = &AE
                 defb    3, &48, &28     ; Door A (Large):  X = &48, Y = &28
 
-                ; --- Style 7: Ascending right
+                ; --- Style 7: Ascendin g right GOOD
 ss7:            defb    2, &10, &6F     ; Door A (Normal): X = &10, Y = &6F
                 defb    3, &98, &78     ; Door B (Large):  X = &98, Y = &78
 
                 ; --- Style 8: Ascending left
-ss8:            defb    2, &10, &6F     ; Door B (Normal): X = &10, Y = &6F
-                defb    3, &98, &78     ; Door A (Large):  X = &98, Y = &78             
+ss8:            defb    2, &98, &6F     ; Door B (Normal): X = &10, Y = &6F
+                defb    3, 8, &77     ; Door A (Large):  X = &98, Y = &78             
 
 ; ------------------------------------------------------------------------------
 ; Routine:       invert_stair_door
@@ -7099,7 +7099,7 @@ invert_stair_door:
                 pop             de                      ; Restore Stair Room ID into E
                 ld              a, e                    ; Cache Stair Room ID in A
 
-                ; Index room_table to get stair room structure pointer
+                ; Offset room_table base by stair room id
                 ld              l, e
                 ld              h, 0                    ; HL = room index (E)
                 add             hl, hl                  ; HL = E * 2 (16-bit word offset)

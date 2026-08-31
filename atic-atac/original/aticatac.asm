@@ -7134,8 +7134,8 @@ invert_stair_door:
 
                 ; --- Update Door B ---
                 pop             iy                      ; IY = Door B record pointer
-                ld              bc, 3                   ; Offset to Door B template (3 bytes)
-                add             ix, bc                  ; IX = Door B template pointer
+                ;ld              bc, 3                   ; Offset to Door B template (3 bytes)
+                ;add             ix, bc                  ; IX = Door B template pointer
                 ld              e, a                    ; E = Stair Room ID
                 call            update_door_record
                 ret
@@ -7192,10 +7192,11 @@ get_stair_door_block:
 ; ------------------------------------------------------------------------------
 update_door_record:
                push    iy                      ; Save original door base address
+               push    ix                      ; Save original style base address
 
                ld      a, (iy+1)               ; A = room ID
                cp      e                       ; Match target?
-               jr      z, .write_data          ; If so, first half is interior side
+               jr      z, .chk_door            ; If so, first half is interior side
 
                ; If first half is external room, shift to second 8-byte half
                push    iy
@@ -7205,8 +7206,15 @@ update_door_record:
                push    hl
                pop     iy                      ; IY = second half pointer
 
-.write_data:
-               ld      a, (ix+0)               ; Fetch Sprite ID from template
+.chk_door:
+               ld      a, (iy+0)               ; A = door type 
+               cp      3                       ; Door = big?
+               jr      z, write_door          ; Jump if so (update 1st record of style block)
+
+               ld      bc, 3                   ; If not, move style block to 2nd record
+               add     ix, bc 
+
+write_door    ld      a, (ix+0)               ; Fetch Sprite ID from template
                ld      (iy+0), a               ; Write Sprite ID to +0
 
                ; --- Set Render Flag at +2 ---
@@ -7223,6 +7231,7 @@ update_door_record:
                ld      a, (ix+2)               ; Fetch Y coordinate from template
                ld      (iy+4), a               ; Write Y coordinate to +4
 
+               pop     ix                      ; Restore original style base addres
                pop     iy                      ; Restore original base address
                ret
 

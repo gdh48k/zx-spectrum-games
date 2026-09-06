@@ -772,11 +772,11 @@ shields_08_18:  db  &1c, 8, 0, &88, &67, &40, 0, 0
                 db  &1d, &18, 0, &88, &67, &40, 0, 0
 trophies_6F_0E: db  &15, &6f, 0, &28, &67, &e0, 0, 0
                 db  &16, &0e, 0, &28, &77, &e0, 0, 0
-pic_shi_00_19:  db  &25, 0, 0, &28, &17, 0, 0, 0
+pic_shi_00_19:  db  &25, 0, 0, &28, &17, &0, 0, 0 ; 0 to 80 ; smiley face
                 db  &1d, &19, 0, &58, &37, 0, 0, 0
-pic_tro_00_0B:  db  &11, 0, 0, &78, &1c, 0, 0, 0
+pic_tro_00_0B:  db  &11, 0, 0, &78, &1c, &0, 0, 0 ; blue picture by default  
                 db  &16, &0b, 0, &58, &37, 0, 0, 0
-shields_00_19:  db  &1c, 0, 0, &38, &b7, &80, 0, 0
+shields_00_19:  db  &1c, 0, 0, &38, &b7, &80, 0, 0 ; 80 to 0 ; acg shield  
                 db  &1d, &19, 0, &58, &97, &80, 0, 0
 trophies_00_0B: db  &15, 0, 0, &78, &b7, &80, 0, 0
                 db  &16, &0b, 0, &58, &97, &81, 0, 0
@@ -798,7 +798,7 @@ trophies_87_89: db  &15, &87, 0, &38, &17, 0, 0, 0
                 db  &16, &89, 0, &38, &b7, &80, 0, 0
 trophies_87_89_2:db  &16, &87, 0, &78, &17, 0, 0, 0
                 db  &15, &89, 0, &78, &b7, &80, 0, 0
-shi_pic_00_82:  db  &1d, 0, 0, 8, &47, &e0, 0, 0
+shi_pic_00_82:  db  &1d, 0, 0, 8, &47, &e0, 0, 0       ;blue shield by default
                 db  &16, &82, 0, &38, &b7, &80, 0, 0
 trophies_00_82: db  &16, 0, 0, 8, &87, &e0, 0, 0
                 db  &15, &82, 0, &78, &b7, &80, 0, 0
@@ -6182,48 +6182,70 @@ get_linked_door:
                 pop     ix
                 ret
 
-; draw all non-monster entities in the current room
+;===============================================================================
+; Routine:  draw_entities
+; Flow:     Executes two sequential scan loops during a room transition to render
+;           all non-monster items in the active room. Pass 1 iterates through
+;           8-byte standalone items. Pass 2 then picks up seamlessly at
+;           'creature1' and iterates in 16-byte (&10) steps through linked pairs
+;           up to 'linked_items'. Valid items matching the player's current room
+;           are drawn via 'draw_entity'.
+; Inputs:   (player_room) - ID of current room to render
+; Outputs:  None (plots entity graphics to screen memory)
+;===============================================================================
 draw_entities:
-                ld      ix, player
+                ld      ix, player      ; Start pointer at beginning of 8-byte table
+
+; ------------------------------------------------------------------------------
+; LOOP 1 / PASS 1: Scan 8-byte Standalone Items (player -> creature1)
+; ------------------------------------------------------------------------------
 loc_9295:
-                ld      a, (ix+0)
-                and     a                    ; slot used?
-                jr      z, loc_92A6          ; jump if not
+                ld      a, (ix+0)       ; Fetch sprite ID / type byte
+                and     a               ; Check if slot is active
+                jr      z, loc_92A6     ; Skip if empty slot (&00)
 
-                ld      a, (player_room)
-                cp      (ix+1)               ; in player room?
-                jr      nz, loc_92A6         ; jump if not
+                ld      a, (player_room) ; Load current room ID
+                cp      (ix+1)          ; Compare against entity room location
+                jr      nz, loc_92A6    ; Skip if entity is in another room
 
-                call    draw_entity          ; draw entity graphic (no attrs)
+                call    draw_entity     ; Render standalone item graphic to display
+
 loc_92A6:
-                ld      de, 8                ; 8 bytes per entry
-                add     ix, de
-                push    ix
-                pop     hl
-                ld      de, creature1        ; end marker
-                and     a
-                sbc     hl, de               ; more 8-byte entries to process?
-                jr      c, loc_9295          ; jump back if so
+                ld      de, 8           ; Stride = 8 bytes per standalone entry
+                add     ix, de          ; Advance pointer to next item entry
+                push    ix              ; Transfer IX into HL for boundary comparison
+                pop     hl              ; (Z80 lacks 'cp ix, de' instruction)
+                ld      de, creature1   ; Load end boundary address for Pass 1
+                and     a               ; Clear carry flag before subtraction
+                sbc     hl, de          ; Check if IX < creature1
+                jr      c, loc_9295     ; Loop back if more 8-byte entries remain
 
+; ------------------------------------------------------------------------------
+; LOOP 2 / PASS 2: Scan 16-byte Linked Entity Pairs (creature1 -> linked_items)
+; Note: IX falls directly into this loop sitting at address 'creature1'
+; ------------------------------------------------------------------------------
 loc_92B6:
-                ld      a, (ix+0)
-                and     a                    ; slot used?
-                jr      z, loc_92C7          ; jump if not
-                ld      a, (player_room)
-                cp      (ix+1)               ; in player room?
-                jr      nz, loc_92C7         ; jump if not
-                
-                call    draw_entity          ; draw entity graphic (no attrs)
+                ld      a, (ix+0)       ; Fetch sprite ID / type byte
+                and     a               ; Check if slot is active
+                jr      z, loc_92C7     ; Skip if empty slot (&00)
+
+                ld      a, (player_room) ; Load current room ID
+                cp      (ix+1)          ; Compare against primary entity room location
+                jr      nz, loc_92C7    ; Skip if entity is in another room
+
+                call    draw_entity     ; Render primary linked element to display
+
 loc_92C7:
-                ld      de, &10              ; 16 bytes per entry
-                add     ix, de
-                push    ix
-                pop     hl
-                ld      de, linked_items     ; end of 16-byte entities
-                and     a
-                sbc     hl, de               ; more 16-byte entries to draw?
-                jr      c, loc_92B6          ; jump back if so
-                ret
+                ld      de, &10         ; Stride = 16 bytes (&10) per linked pair
+                add     ix, de          ; Advance IX past both primary & secondary entries
+                push    ix              ; Transfer IX into HL for boundary comparison
+                pop     hl              ; (Z80 lacks 'cp ix, de' instruction)
+                ld      de, linked_items ; Load end boundary address for Pass 2
+                and     a               ; Clear carry flag before subtraction
+                sbc     hl, de          ; Check if IX < linked_items
+                jr      c, loc_92B6     ; Loop back if more 16-byte entries remain
+
+                ret                     ; Complete non-monster item rendering pass
 
 ; clear pickup key flag
 ;pickup_released:
@@ -9785,7 +9807,8 @@ draw_room_a:
                 ld      h, 0
                 add     hl, hl               ; 2 bytes per entry
                 add     hl, bc
-                ld      a, (hl)              ; attr colour
+                ;ld      a, (hl)              ; attr colour
+                ld      a, dark_blue
                 inc     hl
                 ld      (room_attr), a
                 exx
@@ -16150,11 +16173,16 @@ g_acg_door:     db  8, &28
                 db  &2a, &aa, &aa, &aa, &aa, &aa, &aa, &ac
                 db  0, 0, 0, 0, 0, 0, 0, 0
 a_acg_door:     db  8, 5
-                db  &ff, &47, &43, &43, &43, &43, &47, &ff
-                db  &ff, &47, &43, &43, &43, &43, &47, &ff
-                db  &47, &47, &43, &43, &43, &43, &47, &47
-                db  &47, &47, &43, &43, &43, &43, &47, &47
-                db  &46, &46, &46, &46, &46, &46, &46, &46
+                ;db  &ff, &47, &43, &43, &43, &43, &47, &ff
+                ;db  &ff, &47, &43, &43, &43, &43, &47, &ff
+                ;db  &47, &47, &43, &43, &43, &43, &47, &47
+                ;db  &47, &47, &43, &43, &43, &43, &47, &47
+                ;db  &46, &46, &46, &46, &46, &46, &46, &46
+                db  &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff  ;transparent acg door
+                db  &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff
+                db  &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff
+                db  &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff
+                db  &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff
 g_acg_key1:     db  &0b
                 db  &0c, &ce
                 db  &0c, &df

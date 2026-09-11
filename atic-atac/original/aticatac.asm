@@ -9813,7 +9813,7 @@ draw_room_a:
                 ld      a, (mode_state)
                 cp      3                       ; Is inversion mode active?
                 jr      z, dim_room
-                
+
                 ld      a, (hl)              ; attr colour
                 jr      colour_frame
 
@@ -11369,15 +11369,21 @@ score_yx        equ     &48d0
 timer_attr_yx   equ     &5ed0
 
 
+dark_black      equ      &0
 dark_blue       equ      01
+dark_magenta    equ      &03
+
 bright_blue     equ      &41
-dark_black      equ      0
-bright_white    equ      &47
-bright_white_bl equ      &4f  
-bright_yellow   equ      &46
-bright_yellow_gr equ     &66 
+bright_magenta  equ      &43 
 bright_cyan     equ      &45
-bright_magenta  equ      &43       
+bright_yellow   equ      &46
+bright_white    equ      &47
+
+bright_white_bl equ      &4f  
+bright_yellow_gr equ     &66 
+
+
+      
 
 
 ; -----------------------------------------------------------------------------
@@ -11395,14 +11401,25 @@ bright_magenta  equ      &43
 draw_panel_attrs:
 
 ; --- COLOUR BACKGROUND ---
+
+
+                ld      a, (mode_state)
+                cp      3                       ; Is inversion mode active?
+                jr      z, dim_side_panel       
+
                 ; Calculate contrast color once
-                ld      a, &3
-                ;ld      a, (room_attr)
-                ;cpl
-                ;and     &07                     ; Mask color bits 0-2
-                ;cp      &02                     ; Threshold for contrast
-                ;jr      nc, .got_color
-                ;ld      a, &44                  ; Default contrast color
+                
+
+                ld      a, (room_attr)
+                cpl
+                and     &07                     ; Mask color bits 0-2
+                cp      &02                     ; Threshold for contrast
+                jr      nc, .got_color
+                ld      a, dark_magenta                  ; Default contrast color
+                jr      .got_color
+
+dim_side_panel: ld      a, &3
+
 .got_color:     ld      e, a
 
                 ; 1. Top header (8 cols wide)

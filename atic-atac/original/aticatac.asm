@@ -9325,26 +9325,41 @@ get_gfx_data:
                 inc     de
                 ret
 
-; IN: C=gfx idx, DE=coords  OUT: HL=attr addr, DE=attr data, B=width, C=height
+; Routine:      get_gfx_attrs
+; Flow:         Pre-loads default attribute table pointer, checks mode_state
+;               for inversion mode 3, calculates word offset from index C,
+;               converts pixel coords in DE to screen attribute address,
+;               and reads descriptor width and height headers into B and C.
+; Inputs:       C = graphics index (1-based)
+;               DE = pixel coordinates (Y, X)
+; Outputs:      HL = screen attribute memory address
+;               DE = pointer to attribute payload
+;               B = width (in character blocks)
+;               C = height (in character blocks)
 get_gfx_attrs:
-                ld      hl, gfx_attrs
-                dec     c                    ; 1-based
-                ld      b, 0
-                sla     c
-                rl      b
-                add     hl, bc
-                ld      a, (hl)
-                inc     hl
-                ld      h, (hl)
-                ld      l, a
-                ex      de, hl
-                call    xy_to_attr           ; convert pixel coords in HL to attribute address
-                ld      a, (de)
-                ld      b, a
-                inc     de
-                ld      a, (de)
-                ld      c, a
-                inc     de
+                ld      hl, gfx_attrs           ; pre-load default attribute table
+                ld      a, (mode_state)         ; load active game mode
+                cp      3                       ; test for inversion mode
+                jr      nz, .dont_dim           ; if not mode 3, keep default table
+                ld      hl, gfx_attrs_dim       ; set dimmed attribute table pointer
+
+.dont_dim:      dec     c                       ; convert 1-based index to 0-based
+                ld      b, 0                    ; clear upper byte for 16-bit addition
+                sla     c                       ; multiply index by 2 for word offset
+                rl      b                       ; handle carry bit into high byte
+                add     hl, bc                  ; HL = table base + (index * 2)
+                ld      a, (hl)                 ; read descriptor pointer low byte
+                inc     hl                      ; advance to high byte
+                ld      h, (hl)                 ; read descriptor pointer high byte
+                ld      l, a                    ; HL = descriptor address
+                ex      de, hl                  ; DE = descriptor address, HL = pixel coords
+                call    xy_to_attr              ; convert pixel coords HL to attr address
+                ld      a, (de)                 ; fetch width from descriptor header
+                ld      b, a                    ; B = width
+                inc     de                      ; advance to height byte
+                ld      a, (de)                 ; fetch height from descriptor header
+                ld      c, a                    ; C = height
+                inc     de                      ; DE = pointer to attribute payload
                 ret
 
 draw_disp_0:
@@ -12133,17 +12148,14 @@ gfx_attrs:      dw  a_cave_door_frame ;0
                 dw  a_table
                 dw  g_none                    ; full chicken attrs handled separately
                 dw  g_none                    ; empty chicken attrs handled separately
-                ;dw  a_wall_antlers
-                dw  a_ghost_picture ; use 4x2 trans attrs for antlers
-                ;dw  a_wall_trophy
-                dw  a_wall_shield ; ; use 2x2 trans attrs for shield
+                dw  a_wall_antlers
+                dw  a_wall_trophy
                 dw  a_bookcase
                 dw  a_trap_closed
                 dw  a_trap_open ;24
                 dw  a_barrel
                 dw  a_rug
-                ;dw  a_acg_shield
-                dw  a_wall_shield ; ; use 2x2 trans attrs for shield
+                dw  a_acg_shield
                 dw  a_wall_shield
                 dw  a_suit_armour
                 dw  g_none
@@ -12152,10 +12164,49 @@ gfx_attrs:      dw  a_cave_door_frame ;0
                 dw  a_cave_door_shut
                 dw  a_cave_door_frame
                 dw  a_acg_door
-                ;dw  a_pumpkin_picture
-                dw  a_ghost_picture ; use 4x2 trans attrs for pumpkin
+                dw  a_pumpkin_picture
                 dw  a_skeleton
                 dw  a_barrel_stack
+
+gfx_attrs_dim:  dw  a_cave_door_frame ;0
+                dw  a_door_frame
+                dw  a_bigdoor_frame
+                dw  g_none
+                dw  g_none
+                dw  g_none
+                dw  g_none
+                dw  a_red_locked
+                dw  a_green_locked ;8
+                dw  a_cyan_locked
+                dw  a_yellow_locked
+                dw  a_red_cave_locked
+                dw  a_green_cave_locked
+                dw  a_cyan_cave_locked
+                dw  a_yellow_cave_locked
+                dw  a_clock
+                dw  a_ghost_picture ; 16
+                dw  a_table
+                dw  g_none                    ; full chicken attrs handled separately
+                dw  g_none                    ; empty chicken attrs handled separately
+                dw  a_ghost_picture ; use 4x2 trans attrs for antlers
+                dw  a_wall_shield ; ; use 2x2 trans attrs for shield
+                dw  a_bookcase
+                dw  a_trap_closed
+                dw  a_trap_open ;24
+                dw  a_barrel
+                dw  a_rug
+                dw  a_wall_shield ; ; use 2x2 trans attrs for acg_shield
+                dw  a_wall_shield
+                dw  ad_suit_armour
+                dw  g_none
+                dw  ad_door_shut
+                dw  a_door_frame
+                dw  a_cave_door_shut
+                dw  a_cave_door_frame
+                dw  ad_acg_door
+                dw  a_ghost_picture ; use 4x2 trans attrs for pumpkin
+                dw  a_skeleton
+                dw  a_barrel_stack                
 
 g_door_locked:  db  4, &18
                 db  &ff, &1b, &30, &ff
@@ -15470,10 +15521,11 @@ a_wall_shield:  db  2, 2
                 db  &ff, &ff
                 db  &ff, &ff
 a_suit_armour:  db  2, 4
-                ;db  &45, &45
-                ;db  &45, &45
-                ;db  &45, &45
-                ;db  &45, &45
+                db  &45, &45
+                db  &45, &45
+                db  &45, &45
+                db  &45, &45
+ad_suit_armour: db  2, 4
                 db  &ff, &ff
                 db  &ff, &ff
                 db  &ff, &ff
@@ -15485,15 +15537,15 @@ a_cave_door_shut:db  4, 3
                 db  &ff, &47, &47, &ff
                 db  &ff, &47, &47, &ff
                 db  &ff, &ff, &ff, &ff
-a_door_shut:    ;db  4, 3
-                ;db  &43, &47, &47, &43
-                ;db  &43, &47, &47, &43
-                ;db  &43, &43, &43, &43
+a_door_shut:    db  4, 3
+                db  &43, &47, &47, &43
+                db  &43, &47, &47, &43
+                db  &43, &43, &43, &43
 
-                db      4, 3                    ; width=4, height=3
-                db      &03, &07, &07, &03      ; row 1: std magenta frame, std white panel
-                db      &03, &07, &07, &03      ; row 2: std magenta frame, std white panel
-                db      &03, &03, &03, &03      ; row 3: std magenta threshold
+ad_door_shut:   db  4, 3                    ; width=4, height=3
+                db  &03, &07, &07, &03      ; row 1: std magenta frame, std white panel
+                db  &03, &07, &07, &03      ; row 2: std magenta frame, std white panel
+                db  &03, &03, &03, &03      ; row 3: std magenta threshold
 
 g_door_shut:    db  4, &18
                 db  &ff, &3b, &dc, &ff
@@ -16222,11 +16274,12 @@ g_acg_door:     db  8, &28
                 db  &2a, &aa, &aa, &aa, &aa, &aa, &aa, &ac
                 db  0, 0, 0, 0, 0, 0, 0, 0
 a_acg_door:     db  8, 5
-                ;db  &ff, &47, &43, &43, &43, &43, &47, &ff
-                ;db  &ff, &47, &43, &43, &43, &43, &47, &ff
-                ;db  &47, &47, &43, &43, &43, &43, &47, &47
-                ;db  &47, &47, &43, &43, &43, &43, &47, &47
-                ;db  &46, &46, &46, &46, &46, &46, &46, &46
+                db  &ff, &47, &43, &43, &43, &43, &47, &ff
+                db  &ff, &47, &43, &43, &43, &43, &47, &ff
+                db  &47, &47, &43, &43, &43, &43, &47, &47
+                db  &47, &47, &43, &43, &43, &43, &47, &47
+                db  &46, &46, &46, &46, &46, &46, &46, &46
+ad_acg_door     db  8, 5
                 db  &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff  ;transparent acg door
                 db  &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff
                 db  &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff

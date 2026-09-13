@@ -2378,7 +2378,7 @@ print_text:
 
 start_game:
                 call    clear_game_data      ; clear 5E10-5FFF
-                ld      a, 1                 ; 3 lives on startup
+                ld      a, 0                 ; 3 lives on startup
                 ld      (lives), a
                 ld      hl, food_items
                 ld      (food_ptr), hl
@@ -11385,9 +11385,10 @@ timer_attr_yx   equ     &5ed0
 
 
 dark_black      equ      &0
-dark_blue       equ      01
+dark_blue       equ      &01
 dark_magenta    equ      &03
-
+dark_white      equ      &07
+ 
 bright_blue     equ      &41
 bright_magenta  equ      &43 
 bright_cyan     equ      &45
@@ -11516,7 +11517,7 @@ dim_side_panel: ld      a, &3
                 ld      hl, chicken_attr_yx  ; MOD: Change &5fc8 to &66c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0604            ; 6x4
-                ld      a, bright_yellow   ; bright yellow (CHICKEN)
+                ld      a, dark_white   ; bright yellow (CHICKEN)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                         
@@ -12128,7 +12129,7 @@ chicken_empty_addr:dw  g_chicken_empty
                 dw  g_barrel_stack
 
 
-gfx_attrs:      dw  a_cave_door_frame ;0
+gfx_attrs:      dw  a_cave_door_frame         ;0
                 dw  a_door_frame
                 dw  a_bigdoor_frame
                 dw  g_none
@@ -12136,7 +12137,7 @@ gfx_attrs:      dw  a_cave_door_frame ;0
                 dw  g_none
                 dw  g_none
                 dw  a_red_locked
-                dw  a_green_locked ;8
+                dw  a_green_locked            ;8
                 dw  a_cyan_locked
                 dw  a_yellow_locked
                 dw  a_red_cave_locked
@@ -12144,7 +12145,7 @@ gfx_attrs:      dw  a_cave_door_frame ;0
                 dw  a_cyan_cave_locked
                 dw  a_yellow_cave_locked
                 dw  a_clock
-                dw  a_ghost_picture ; 16
+                dw  a_ghost_picture           ;16
                 dw  a_table
                 dw  g_none                    ; full chicken attrs handled separately
                 dw  g_none                    ; empty chicken attrs handled separately
@@ -12152,7 +12153,7 @@ gfx_attrs:      dw  a_cave_door_frame ;0
                 dw  a_wall_trophy
                 dw  a_bookcase
                 dw  a_trap_closed
-                dw  a_trap_open ;24
+                dw  a_trap_open               ;24
                 dw  a_barrel
                 dw  a_rug
                 dw  a_acg_shield
@@ -12160,7 +12161,7 @@ gfx_attrs:      dw  a_cave_door_frame ;0
                 dw  a_suit_armour
                 dw  g_none
                 dw  a_door_shut
-                dw  a_door_frame
+                dw  a_door_frame              ;32
                 dw  a_cave_door_shut
                 dw  a_cave_door_frame
                 dw  a_acg_door
@@ -12169,7 +12170,7 @@ gfx_attrs:      dw  a_cave_door_frame ;0
                 dw  a_barrel_stack
 
 gfx_attrs_dim:  dw  a_cave_door_frame ;0
-                dw  a_door_frame
+                dw  ad_door_frame
                 dw  a_bigdoor_frame
                 dw  g_none
                 dw  g_none
@@ -12200,12 +12201,12 @@ gfx_attrs_dim:  dw  a_cave_door_frame ;0
                 dw  ad_suit_armour
                 dw  g_none
                 dw  ad_door_shut
-                dw  a_door_frame
+                dw  ad_door_frame
                 dw  a_cave_door_shut
                 dw  a_cave_door_frame
                 dw  ad_acg_door
                 dw  a_ghost_picture ; use 4x2 trans attrs for pumpkin
-                dw  a_skeleton
+                dw  ad_skeleton
                 dw  a_barrel_stack                
 
 g_door_locked:  db  4, &18
@@ -12294,6 +12295,10 @@ a_door_frame:   db  4, 3
                 db  &43, 0, 0, &43
                 db  &43, 0, 0, &43
                 db  &43, &43, &43, &43
+ad_door_frame:   db  4, 3
+                db  &3, 0, 0, &3
+                db  &3, 0, 0, &3
+                db  &3, &3, &3, &3
 a_cave_door_frame:db  4, 3
                 db  &ff, &ff, &ff, &ff
                 db  &ff, &ff, &ff, &ff
@@ -16458,6 +16463,12 @@ a_skeleton:     db  5, 5
                 db  &ff, &47, &47, &ff, &ff
                 db  &47, &47, &47, &47, &47
                 db  &47, &ff, &ff, &ff, &47
+ad_skeleton:    db  5, 5
+                db  &ff, &ff, &ff, &ff, &ff
+                db  &ff, &ff, &ff, &ff, &ff
+                db  &ff, &ff, &ff, &ff, &ff
+                db  &ff, &ff, &ff, &ff, &ff
+                db  &ff, &ff, &ff, &ff, &ff
 g_hunchback1:   db  &18
                 db  0, &3c
                 db  &3c, &38

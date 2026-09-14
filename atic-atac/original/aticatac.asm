@@ -7025,10 +7025,16 @@ inversion_mod:
 
 .set_inactive:
                 xor     a                       ; Target state = 0 (and clears flags)
+                ld      hl, p_chick_attr
+                ld      (hl), bright_yellow
                 jr      .chk_flag
 
 .set_active:
+                ld      hl, p_chick_attr
+                ld      (hl), dark_white
+
                 ld      a, 1                    ; Target state = 1
+
 
 .chk_flag:
                 ld      hl, inversion_flag
@@ -10082,7 +10088,7 @@ loc_9D2B:
                 ld      a, (room_attr)
 loc_9D37:
                 ;ld      (hl), a              ; set attr
-                ld      (hl), dark_blue       ; set attr
+                ld      (hl), dark_blue       ; FORCE DARK_BLUE
 loc_9D38:
                 inc     l
                 djnz    loc_9D2B
@@ -11531,10 +11537,14 @@ dim_side_panel: ld      a, &3
                 ld      a, bright_white     ; bright white (LIVES)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
+
+
                 ld      hl, chicken_attr_yx  ; MOD: Change &5fc8 to &66c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
+                
+                ld      a, bright_yellow        ; bright yellow (CHICKEN)
+p_chick_attr:   equ $-1
                 ld      bc, &0604            ; 6x4
-                ld      a, dark_white   ; bright yellow (CHICKEN)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
                         

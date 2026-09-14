@@ -7025,15 +7025,33 @@ inversion_mod:
 
 .set_inactive:
                 xor     a                       ; Target state = 0 (and clears flags)
+                ; Reset chicken attrs
                 ld      hl, p_chick_attr
                 ld      (hl), bright_yellow
+                ; Set room entity attrs
+                ld      a, &DD                  ; Byte 0: IX prefix
+                ld      (p_entity_attrs), a 
+                ld      a, &56                  ; Byte 1: LD D, (IX+d)
+                ld      (p_entity_attrs+1), a
+                ld      a, &05                  ; Byte 2: Displacement (+5)                        
+                ld      (p_entity_attrs+2), a
+
                 jr      .chk_flag
 
 .set_active:
+                ld      a, 1                    ; Target state = 1
+                ; Set chicken attrs
                 ld      hl, p_chick_attr
                 ld      (hl), dark_white
+                ; Set room entity attrs
+                ld      a, &16
+                ld      (p_entity_attrs), a
+                ld      a, dark_white
+                ld      (p_entity_attrs+1), a
+                xor     a                       ; &00 (NOP)
+                ld      (p_entity_attrs+2), a
 
-                ld      a, 1                    ; Target state = 1
+                
 
 
 .chk_flag:
@@ -10693,8 +10711,9 @@ set_entity_attrs:
 set_entity_attrs2:
                 ld      l, (ix+3)            ; xpos
                 ld      h, (ix+4)            ; ypos
-                ;ld      d, (ix+5)            ; entity attr
-                ld      d, dark_white        ; FORCE DARK WHITE
+                ld      d, (ix+5)            ; entity attr
+                ;ld      d, dark_white        ; FORCE DARK WHITE
+p_entity_attrs  equ     $-3
                 ld      a, (room_attr)
                 ld      e, a
                 ld      a, (width_bytes)

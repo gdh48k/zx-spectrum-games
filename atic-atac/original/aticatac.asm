@@ -7025,6 +7025,10 @@ inversion_mod:
                 ; Reset room attribute pointer to room_attr
                 ld      hl, room_attr           ; Default room attribute source
                 ld      (loc_9D37 - 2), hl      ; Patch SMC load operand
+                ; Restore jump instr
+                ld      hl, &0320               ; Low byte: &20 (JR NZ), High byte: &03 (offset)
+                ld      (p_attr_jump), hl       ; Patch jump instruction bytes
+
                 ; Reset chicken attrs
                 ld      hl, p_chick_attr        ; Pointer to chicken attr
                 ld      (hl), bright_yellow     ; Value: bright_yellow
@@ -7042,6 +7046,9 @@ inversion_mod:
                 ; Patch room attribute pointer to dark_blue_val
                 ld      hl, patch_attr          ; Attribute source
                 ld      (loc_9D37 - 2), hl      ; Patch SMC load operand
+                ; NOP out jump instr
+                ld      hl, &0000               ; Low byte: NOP, High byte: NOP
+                ld      (p_attr_jump), hl       ; Force custom attrs to fall through
                 ; Set chicken attrs
                 ld      hl, p_chick_attr        ; Pointer to chicken attr
                 ld      (hl), dark_white        ; Value: dark_white
@@ -9373,10 +9380,10 @@ get_gfx_data:
 ;               C = height (in character blocks)
 get_gfx_attrs:
                 ld      hl, gfx_attrs           ; pre-load default attribute table
-                ld      a, (mode_state)         ; load active game mode
-                cp      3                       ; test for inversion mode
-                jr      nz, .dont_dim           ; if not mode 3, keep default table
-                ld      hl, gfx_attrs_dim       ; set dimmed attribute table pointer
+                ;ld      a, (mode_state)         ; load active game mode
+                ;cp      3                       ; test for inversion mode
+                ;jr      nz, .dont_dim           ; if not mode 3, keep default table
+                ;ld      hl, gfx_attrs_dim       ; set dimmed attribute table pointer
 
 .dont_dim:      dec     c                       ; convert 1-based index to 0-based
                 ld      b, 0                    ; clear upper byte for 16-bit addition
@@ -9859,16 +9866,16 @@ draw_room_a:
                 ld      h, 0
                 add     hl, hl               ; 2 bytes per entry
                 add     hl, bc
-
-                ;ld      a, (mode_state)
-                ;cp      3                       ; Is inversion mode active?
-                ;jr      z, dim_room
+ 
+                ld      a, (mode_state)
+                cp      3                       ; Is inversion mode active?
+                jr      z, dim_room
 
                 ld      a, (hl)              ; attr colour
                 jr      colour_frame
 
 
-dim_room:       ;ld      a, bright_blue
+dim_room:       ld      a, bright_blue
                 
 colour_frame:   inc     hl
                 ld      (room_attr), a
@@ -10098,11 +10105,13 @@ loc_9D2B:
                 and     a                    ; skip attr?
                 jr      z, loc_9D38          ; jump if so
                 cp      &ff                 ; use room attr?
-                jr      nz, loc_9D37         ; jump if not
+p_attr_jump     jr      nz, loc_9D37         ; jump if not
                 ld      a, (room_attr)
+                
+p_attr_0:
 loc_9D37:
                 ld      (hl), a              ; set attr
-                ;ld      (hl), dark_blue       ; FORCE DARK_BLUE
+                ;ld      (hl), dark_blue       ; FORCE DARK_BLUE2
 loc_9D38:
                 inc     l
                 djnz    loc_9D2B

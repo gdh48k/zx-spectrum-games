@@ -7005,62 +7005,58 @@ gf_doors:
 
 
 
-inversion_flag db 0
+inversion_flag: db 0
+patch_attr:     db bright_blue
 
-; ==============================================================================
-; Routine:       inversion_mod
-; Flow:          Evaluates mode_state to determine if inversion should be active 
-;                (mode_state == 3 -> active/1, else inactive/0). Compares target 
-;                state against inversion_flag. Exits if state is unchanged; 
-;                otherwise updates inversion_flag and flips stair styles.
-; Inputs:        (mode_state), (inversion_flag), room_attrs (16-bit entries)
-; Outputs:       (inversion_flag) updated to target state (0 or 1)
-; Registers:     AF, E, HL modified
-; ==============================================================================
-
+; -------------------------------------------------------------------------
+; Routine:      inversion_mod
+; Flow:         Evaluates mode_state. Directly updates SMC attribute pointers
+;               and opcode byte sequences in RAM for room rendering and entity
+;               attributes based on active state. Updates inversion_flag.
+; Inputs:       mode_state
+; Outputs:      loc_9D37-2 operand, p_chick_attr, p_entity_attrs, inversion_flag
+; -------------------------------------------------------------------------
 inversion_mod:
-                ld      a, (mode_state)
-                cp      3                       ; Is inversion mode active?
-                jr      z, .set_active          ; If mode == 3, target state = 1
+                ld      a, (mode_state)         ; Is inversion mode active?
+                cp      3                       ; Check if mode == 3
+                jr      z, .set_active          ; Jump if mode 3 active
 
 .set_inactive:
-                xor     a                       ; Target state = 0 (and clears flags)
+                ; Reset room attribute pointer to room_attr
+                ld      hl, room_attr           ; Default room attribute source
+                ld      (loc_9D37 - 2), hl      ; Patch SMC load operand
                 ; Reset chicken attrs
-                ld      hl, p_chick_attr
-                ld      (hl), bright_yellow
-                ; Set room entity attrs
+                ld      hl, p_chick_attr        ; Pointer to chicken attr
+                ld      (hl), bright_yellow     ; Value: bright_yellow
+                ; Reset room entity attrs
                 ld      a, &DD                  ; Byte 0: IX prefix
-                ld      (p_entity_attrs), a 
-                ld      a, &56                  ; Byte 1: LD D, (IX+d)
-                ld      (p_entity_attrs+1), a
-                ld      a, &05                  ; Byte 2: Displacement (+5)                        
-                ld      (p_entity_attrs+2), a
-
-                jr      .chk_flag
+                ld      (p_entity_attrs), a     ; Patch prefix
+                ld      a, &56                  ; Byte 1: LD D, (IX+d) opcode
+                ld      (p_entity_attrs+1), a   ; Patch opcode
+                ld      a, &05                  ; Byte 2: Displacement offset (+5)
+                ld      (p_entity_attrs+2), a   ; Patch displacement
+                xor     a                       ; Target state = 0
+                jr      .chk_flag               ; Jump to flag write
 
 .set_active:
-                ld      a, 1                    ; Target state = 1
+                ; Patch room attribute pointer to dark_blue_val
+                ld      hl, patch_attr          ; Attribute source
+                ld      (loc_9D37 - 2), hl      ; Patch SMC load operand
                 ; Set chicken attrs
-                ld      hl, p_chick_attr
-                ld      (hl), dark_white
+                ld      hl, p_chick_attr        ; Pointer to chicken attr
+                ld      (hl), dark_white        ; Value: dark_white
                 ; Set room entity attrs
-                ld      a, &16
-                ld      (p_entity_attrs), a
-                ld      a, dark_white
-                ld      (p_entity_attrs+1), a
-                xor     a                       ; &00 (NOP)
-                ld      (p_entity_attrs+2), a
-
-                
-
+                ld      a, &16                  ; Byte 0: LD D, n opcode
+                ld      (p_entity_attrs), a     ; Patch opcode
+                ld      a, dark_white           ; Byte 1: Immediate color value
+                ld      (p_entity_attrs+1), a   ; Patch immediate byte
+                xor     a                       ; Value &00 for NOP padding
+                ld      (p_entity_attrs+2), a   ; Patch padding byte
+                ld      a, 1                    ; Target state = 1
 
 .chk_flag:
-                ld      hl, inversion_flag
-                cp      (hl)                    ; Compare target (A) with current flag
-                ret     z                       ; Exit if no state change needed
-
-                ld      (hl), a                 ; Update inversion_flag
-                jr      invert_stair_style      ; Apply style updates
+                ld      (inversion_flag), a     ; Update active state flag
+                                                ; Fall though to inver_stair_style
 
 
 ; ==============================================================================
@@ -9864,15 +9860,15 @@ draw_room_a:
                 add     hl, hl               ; 2 bytes per entry
                 add     hl, bc
 
-                ld      a, (mode_state)
-                cp      3                       ; Is inversion mode active?
-                jr      z, dim_room
+                ;ld      a, (mode_state)
+                ;cp      3                       ; Is inversion mode active?
+                ;jr      z, dim_room
 
                 ld      a, (hl)              ; attr colour
                 jr      colour_frame
 
 
-dim_room:       ld      a, bright_blue
+dim_room:       ;ld      a, bright_blue
                 
 colour_frame:   inc     hl
                 ld      (room_attr), a
@@ -10105,8 +10101,8 @@ loc_9D2B:
                 jr      nz, loc_9D37         ; jump if not
                 ld      a, (room_attr)
 loc_9D37:
-                ;ld      (hl), a              ; set attr
-                ld      (hl), dark_blue       ; FORCE DARK_BLUE
+                ld      (hl), a              ; set attr
+                ;ld      (hl), dark_blue       ; FORCE DARK_BLUE
 loc_9D38:
                 inc     l
                 djnz    loc_9D2B

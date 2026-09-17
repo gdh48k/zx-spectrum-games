@@ -7006,7 +7006,7 @@ gf_doors:
 
 
 inversion_flag: db 0
-patch_attr:     db bright_blue
+patch_attr:     db bright_green
 
 ; -------------------------------------------------------------------------
 ; Routine:      inversion_mod
@@ -7051,19 +7051,21 @@ inversion_mod:
                 ld      (p_attr_jump), hl       ; Force custom attrs to fall through
                 ; Set chicken attrs
                 ld      hl, p_chick_attr        ; Pointer to chicken attr
-                ld      (hl), dark_white        ; Value: dark_white
+                ld      (hl), bright_green        ; Value: dark_white
                 ; Set room entity attrs
                 ld      a, &16                  ; Byte 0: LD D, n opcode
                 ld      (p_entity_attrs), a     ; Patch opcode
-                ld      a, dark_white           ; Byte 1: Immediate color value
+                ld      a, bright_green           ; Byte 1: Immediate color value
                 ld      (p_entity_attrs+1), a   ; Patch immediate byte
                 xor     a                       ; Value &00 for NOP padding
                 ld      (p_entity_attrs+2), a   ; Patch padding byte
                 ld      a, 1                    ; Target state = 1
 
 .chk_flag:
-                ld      (inversion_flag), a     ; Update active state flag
-                                                ; Fall though to inver_stair_style
+                ld      hl, inversion_flag
+                cp      (hl)                    ; Compare target state against current flag
+                ret     z                       ; Exit if state unchanged (prevents cold boot inversion)
+                ld      (hl), a                 ; Update active state flag
 
 
 ; ==============================================================================
@@ -9875,7 +9877,7 @@ draw_room_a:
                 jr      colour_frame
 
 
-dim_room:       ld      a, bright_blue
+dim_room:       ld      a, bright_green
                 
 colour_frame:   inc     hl
                 ld      (room_attr), a
@@ -10111,7 +10113,7 @@ p_attr_jump     jr      nz, loc_9D37         ; jump if not
 p_attr_0:
 loc_9D37:
                 ld      (hl), a              ; set attr
-                ;ld      (hl), dark_blue       ; FORCE DARK_BLUE2
+                
 loc_9D38:
                 inc     l
                 djnz    loc_9D2B
@@ -11437,7 +11439,8 @@ dark_magenta    equ      &03
 dark_white      equ      &07
  
 bright_blue     equ      &41
-bright_magenta  equ      &43 
+bright_magenta  equ      &43
+bright_green    equ      &44 
 bright_cyan     equ      &45
 bright_yellow   equ      &46
 bright_white    equ      &47
@@ -11478,10 +11481,10 @@ draw_panel_attrs:
                 and     &07                     ; Mask color bits 0-2
                 cp      &02                     ; Threshold for contrast
                 jr      nc, .got_color
-                ld      a, dark_magenta                  ; Default contrast color
+                ld      a, bright_green       ; Default contrast color
                 jr      .got_color
 
-dim_side_panel: ld      a, &3
+dim_side_panel: ld      a, bright_green
 
 .got_color:     ld      e, a
 

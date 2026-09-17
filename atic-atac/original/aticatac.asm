@@ -360,8 +360,8 @@ door_1A_1B:     db  2, &1a, &34, &50, &28, 0, 4, &56
 door_1B_1C_s:   db  2, &1b, &34, &a0, &6f, &60, &b7, 3 ; external
                 db  3, &1c, &74, 8, &77, &e0, 8, &f5 
                 ;db  2, &1c, &34, 16, &6f, &e0, 8, &f5 ; inverted
-door_1C_1D:     db  2, &1c, &34, &98, &6f, &60, &af, 3
-                ;db  3, &1c, &34, &98, &78, &60, &af, &f5 ; inverted
+door_1C_1D:     ;db  2, &1c, &34, &98, &6f, &60, &af, 3
+                db  3, &1c, &34, &98, &78, &60, &af, &f5 ; inverted
                 db  1, &1d, &34, &18, &6f, &e0, 6, 3 ; external
 
 
@@ -7140,7 +7140,7 @@ ss6:            defb    2, &50, &AE     ; Door B (Normal): X = &50, Y = &AE
 
                 ; --- Style 7: Ascendin g right GOOD
 ss7:            defb    2, &10, &6F     ; Door A (Normal): X = &10, Y = &6F
-                defb    3, &98, &78     ; Door B (Large):  X = &98, Y = &78
+                defb    3, &98, &77     ; Door B (Large):  X = &98, Y = &78
 
                 ; --- Style 8: Ascending left
 ss8:            defb    2, &98, &6F     ; Door B (Normal): X = &10, Y = &6F

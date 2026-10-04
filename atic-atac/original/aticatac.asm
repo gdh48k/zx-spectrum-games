@@ -1,7 +1,7 @@
 ; Atic Atac for Sinclair ZX Spectrum
 ; (c) 1983 Ashby Computers and Graphics Ltd.
 ;
-; Modified by gdh48k - Based on the disassebly by obo
+; Modified by gdh48k - Based on the disassembly by obo
 ;
 ; Disassembled by obo
 ;
@@ -172,7 +172,7 @@ cyan_key_init:  db  &81, &53, 0, &58, &58, &45, 0, 0 ; cyan key
                 db  &85, &6b, 0, &40, &40, &45, 0, 0 ; whip
                 db  &86, &13, 0, &50, &50, &44, 0, 0 ; frog's leg
                 db  &87, &84, 0, &60, &40, &43, 0, 0 ; jewel
-                db  &88, &1f, 0, &70, &70, &42, 0, 0 ; money bag
+moneybag_init:  db  &88, &6d, 0, &70, &70, &42, 0, 0 ; moneybag  (B1 = init room = &1f)
                 db  &89, &49, 0, &50, &40, &47, 0, 0 ; skull
 
 food_init:      db  &50, &27, 0, &57, &67, &43, 0, 0 ; can
@@ -307,8 +307,8 @@ door_06_05:     db  2, 6, &34, 8, &6f, &e0, 6, 3
 
 ; Style 5 stairway - GF to BM (Part1)
 
-door_1A_06_s:   db  3, &1a, &38, &48, &b6, &80, &16, 8
-                ;db  2, &1a, &34, &50, &ae, &80, &16, 8 ; inverted
+door_1A_06_s:   ;db  3, &1a, &38, &48, &b6, &80, &16, 8
+                db  2, &1a, &34, &50, &ae, &80, &16, 8 ; inverted
 door_1A_06:     db  2, 6, &34, &50, &3f, 0, 4, &56 
             
 door_08_06_g:   db  9, 8, &34, &50, &1f, 0, 4, &56
@@ -351,18 +351,20 @@ door_18_02:     db  2, &18, &34, &50, &b7, &80, 4, 6
                 db  2, 2, &34, &50, &3f, 0, 4, &56 
 
 ; Style 5 stairway - GF to BM (Part2)
-door_1A_1B:     db  2, &1a, &34, &50, &28, 0, 4, &56
-                ;db  3, &1a, &38, &48, &28, 0, 4, &56 ; inverted
+door_1A_1B:     ;db  2, &1a, &34, &50, &28, 0, 4, &56
+                db  3, &1a, &38, &48, &28, 0, 4, &56 ; inverted
                 db  2, &1b, &34, &50, &b7, &80, 4, 6
 
  
+
 ; Style 8 stairway - BM to CV
 door_1B_1C_s:   db  2, &1b, &34, &a0, &6f, &60, &b7, 3 ; external
-                db  3, &1c, &74, 8, &77, &e0, 8, &f5 
-                ;db  2, &1c, &34, 16, &6f, &e0, 8, &f5 ; inverted
+                ;db  3, &1c, &74, 8, &77, &e0, 8, &f5 
+                db  2, &1c, &34, 16, &6f, &e0, 8, &f5 ; inverted
+
 door_1C_1D:     ;db  2, &1c, &34, &98, &6f, &60, &af, 3
-                db  3, &1c, &34, &98, &78, &60, &af, &f5 ; inverted
-                db  1, &1d, &34, &18, &6f, &e0, 6, 3 ; external
+                db  3, &1c, &34, &98, &78, &60, &af, &f5 ; inverted (only works when inversion off)
+                db  1, &1d, &34, &18, &6f, &e0, 6, 3 ; external 
 
 
 
@@ -2220,7 +2222,7 @@ quest_item:
                 dw      quest_txt_table         ; Text Pointer
                 dw      0                       ; Icon Pointer
                 db      &58                     ; Y-coord
-                db      4                       ; Max
+                db      5                       ; Max
 quest_state:    db      0, 0                    ; Curr/Prev
 
 first_room_item:
@@ -2266,7 +2268,7 @@ mode_txt_table:
                 dw      classicm_txt, explorer_txt, ground_txt,upside_txt
 
 quest_txt_table:
-                dw      classicq_txt, collect5_txt, collect10_txt, collect15_txt
+                dw      classicq_txt, collect5_txt, collect10_txt, collect15_txt, racegf_txt
 
 first_txt_table:
                 dw      acg_txt, random_txt
@@ -2295,8 +2297,9 @@ upside_txt:     db      '3  UPSIDE DOWN  ', &A0
 
 classicq_txt:   db      '4  CLASSIC QUEST   ', &A0
 collect5_txt:   db      '4  COLLECT 5 ITEMS ', &A0
-collect10_txt:   db      '4  COLLECT 10 ITEMS ', &A0
-collect15_txt:   db      '4  COLLECT 15 ITEMS ', &A0
+collect10_txt:  db      '4  COLLECT 10 ITEMS', &A0
+collect15_txt:  db      '4  COLLECT 15 ITEMS', &A0
+racegf_txt:     db      '4  RACE $ GRD FLR  ', &A0
 
 acg_txt:        db      '5  ACG START ROOM  ', &A0  
 random_txt:     db      '5  RANDOM START ROO', &CD
@@ -2392,7 +2395,7 @@ start_game:
                 call    gf_mod
                 call    inversion_mod
                 call    reset_game_state     ; copy initial game state to working state area
-                call    randomise_doors      ; randomise which doors can open/close
+                ;call    randomise_doors      ; randomise which doors can open/close
                 call    start_room_mod
                 call    prepare_player       ; prepare player to spawn
                 call    check_floor
@@ -4961,7 +4964,8 @@ chk_match:
                 ld      a, (ix+0)
                 cp      (hl)
                 jr      nz, .not_this_pair      ; ID doesn't match
-                
+
+                            
                 push    hl
                 inc     hl                      ; Point to Attribute
                 ld      c, (hl)                 ; Get stored attribute
@@ -4997,14 +5001,25 @@ chk_match:
                 ld      (de), a                 ; Store back to item_count
 
                 ; --- Quest Logic ---
-                ld      a, (quest_state)        ; Load state from descriptor offset 5
+                ld      a, (quest_state)        ; 0 = Classic; 1-3 = Collect; 4-6 = Race
                 cp      0                       ; Lower bound (1)
-                ret     c                       ; Return if < 2
-                cp      4                       ; Upper bound (3)
+                ret     c                       ; Return if 0
+                cp      5                       ; Upper bound (4)
                 ret     nc                      ; Return if >= 4
 
+
+                cp      4                       
+                jp      nz, collect_chk         ; States 1-3 go to collection logic
+
+                ; --- State 4: Moneybag Check ---
+                ld      a, (ix+0)               ; Offset +0: Sprite ID
+                cp      &88                     ; Moneybag? (&88)
+                ret     nz                      ; Return if NOT a moneybag (prevents fall-through)
+                jp      quest_complete          ; Jump if it is a moneybag
+
+                
                 ; --- Map Quest State to Goal ---
-                sub     1                       ; Map 1,2,3 to 0,1,2 offset
+collect_chk:    sub     1                       ; Map 1,2,3 to 0,1,2 offset
                 ld      e, a
                 ld      d, 0
                 ld      hl, quest_map
@@ -6101,6 +6116,7 @@ draw_rot_obj:
                 jp      draw_orientation
 
 ; return if player has required key (C if opened, NC if locked)
+
 check_key_colour:
                                              
                 ld      a, (mode_state)
@@ -6334,26 +6350,28 @@ man_logic:
 
 
 
-                ;MOD - ACG key part picked up? (LATER RENAMED STEP 4)
+                ;MOD - ACG key part picked up? 
                 ; ---------------------------------- 
-item_id_check:  ld      a, (ix+0)            ; Get item ID from entity buffer
+
+item_id_check:  ld      a, (ix+0)            ; Get item ID
                 cp      &8c                  ; Is it < &8C (part 1)?
                 jr      c, update_inv        ; If not, jump
-                cp      &8f                  ; Is it > 8F (part 3+1)?
+                cp      &8f                  ; Is it >= 8F (part 3+1)?
                 jr      nc, update_inv       ; If so, jump
 
                 ; A is currently &8C, &8D, or &8E
                 sub     &8c                  ; Normalize to 0, 1, or 2
                 ld      hl, acg_key_flag
-                ld      b, a                ; Store normalized ID (0, 1, or 2) in B
-                ld      a, 1                ; Start with bit 0 (value 1)
-                jr      z, update_acg_flag  ; If it was 0, we are done shifting
+                ld      b, a                 ; Store normalized ID (0, 1, or 2) in B
+                ld      a, 1                 ; Start with bit 0 (value 1)
+                jr      z, update_acg_flag   ; If ID was 0, update bit 0
 acg_flag_loop:
-                add     a, a                ; Shift left (effectively bit 1, then bit 2)
+                add     a, a                ; Doubling =  move value 1 to next bit
                 djnz    acg_flag_loop
 update_acg_flag:
                 or      (hl)                ; Combine new bit with existing flags
                 ld      (hl), a             ; Save it back!
+                
                 call    inventory_sound
 
                 
@@ -6925,9 +6943,9 @@ loc_95A3:
 ; Outputs: Patches 4 target bytes (+0, +2, +4, +6) across 6 entity memory blocks
 ; ==============================================================================
 gf_mod:
-                ld      a, (mode_state)
-                cp      2
-                jr      z, .set_offset
+                ld      a, (mode_state)         
+                cp      2                       ; Ground floor mode selected?
+                jr      z, .set_offset          ; Jump if so
                 ld      c, 0                    ; Offset 0: Classic mode
                 jr      .start_loop
 .set_offset:
@@ -6944,8 +6962,6 @@ gf_loop:
                 
                 push    de
                 pop     ix                      ; IX = Target object memory
-
-                ; --- Calculate Pointer to Payload ---
                 push    hl                      ; Save table position
                 ld      a, l
                 add     a, c                    ; Add offset (0 or 4)
@@ -6953,31 +6969,29 @@ gf_loop:
                 jr      nc, gf_transfer
                 inc     h                       ; Handle 256-byte page cross
 gf_transfer:
-                ; --- Apply Payload Data ---
                 ld      a, (hl)                 ; Byte 0: Type
                 ld      (ix+0), a
                 inc     hl
-                ld      a, (hl)                 ; Byte 1: Gfx
+                ld      a, (hl)                 ; Byte 2: Gfx
                 ld      (ix+2), a
                 inc     hl
-                ld      a, (hl)                 ; Byte 2: Y-Coord
+                ld      a, (hl)                 ; Byte 4: Y-Coord
                 ld      (ix+4), a
                 inc     hl
-                ld      a, (hl)                 ; Byte 3: Attribute
+                ld      a, (hl)                 ; Byte 6: Attribute
                 ld      (ix+6), a
                 
                 pop     hl                      ; Restore table position
                 ld      de, 8                   ; Stride to next DW header
                 add     hl, de
-                
                 djnz    gf_loop
                 ret
 
 gf_doors:
 ; ---------------------------------------------------------------------------
 ; Format: dw entity_ptr
-;         db sprite_id, x_pos, state_flags, attribute  ; Classic payload  (Offset 0)
-;         db sprite_id, x_pos, state_flags, attribute  ; GF Mod payload   (Offset 4)
+;         db sprite_id, x_pos, state_flags, attribute  ; Classic   (Offset 0)
+;         db sprite_id, x_pos, state_flags, attribute  ; GF Mod    (Offset 4)
 ; ---------------------------------------------------------------------------
                 dw door_1A_06
 1A_06_open:     db &02, &34, &3f, &04
@@ -7109,7 +7123,7 @@ invert_stair_style:
                 ld      (hl), a                 ; Update modified style byte in room_attrs
                 push    hl                      ; Preserve table pointer
                 push    de                      ; Preserve implicit room ID (E)
-                call    invert_stair_door       ; Pass: E = room_id, A = style_id
+                ;call    invert_stair_door       ; Pass: E = room_id, A = style_id
                 pop     de                      ; Restore room ID
                 pop     hl
 .issnext:
@@ -7433,6 +7447,7 @@ print_clock:
 
 
 ; ACG exit door handler
+
 h_acg_exit:
 
                 ld      a, (acg_key_flag)   ; Get the collection state
@@ -11754,7 +11769,6 @@ colour_acg_key:
                 pop     hl              ; Restore anchor
                 call    colour_acg_key3 ; No need to save/restore after last call
                 ret
-
 colour_acg_key1:
                 call    xy_to_attr
                 ld      a, (acg_key_flag)
@@ -11765,7 +11779,6 @@ colour_acg_key1:
 .fill1:         ld      bc, &0204       ; 2w x 4h
                 call    fill_bc_hl_a
                 ret
-
 colour_acg_key2:
                 ld      a, l
                 add     a, 16           ; Offset X by 16 pixels
@@ -11779,7 +11792,6 @@ colour_acg_key2:
 .fill2:         ld      bc, &0204
                 call    fill_bc_hl_a
                 ret
-
 colour_acg_key3:
                 ld      a, l
                 add     a, 32           ; Offset X by 32 pixels

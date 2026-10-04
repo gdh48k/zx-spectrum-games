@@ -172,7 +172,7 @@ cyan_key_init:  db  &81, &53, 0, &58, &58, &45, 0, 0 ; cyan key
                 db  &85, &6b, 0, &40, &40, &45, 0, 0 ; whip
                 db  &86, &13, 0, &50, &50, &44, 0, 0 ; frog's leg
                 db  &87, &84, 0, &60, &40, &43, 0, 0 ; jewel
-moneybag_init:  db  &88, &6d, 0, &70, &70, &42, 0, 0 ; moneybag  (B1 = init room = &1f)
+moneybag_init:  db  &88, &1f, 0, &70, &70, &42, 0, 0 ; moneybag  (B1 = init room = &1f)
                 db  &89, &49, 0, &50, &40, &47, 0, 0 ; skull
 
 food_init:      db  &50, &27, 0, &57, &67, &43, 0, 0 ; can
@@ -2222,7 +2222,7 @@ quest_item:
                 dw      quest_txt_table         ; Text Pointer
                 dw      0                       ; Icon Pointer
                 db      &58                     ; Y-coord
-                db      5                       ; Max
+                db      7                       ; Max
 quest_state:    db      0, 0                    ; Curr/Prev
 
 first_room_item:
@@ -2268,7 +2268,7 @@ mode_txt_table:
                 dw      classicm_txt, explorer_txt, ground_txt,upside_txt
 
 quest_txt_table:
-                dw      classicq_txt, collect5_txt, collect10_txt, collect15_txt, racegf_txt
+                dw      classicq_txt, collect5_txt, collect10_txt, collect15_txt, racegf_txt, raceat_txt, racecv_txt
 
 first_txt_table:
                 dw      acg_txt, random_txt
@@ -2299,7 +2299,9 @@ classicq_txt:   db      '4  CLASSIC QUEST   ', &A0
 collect5_txt:   db      '4  COLLECT 5 ITEMS ', &A0
 collect10_txt:  db      '4  COLLECT 10 ITEMS', &A0
 collect15_txt:  db      '4  COLLECT 15 ITEMS', &A0
-racegf_txt:     db      '4  RACE $ GRD FLR  ', &A0
+racegf_txt:     db      '4  GROUND FL00R RACE', &A0
+raceat_txt:     db      '4  ATIC RACE        ', &A0
+racecv_txt:     db      '4  CAVERN RACE      ', &A0
 
 acg_txt:        db      '5  ACG START ROOM  ', &A0  
 random_txt:     db      '5  RANDOM START ROO', &CD
@@ -2393,6 +2395,7 @@ start_game:
                 call    set_acg_positions    ; set locations of ACG key pieces
                 call    set_key_positions    ; set positions of red/green/cyan keys, and mummy
                 call    gf_mod
+                call    race_mod
                 call    inversion_mod
                 call    reset_game_state     ; copy initial game state to working state area
                 ;call    randomise_doors      ; randomise which doors can open/close
@@ -5004,12 +5007,12 @@ chk_match:
                 ld      a, (quest_state)        ; 0 = Classic; 1-3 = Collect; 4-6 = Race
                 cp      0                       ; Lower bound (1)
                 ret     c                       ; Return if 0
-                cp      5                       ; Upper bound (4)
-                ret     nc                      ; Return if >= 4
+                cp      7                       ; Upper bound (6)
+                ret     nc                      ; Return if >= 6
 
 
                 cp      4                       
-                jp      nz, collect_chk         ; States 1-3 go to collection logic
+                jp      c, collect_chk         ; States 1-3 go to collection logic
 
                 ; --- State 4: Moneybag Check ---
                 ld      a, (ix+0)               ; Offset +0: Sprite ID
@@ -5022,7 +5025,7 @@ chk_match:
 collect_chk:    sub     1                       ; Map 1,2,3 to 0,1,2 offset
                 ld      e, a
                 ld      d, 0
-                ld      hl, quest_map
+                ld      hl, item_goal
                 add     hl, de                  ; HL points to goal
                 ld      a, (hl)
                 ld      (item_quest), a         ; Store goal (5, 10, or 15)
@@ -5035,7 +5038,7 @@ collect_chk:    sub     1                       ; Map 1,2,3 to 0,1,2 offset
                 ret     nz                      ; If not match, return
                 jp      quest_complete          ; Goal met
 
-quest_map:      db      5, 10, 15               ; Map: State 1=5, 2=10, 3=15
+item_goal:      db      5, 10, 15               ; Quest goal of 5, 10 or 15 items
                 
 
 
@@ -7019,8 +7022,41 @@ gf_doors:
 
 
 
+
+; =============================================================================
+; Routine: race_mod
+; Flow:     Resets the moneybag init location to the default state (&1f), 
+;           then validates the quest state. If state 3 is active, it maps 
+;           to the race goal table and updates the initialization patch.
+; Inputs:   quest_state = Current quest state value.
+; Outputs:  Patches moneybag_init inline data with default or target room ID.
+; =============================================================================
+race_mod:
+
+                ld      a, &1f  
+                ld      (moneybag_init+1), a
+
+                ld      a, (quest_state)        ; Load state
+                cp      4                       ; Compare with threshold ()
+               
+                ret     c                       ; Return if A < 4 (catches states 0, 1, 2 and 3)
+              
+
+                sub     4                       ; Map 4,5,6 to 0,1,2 offset
+                ld      e, a
+                ld      d, 0
+                ld      hl, race_goal
+                add     hl, de                  ; HL points to goal
+                ld      a, (hl)
+patch_room      ld      (moneybag_init+1), a    ; patch B1 of moneybag entity with new room id
+
+                ret
+
+race_goal:      db      &6d, &7E, &3F            ; Quest goal of racing to rooms &6D (GF)
+
+
 inversion_flag: db 0
-patch_attr:     db bright_green
+patch_attr:     db bright_blue
 
 ; -------------------------------------------------------------------------
 ; Routine:      inversion_mod

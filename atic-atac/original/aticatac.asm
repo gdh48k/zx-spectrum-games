@@ -1620,7 +1620,7 @@ init_menu:
                 ;sbc     hl, de               ;  current menu is mod menu?   
                 ;jp      z, menu_loop         ;  jp if so
                 ;call    draw_menu_icons      ; draw menu icons for controls and player acharacters
-                jp      test_menu_loop
+                jp      cyclic_menu
 
 ;menu_loop:
 ;                call    draw_menu_text
@@ -1695,7 +1695,7 @@ init_menu:
 ;                ld      de, mod_menu_data
 ;                or      a
 ;                sbc     hl, de               ; current menu = mod menu?
-;                jp      z, test_menu_loop        ; jump if so
+;                jp      z, cyclic_menu        ; jump if so
                 
 ;switch_mod:     ld      hl, mod_menu_data
 ;                ld      (current_menu), hl
@@ -1789,22 +1789,21 @@ init_menu:
 
 
 ; ==============================================================================
-; ROUTINE: test_menu_loop
-; FLOW:    Draws both categories via draw_test_text, then handles 
+; ROUTINE: cyclic_menu
+; FLOW:    Draws both categories via draw_cm_text, then handles 
 ;          input to cycle the state of the specific selected category.
 ; ==============================================================================
-test_menu_loop:
+cyclic_menu:
                 call    clear_screen
                                 
                 ld      iy, cont_item
-                call    draw_test_icon
+                call    draw_cm_icon
                 ld      iy, char_item
-                call    draw_test_icon
+                call    draw_cm_icon
                 
-                call    draw_test_text  
+                call    draw_cm_text  
                 
-.tm_loop: 
-                
+.cm_scan:          
 
                 ; 1. Scan for '1' (Control Category)
                 ld      bc, &F7FE       ; Port for 1-5 keys
@@ -1841,14 +1840,12 @@ test_menu_loop:
                 bit     4, a
                 jr      nz, .handle_5   ; If '5' pressed, cycle Mode
 
-
                 ; 6. Scan for '6' (Pick Up Category)
                 ld      bc, &EFFE       ; Port for 6-0 keys
                 in      a, (c)          ; 
                 cpl
                 bit     4, a            ; Bit 0 o0f this port is '6'
                 jp      nz, .handle_6  ; If '6' pressed, cycle Pickup
-
 
                 ; 6. Scan for '0' (Start Game)
                 ld      bc, &EFFE       ; Port for 6-0 keys
@@ -1858,7 +1855,7 @@ test_menu_loop:
                 jp      nz, start_game  ; If '0' pressed, start game
 
                 
-                jr      .tm_loop
+                jr      .cm_scan
 
 ; ==============================================================================
 ; ROUTINE: Handle Selection logic
@@ -1882,7 +1879,7 @@ test_menu_loop:
                 jr      .cycle_state
 
 .handle_5:
-                ld      ix, first_room_item
+                ld      ix, start_item
                 jr      .cycle_state
 
 .handle_6:
@@ -1923,16 +1920,16 @@ test_menu_loop:
                 jr      nc, .skip_icon_draw     ; If 2 or higher, skip drawing
 
                 push    ix                      ; 
-                pop     iy                      ; Move IX to IY for draw_test_icon
+                pop     iy                      ; Move IX to IY for draw_cm_icon
 
                 push    ix                      ; Preserve IX for draw_item_text
-                call    draw_test_icon          ; Update icon
+                call    draw_cm_icon          ; Update icon
                 pop     ix                      ; Restore IX
 .skip_icon_draw:
 
                 ; 4. Always update text
                 
-                ;call    draw_test_text          ; Update text last   
+                ;call    draw_cm_text          ; Update text last   
                 call    draw_item_text
                 call    drop_sound
 
@@ -1956,11 +1953,11 @@ test_menu_loop:
                 and     &1F             ; Bits 0-4 cover 6, 7, 8, 9, 0
                 jr      nz, .wait_release
 
-                jp      .tm_loop
+                jp      .cm_scan
 
 
 ; ==============================================================================
-; ROUTINE: draw_test_text
+; ROUTINE: draw_cm_text
 ; FLOW:    1. Initializes pointer to the menu_items table.
 ;          2. Iterates through each category (9-byte stride).
 ;          3. Extracts the current state at (IX+7) and renders the item.
@@ -1968,7 +1965,7 @@ test_menu_loop:
 ; INPUT:   menu_max = Number of categories to process
 ; OUTPUT:  Updated screen text for menu items and footer.
 ; ==============================================================================
-draw_test_text:
+draw_cm_text:
                 ;push    af
                 ;push    bc
                 ;push    hl
@@ -2061,11 +2058,11 @@ draw_item_text:
                 ret
 
 ; -----------------------------------------------------------------------------
-; ROUTINE: draw_test_icon
+; ROUTINE: draw_cm_icon
 ; FLOW:    Handles the conditional undraw and draw phases for single and 
 ;          double-sprite entities using the patching buffer approach.
 ; -----------------------------------------------------------------------------
-draw_test_icon:
+draw_cm_icon:
                 ; --- 1. Setup pointers ---
                 ld      ix, entity_to_draw      ; Scratchpad for icon block
                                         
@@ -2225,13 +2222,13 @@ quest_item:
                 db      7                       ; Max
 quest_state:    db      0, 0                    ; Curr/Prev
 
-first_room_item:
+start_item:
                 db      4                       ; ID
                 dw      first_txt_table         ; Text Pointer
                 dw      0                       ; Icon Pointer
                 db      &70                     ; Y-coord
                 db      2                       ; Max
-first_room_state:
+start_state:
                 db      0, 0                    ; Curr/Prev
 
 pickup_item:
@@ -2340,7 +2337,7 @@ fixed_x:        equ     &58
 ; -----------------------------------------------------------------------------
 ; DESCRIPTION: Defines the static layout and attributes for menu icons.
 ;              Each entry occupies a fixed 8-byte structure used by 
-;              draw_test_icon for memory-to-entity buffer copying.
+;              draw_cm_icon for memory-to-entity buffer copying.
 ; 
 ; STRUCTURE (8-byte record):
 ;   +0: Sprite ID (1 byte)
@@ -5014,10 +5011,10 @@ chk_match:
                 cp      4                       
                 jp      c, collect_chk         ; States 1-3 go to collection logic
 
-                ; --- State 4: Moneybag Check ---
+                ; --- Moneybag Check ---
                 ld      a, (ix+0)               ; Offset +0: Sprite ID
                 cp      &88                     ; Moneybag? (&88)
-                ret     nz                      ; Return if NOT a moneybag (prevents fall-through)
+                ret     nz                      ; Return if NOT a moneybag 
                 jp      quest_complete          ; Jump if it is a moneybag
 
                 
@@ -7037,9 +7034,9 @@ race_mod:
                 ld      (moneybag_init+1), a
 
                 ld      a, (quest_state)        ; Load state
-                cp      4                       ; Compare with threshold ()
+                cp      4                       
                
-                ret     c                       ; Return if A < 4 (catches states 0, 1, 2 and 3)
+                ret     c                       ; Return if A < 4 
               
 
                 sub     4                       ; Map 4,5,6 to 0,1,2 offset
@@ -7048,11 +7045,11 @@ race_mod:
                 ld      hl, race_goal
                 add     hl, de                  ; HL points to goal
                 ld      a, (hl)
-patch_room      ld      (moneybag_init+1), a    ; patch B1 of moneybag entity with new room id
+patch_room      ld      (moneybag_init+1), a    ; patch B1 of moneybag entity with room id
 
                 ret
 
-race_goal:      db      &6d, &7E, &3F            ; Quest goal of racing to rooms &6D (GF)
+race_goal:      db      &6d, &7E, &3F            ; Room ids &6D (GF), &7E (AT), &3f (CV)
 
 
 inversion_flag: db 0
@@ -7356,14 +7353,13 @@ write_door    ld      a, (ix+0)               ; Fetch Sprite ID from template
 ; --- Random Start Room Mod ---
 
 start_room_mod:
-                
                             
-                ld      a, (first_room_state)
+                ld      a, (start_state)
                 cp      0                   ; 0 = classic start?
 
                 jr      z, srm_exit         ; jump if start
 
-                ; --- Random Start Room Mod ---
+                
 
                 ld      a, r                ; Hardware entropy
                 ld      l, a
@@ -7381,9 +7377,10 @@ start_room_mod:
                 
 srm_exit        ret
                 
-                
+    
 
 ; Table containing 8 potential start rooms
+
 start_room_init:
                 db &74, &8F, &66, &00, &24, &85, &27, &76
 
@@ -8194,21 +8191,16 @@ draw_minimap:
         push    ix
         ld      b, a                 
         call    check_visited        
-        ; --- FLAGS ARE SET HERE ---
-        
         pop     ix                   ; IX is back (Flags untouched)
-        
-; 1. Decide which box type to draw based on the fresh flag
-        jr      z, .skip_to_unvisited 
+        jr      z, .unvisited 
 
-        ; 2. VISITED Math
+.visited: 
         ld      d, (ix+1)            ; D = rel_x
         ld      e, (ix+2)            ; E = rel_y
         call    draw_visited_room
         jr      .next
 
-.skip_to_unvisited:
-        ; 3. UNVISITED Math
+.unvisited:
         ld      d, (ix+1)            ; D = rel_x
         ld      e, (ix+2)            ; E = rel_y
         call    draw_unvisited_room
@@ -11642,6 +11634,8 @@ p_chick_attr:   equ $-1
 
                 ; --- NEW: HIGHLIGHT CURRENT FLOOR LETTER ---
                 ; 1. Reset all 5 letters to Dark Blue first
+ 
+ reset_flrs:
                 ld      hl, floor_yx            ; Your 'C' letter pixel coords
                 call    xy_to_attr            ; HL = Attribute address of 'C'
                 push    hl                    ; Save for step 2
@@ -11656,7 +11650,8 @@ p_chick_attr:   equ $-1
                 inc     l
                 ld      (hl), a               ; 'A'
 
-                ; 2. Highlight the current floor 
+                 
+ current_flr:
                 pop     hl                    ; Get 'C' address back
                 ld      a, (current_floor)    ; Get Floor ID (0-4)
                 cp      &FF                   ; Safety check
@@ -11665,6 +11660,7 @@ p_chick_attr:   equ $-1
                 add     a, l                  ; Offset to current floor
                 ld      l, a
                 ld      (hl), bright_yellow
+
 .done_floors:
                 
                                 

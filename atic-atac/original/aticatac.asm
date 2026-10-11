@@ -1803,57 +1803,48 @@ cyclic_menu:
                 
                 call    draw_cm_text  
                 
-.cm_scan:          
-
-                ; 1. Scan for '1' (Control Category)
+.cm_scan:       
                 ld      bc, &F7FE       ; Port for 1-5 keys
                 in      a, (c)
                 cpl
                 bit     0, a
                 jr      nz, .handle_1   ; If '1' pressed, cycle Control
-
-                ; 2. Scan for '2' (Character Category)
+                
                 ld      bc, &F7FE       ; Port for 1-5 keys
                 in      a, (c)          ; 
                 cpl
                 bit     1, a
                 jr      nz, .handle_2   ; If '2' pressed, cycle Char
-
-                ; 3. Scan for '3' (Mode Category)
+                
                 ld      bc, &F7FE       ; Port for 1-5 keys
                 in      a, (c)          
                 cpl
                 bit     2, a
-                jr      nz, .handle_3   ; If '3' pressed, cycle Mode
+                jr      nz, .handle_3   ; If '3' pressed, cycle Castle
 
-                ; 4. Scan for '4' (Quest Category)
                 ld      bc, &F7FE       ; Port for 1-5 keys
                 in      a, (c)          
                 cpl
                 bit     3, a
-                jr      nz, .handle_4   ; If '4' pressed, cycle Mode
+                jr      nz, .handle_4   ; If '4' pressed, cycle Quest
 
-                ; 5. Scan for '5' (Start Room Category)
                 ld      bc, &F7FE       ; Port for 1-5 keys
                 in      a, (c)          
                 cpl
                 bit     4, a
-                jr      nz, .handle_5   ; If '5' pressed, cycle Mode
+                jr      nz, .handle_5   ; If '5' pressed, cycle Start Room
 
-                ; 6. Scan for '6' (Pick Up Category)
                 ld      bc, &EFFE       ; Port for 6-0 keys
                 in      a, (c)          ; 
                 cpl
                 bit     4, a            ; Bit 0 o0f this port is '6'
-                jp      nz, .handle_6  ; If '6' pressed, cycle Pickup
+                jp      nz, .handle_6   ; If '6' pressed, cycle Pickup
 
-                ; 6. Scan for '0' (Start Game)
                 ld      bc, &EFFE       ; Port for 6-0 keys
                 in      a, (c)          ; 
                 cpl
                 bit     0, a            ; Bit 4 of this port is '0'
                 jp      nz, start_game  ; If '0' pressed, start game
-
                 
                 jr      .cm_scan
 
@@ -8262,34 +8253,9 @@ update_minimap:
     cp      (hl)
     jr      z, .exit           ; If room hasn't changed, exit immediately
 
-    ; ==========================================================
-    ; ROOM HAS CHANGED - LOG TO HISTORY
-    ; ==========================================================
-    push    af                  ; Save new Room ID (A)
-    
-    ; --- Check if History is full ---
-    ld      a, (history_count)
-    cp      replay_max          ; Check against the limit
-    jr      nc, .history_full   ; If count >= 50, stop logging
+    call add_room_history
 
-    ; --- Append to History ---
-    ; We record every visit, including duplicates, per your request.
-    ld      hl, room_history
-    ld      d, 0
-    ld      e, a                ; E = current history_count index
-    add     hl, de              ; HL = room_history + history_count
-    
-    pop     af                  ; Get the Room ID back into A
-    push    af                  ; Keep a copy for the rest of the engine
-    ld      (hl), a             ; Store the Room ID in the history
-    
-    ; Increment the count
-    ld      a, (history_count)
-    inc     a
-    ld      (history_count), a  ; Update history_count
-
-.history_full:
-    pop     af                  ; Restore new Room ID for the engine
+ 
 
     ; ==========================================================
     ; ROOM HAS CHANGED - RUN TRANSITION LOGIC
@@ -8395,6 +8361,34 @@ update_minimap:
 
 .exit:
     ret
+
+add_room_history:    
+    push    af                  ; Save new Room ID (A)
+    
+    ; --- Check if History is full ---
+    ld      a, (history_count)
+    cp      replay_max          ; Check against the limit
+    jr      nc, .history_full   ; If count >= 50, stop logging
+
+    ; --- Append to History ---
+    ; We record every visit, including duplicates, per your request.
+    ld      hl, room_history
+    ld      d, 0
+    ld      e, a                ; E = current history_count index
+    add     hl, de              ; HL = room_history + history_count
+    
+    pop     af                  ; Get the Room ID back into A
+    push    af                  ; Keep a copy for the rest of the engine
+    ld      (hl), a             ; Store the Room ID in the history
+    
+    ; Increment the count
+    ld      a, (history_count)
+    inc     a
+    ld      (history_count), a  ; Update history_count
+
+.history_full:
+    pop     af                  ; Restore new Room ID for the engine
+    ret     
 
 ;----------------------------------------------------------
 ; draw_unvisited_room

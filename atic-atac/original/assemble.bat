@@ -5,8 +5,7 @@ echo [1/3] Running Pasmo Compiler...
 C:\PROGRA~1\Pasmo\pasmo-0.5.3\pasmo.exe --tapbas "%~1" "%~dp1%~n1.tap" -s
 if errorlevel 1 (
     echo [ERROR] Pasmo compilation failed.
-    exit /b 1
-)
+    exit /b 1)
 
 echo [2/3] Analyzing Memory Limits...
 
@@ -26,8 +25,7 @@ if not "%FOOD_RAW%"=="" (
     echo FOOD POINTER:         0!FOOD_HEX!H
     echo FREE BYTES TO HEX 6000: !food_free! Bytes
 ) else (
-    echo [WARNING] food_ptr label not found in symbol file.
-)
+    echo [WARNING] food_ptr label not found in symbol file.)
 
 echo --------------------------------------------
 
@@ -41,8 +39,7 @@ if not "%JPHL_RAW%"=="" (
     echo JUMP HL ADDRESS:      0!JPHL_HEX!H
     echo FREE BYTES TO HEX EA90: !jphl_free! Bytes
 ) else (
-    echo [WARNING] jp_hl label not found in symbol file.
-)
+    echo [WARNING] jp_hl label not found in symbol file.)
 
 echo ============================================
 

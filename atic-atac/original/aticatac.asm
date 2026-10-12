@@ -8247,36 +8247,18 @@ clear_minimap:
 
 ;um_marker db '999'
 update_minimap:
-    ; --- 1. The Gatekeeper ---
-    ld      a, (player_room)
-    ld      hl, last_room_saved
-    cp      (hl)
-    jr      z, .exit           ; If room hasn't changed, exit immediately
+
+
+    call    check_floor_changed
+    ret     z                       ; Z flag is preserved across the call!
 
     call add_room_history
 
- 
-
-    ; ==========================================================
-    ; ROOM HAS CHANGED - RUN TRANSITION LOGIC
-    ; ==========================================================
-
-    ; --- 2. Floor Swap Check ---
-    ; We check for a floor change BEFORE erasing or searching.
     push    af                    ; Save new Room ID for later
     call    check_floor           ; Updates (minimap_ptr), returns Carry if changed
-    
-
-    ; --- NEW PROTO INTEGRATION ---
-    ;call    check_floor_live      ; Compact list scan with change detection
-
     jr      nc, .no_floor_swap    ; If NC, we are still on the same floor
 
-    ; ==========================================================
-    ; FLOOR HAS CHANGED 
-    ; ==========================================================
-
-    ; --- 3. Floor Change Actions ---
+.floor_swap:
     call    update_floor_offsets
     call    clear_minimap         
     call    draw_minimap          
@@ -8290,16 +8272,15 @@ update_minimap:
 
 .no_floor_swap:
     pop     af                    ; Restore new Room ID
-
-    ; --- 4. Erase Old (The Janitor) ---
-    ; Clears the flashing pixel from the previous room location.
-    call    erase_center_pixel   
+    call    erase_center_pixel 
+    ld      ix, (minimap_ptr)   
   
-    ; --- 5. Search Table ---
-    ; (minimap_ptr) was updated by check_floor if a swap occurred.
+    
     ld      a, (player_room)      
     ld      b, a                 
-    ld      ix, (minimap_ptr)    
+     
+
+
 .room_search:
     ld      a, (ix+0)             ; 1. Get Room ID from the table entry
     cp      &FF                   ; 2. Is it the end of the table?
@@ -8360,6 +8341,12 @@ update_minimap:
 
 
 .exit:
+    ret
+
+check_floor_changed:
+    ld      a, (player_room)
+    ld      hl, last_room_saved
+    cp      (hl)
     ret
 
 add_room_history:    

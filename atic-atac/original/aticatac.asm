@@ -8245,9 +8245,8 @@ clear_minimap:
 ; 6. Draw the visited room box and set up the new pixel for the flasher.
 ;------------------------------------------------------------------------------
 
-;um_marker db '999'
-update_minimap:
 
+update_minimap:
 
     call    check_floor_changed
     ret     z                       ; Z flag is preserved across the call!
@@ -8265,69 +8264,32 @@ update_minimap:
     
     pop     af                    ; Get Room ID back
     ld      (last_room_saved), a  
-    
     ld      ix, (minimap_ptr)     ; Point to the NEW floor table
-    jp      .room_search          ; Jump straight to the search to find the new pixel
+    jr      .room_search          ; Jump straight to the search to find the new pixel
              
 
 .no_floor_swap:
     pop     af                    ; Restore new Room ID
     call    erase_center_pixel 
     ld      ix, (minimap_ptr)   
-  
-    
-    ld      a, (player_room)      
-    ld      b, a                 
-     
-
-
-.room_search:
-    ld      a, (ix+0)             ; 1. Get Room ID from the table entry
-    cp      &FF                   ; 2. Is it the end of the table?
-    jr      z, .exit              ;    If yes, we failed to find the room.
-    
-    ld      hl, player_room       ; 3. Compare table ID (A) against 
-    cp      (hl)                  ;    the actual player_room in RAM
-    jr      z, .room_found        ;    Found it!
-    
-    ld      de, 3                 ; 4. Not a match? Move to next 3-byte entry
-    add     ix, de
-    jr      .room_search          ; 5. Loop back to check next entry
-
+ 
+.room_search
+    call    find_room_coords      ; Scan table, IX points to match, Carry set on success
+    ret     nc                    ; Exit safely if room lookup failed 
+                 
 .room_found:
-    ; --- 6. Calculate Coordinates Relative to Map Panel ---
-    ;ld      a, (ix+1)           ; rel_x
-    ;ld      hl, current_floor_x
-    ;or      a
-    ;add     a, (hl)
-    ;ld      d, a                ; D = Final X
-
-    ;ld      a, (ix+2)           ; rel_y
-    ;ld      hl, current_floor_y
-    ;or      a
-    ;add     a, (hl)
-    ;ld      e, a                ; E = Final Y
-
-    ld d, (ix+1)               ; Just the raw relative X
-    ld e, (ix+2)               ; Just the raw relative
+    ld      d, (ix+1)               ; Just the raw relative X
+    ld      e, (ix+2)               ; Just the raw relative
     push    de                  
     call    draw_visited_room   ; Now draws in the right spot!
     pop     de                  
 
-; --- 7. Update Flasher Coordinates ---
-    ; IX is pointing to the current room entry
     ld      d, (ix+1)           ; Rel_X from room table
     ld      e, (ix+2)           ; Rel_Y from room table
     call    update_flasher_coords ; Calculate address and save to vars
 
-; --- 8. Draw New Center ---
-    ; update_flasher_coords has saved the values to:
-    ; (pixel_addr_save) and (pixel_shift_save)
     call    draw_new_center_pixel
 
-
-
-    ; --- 9. Sync State ---
     ld      a, (player_room)     
     ld      (last_room_saved), a
 
@@ -8338,9 +8300,6 @@ update_minimap:
 
     call    draw_panel_attrs
     call    draw_inventory
-
-
-.exit:
     ret
 
 check_floor_changed:
@@ -8376,6 +8335,35 @@ add_room_history:
 .history_full:
     pop     af                  ; Restore new Room ID for the engine
     ret     
+
+
+; =====================================================================
+; find_room_coordinates
+; Scans the current floor's minimap table for the player's room ID.
+; Inputs:  IX = Pointer to the floor's minimap table
+;          (player_room) = Current room ID to search for
+; Outputs: IX = Points to the matching table entry (if found)
+;          Carry = Set (Success) or Cleared (Not found / End of table)
+; =====================================================================
+find_room_coords:
+                ld      a, (ix+0)               ; Get Room ID from table entry
+                cp      &FF                     ; Check for end of table marker
+                jr      z, .rm_not_found           ; Jump if end of table reached
+                
+                ld      hl, player_room         ; Load address of player's current room
+                cp      (hl)                    ; Compare table room ID against player room
+                jr      z, .rmfound               ; Jump if rooms match
+                
+                ld      de, 3                   ; Advance to next 3-byte table entry
+                add     ix, de                  ; Move IX pointer forward
+                jr      find_room_coords        ; Loop back to check next entry
+
+.rmfound:       scf                             ; Set Carry flag to indicate success
+                ret
+
+.rm_not_found:  or      a                       ; Clear Carry flag to indicate failure
+                ret
+
 
 ;----------------------------------------------------------
 ; draw_unvisited_room

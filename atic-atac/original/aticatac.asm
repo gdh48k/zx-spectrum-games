@@ -307,8 +307,8 @@ door_06_05:     db  2, 6, &34, 8, &6f, &e0, 6, 3
 
 ; Style 5 stairway - GF to BM (Part1)
 
-door_1A_06_s:   ;db  3, &1a, &38, &48, &b6, &80, &16, 8
-                db  2, &1a, &34, &50, &ae, &80, &16, 8 ; inverted
+door_1A_06_s:   db  3, &1a, &38, &48, &b6, &80, &16, 8
+                ;db  2, &1a, &34, &50, &ae, &80, &16, 8 ; inverted
 door_1A_06:     db  2, 6, &34, &50, &3f, 0, 4, &56 
             
 door_08_06_g:   db  9, 8, &34, &50, &1f, 0, 4, &56
@@ -351,19 +351,19 @@ door_18_02:     db  2, &18, &34, &50, &b7, &80, 4, 6
                 db  2, 2, &34, &50, &3f, 0, 4, &56 
 
 ; Style 5 stairway - GF to BM (Part2)
-door_1A_1B:     ;db  2, &1a, &34, &50, &28, 0, 4, &56
-                db  3, &1a, &38, &48, &28, 0, 4, &56 ; inverted
+door_1A_1B:     db  2, &1a, &34, &50, &28, 0, 4, &56
+                ;db  3, &1a, &38, &48, &28, 0, 4, &56 ; inverted
                 db  2, &1b, &34, &50, &b7, &80, 4, 6
 
  
 
 ; Style 8 stairway - BM to CV
 door_1B_1C_s:   db  2, &1b, &34, &a0, &6f, &60, &b7, 3 ; external
-                ;db  3, &1c, &74, 8, &77, &e0, 8, &f5 
-                db  2, &1c, &34, 16, &6f, &e0, 8, &f5 ; inverted
+                db  3, &1c, &74, 8, &77, &e0, 8, &f5 
+                ;db  2, &1c, &34, 16, &6f, &e0, 8, &f5 ; inverted
 
-door_1C_1D:     ;db  2, &1c, &34, &98, &6f, &60, &af, 3
-                db  3, &1c, &34, &98, &78, &60, &af, &f5 ; inverted (only works when inversion off)
+door_1C_1D:     db  2, &1c, &34, &98, &6f, &60, &af, 3
+                ;db  3, &1c, &34, &98, &78, &60, &af, &f5 ; inverted (only works when inversion off)
                 db  1, &1d, &34, &18, &6f, &e0, 6, 3 ; external 
 
 
@@ -2384,12 +2384,12 @@ start_game:
                 call    set_key_positions    ; set positions of red/green/cyan keys, and mummy
                 call    gf_mod
                 call    race_mod
-                call    inversion_mod
+                ;call    inversion_mod
                 call    reset_game_state     ; copy initial game state to working state area
                 ;call    randomise_doors      ; randomise which doors can open/close
                 call    start_room_mod
                 call    prepare_player       ; prepare player to spawn
-                call    check_floor
+                call    check_floor_change
                 call    update_floor_offsets
                 ; --- Setup Default Minimap Position ---
                 ld      a, minimap_x         ; This is our 200 constant
@@ -4613,9 +4613,9 @@ run_replay:
         ; We use the Room ID (A) to update our pointers and screen positions
         
         push    af
-        ld      (player_room), a        ; Temporarily set player_room for check_floor
+        ld      (player_room), a        ; Temporarily set player_room for check_floor_change
 
-        call    check_floor             
+        call    check_floor_change             
 
 .offsets_join:
         call    update_replay_offsets  ; Set the GO anchors (NOT side panel)
@@ -6344,24 +6344,24 @@ man_logic:
                 ;MOD - ACG key part picked up? 
                 ; ---------------------------------- 
 
-item_id_check:  ld      a, (ix+0)            ; Get item ID
-                cp      &8c                  ; Is it < &8C (part 1)?
-                jr      c, update_inv        ; If not, jump
-                cp      &8f                  ; Is it >= 8F (part 3+1)?
-                jr      nc, update_inv       ; If so, jump
+item_id_check:  ld      a, (ix+0)                   ; Get item ID
+                cp      &8c                         ; Is it < &8C (part 1)?
+                jr      c, update_inv               ; If not, jump
+                cp      &8f                         ; Is it >= 8F (part 3)?
+                jr      nc, update_inv              ; If so, jump
 
                 ; A is currently &8C, &8D, or &8E
-                sub     &8c                  ; Normalize to 0, 1, or 2
+                sub     &8c                         ; Normalize to 0, 1, or 2
                 ld      hl, acg_key_flag
-                ld      b, a                 ; Store normalized ID (0, 1, or 2) in B
-                ld      a, 1                 ; Start with bit 0 (value 1)
-                jr      z, update_acg_flag   ; If ID was 0, update bit 0
+                ld      b, a                        ; Store normalized ID (0, 1, or 2) in B
+                ld      a, 1                        ; Start with bit 0 (value 1)
+                jr      z, update_acg_flag          ; If ID was 0, update bit 0
 acg_flag_loop:
-                add     a, a                ; Doubling =  move value 1 to next bit
+                add     a, a                        ; Doubling =  move value 1 to next bit
                 djnz    acg_flag_loop
 update_acg_flag:
-                or      (hl)                ; Combine new bit with existing flags
-                ld      (hl), a             ; Save it back!
+                or      (hl)                        ; Combine new bit with existing flags
+                ld      (hl), a                     ; Save updated flag
                 
                 call    inventory_sound
 
@@ -7962,13 +7962,13 @@ proto_cv_rooms: ; --- Cavern (Floor 0) ---
 
 
 ; =============================================================================
-; check_floor
+; check_floor_change
 ; Purpose: Consolidated 5-floor look-up using compact lists.
 ;          Updates (minimap_ptr) and (current_floor).
 ; Output:  Returns Carry Flag Set (C) ONLY if the floor has changed.
 ; Corrupts: AF, BC, DE, HL
 ; =============================================================================
-check_floor:
+check_floor_change:
         ld      a, (player_room)
         ld      b, a                    ; B = Target Room ID
 
@@ -8238,7 +8238,7 @@ clear_minimap:
 ;
 ; LOGIC FLOW:
 ; 1. Check if player_room has changed. If not, exit.
-; 2. Call check_floor to see if the new room belongs to a different floor.
+; 2. Call check_floor_change to see if the new room belongs to a different floor.
 ; 3. If floor changed: Wipe side panel and redraw the new floor skeleton.
 ; 4. If same floor: Erase the old flashing pixel from the previous room.
 ; 5. Search the current floor table (minimap_ptr) for room coordinates.
@@ -8247,14 +8247,11 @@ clear_minimap:
 
 
 update_minimap:
-
-    call    check_floor_changed
+    call    check_room_change
     ret     z                       ; Z flag is preserved across the call!
-
-    call add_room_history
-
+    call    add_room_history
     push    af                    ; Save new Room ID for later
-    call    check_floor           ; Updates (minimap_ptr), returns Carry if changed
+    call    check_floor_change    ; Updates (minimap_ptr), returns Carry if changed
     jr      nc, .no_floor_swap    ; If NC, we are still on the same floor
 
 .floor_swap:
@@ -8262,47 +8259,41 @@ update_minimap:
     call    clear_minimap         
     call    draw_minimap          
     
-    pop     af                    ; Get Room ID back
+    pop     af                      ; Get Room ID back
     ld      (last_room_saved), a  
-    ld      ix, (minimap_ptr)     ; Point to the NEW floor table
-    jr      .room_search          ; Jump straight to the search to find the new pixel
+    ld      ix, (minimap_ptr)       ; Point to the NEW floor table
+    jr      .room_search            ; Jump straight to the search to find the new pixel
              
-
 .no_floor_swap:
-    pop     af                    ; Restore new Room ID
+    pop     af                      ; Restore new Room ID
     call    erase_center_pixel 
     ld      ix, (minimap_ptr)   
  
 .room_search
-    call    find_room_coords      ; Scan table, IX points to match, Carry set on success
-    ret     nc                    ; Exit safely if room lookup failed 
+    call    find_room_coords        ; Scan table, IX points to match, Carry set on success
+    ret     nc                      ; Exit safely if room lookup failed 
                  
-.room_found:
     ld      d, (ix+1)               ; Just the raw relative X
     ld      e, (ix+2)               ; Just the raw relative
-    push    de                  
-    call    draw_visited_room   ; Now draws in the right spot!
-    pop     de                  
-
-    ld      d, (ix+1)           ; Rel_X from room table
-    ld      e, (ix+2)           ; Rel_Y from room table
-    call    update_flasher_coords ; Calculate address and save to vars
-
+    call    draw_visited_room       ; Now draws in the right spot!
+    ld      d, (ix+1)               ; Rel_X from room table
+    ld      e, (ix+2)               ; Rel_Y from room table
+    call    update_flasher_coords   ; Calculate address and save to vars
     call    draw_new_center_pixel
 
     ld      a, (player_room)     
     ld      (last_room_saved), a
 
     xor     a
-    ld      (flash_counter), a   ; Reset timer
-    inc     a                    ; A = 1
-    ld      (flash_state), a     ; Set state to ON
+    ld      (flash_counter), a      ; Reset timer
+    inc     a                       ; A = 1
+    ld      (flash_state), a        ; Set state to ON
 
     call    draw_panel_attrs
     call    draw_inventory
     ret
 
-check_floor_changed:
+check_room_change:
     ld      a, (player_room)
     ld      hl, last_room_saved
     cp      (hl)
@@ -8592,16 +8583,13 @@ draw_pixel:
 ; Corrupts: AF, HL
 ;----------------------------------------------------------
 check_flash_timer:
-
-    
         ld      a, (flash_counter)
         inc     a
         ld      (flash_counter), a
         and     31                   ; Only trigger every 32 frames
         ret     nz
 
-        ; --- The New, Clean Logic ---
-        call    flash_center_pixel   ; This replaces all those pushes and shifts!
+        call    flash_center_pixel   
 
         ld      a, (flash_state)     ; Flip our tracking variable
         xor     1
@@ -8617,19 +8605,19 @@ flash_center_pixel:
         ld      hl, (pixel_addr_save)
         ld      a, h
         or      l
-        ret     z                    ; Safety check for null address
+        ret     z                       ; Safety check for null address
 
         ld      a, (pixel_shift_save)
         ld      b, a
-        ld      a, &80               ; Start with leftmost pixel bit
+        ld      a, &80                  ; Start with leftmost pixel bit
         inc     b
 .do_shift_loop:
         dec     b
         jr      z, .do_xor
-        rrca                         ; Shift bit to correct position
+        rrca                            ; Shift bit to correct position
         jr      .do_shift_loop
 .do_xor:
-        xor     (hl)                 ; Toggle the pixel
+        xor     (hl)                    ; Toggle the pixel
         ld      (hl), a
         ret
 
@@ -11761,14 +11749,15 @@ draw_key_loop:
 ; Outputs:  Updated attribute memory for all keys.
 ; Corrupts: AF, BC, DE, HL
 ; -----------------------------------------------------------------------------
+
 colour_acg_key:
-                push    hl              ; Save anchor
+                push    hl                  ; Save anchor
                 call    colour_acg_key1
-                pop     hl              ; Restore anchor
+                pop     hl                  ; Restore anchor
                 push    hl
                 call    colour_acg_key2
-                pop     hl              ; Restore anchor
-                call    colour_acg_key3 ; No need to save/restore after last call
+                pop     hl                  ; Restore anchor
+                call    colour_acg_key3     ; No need to save/restore after last call
                 ret
 colour_acg_key1:
                 call    xy_to_attr
@@ -11777,12 +11766,12 @@ colour_acg_key1:
                 ld      a, dark_blue
                 jr      z, .fill1
                 ld      a, bright_yellow
-.fill1:         ld      bc, &0204       ; 2w x 4h
+.fill1:         ld      bc, &0204           ; 2w x 4h
                 call    fill_bc_hl_a
                 ret
 colour_acg_key2:
                 ld      a, l
-                add     a, 16           ; Offset X by 16 pixels
+                add     a, 16               ; Offset X by 16 pixels
                 ld      l, a
                 call    xy_to_attr
                 ld      a, (acg_key_flag)
@@ -11795,7 +11784,7 @@ colour_acg_key2:
                 ret
 colour_acg_key3:
                 ld      a, l
-                add     a, 32           ; Offset X by 32 pixels
+                add     a, 32               ; Offset X by 32 pixels
                 ld      l, a
                 call    xy_to_attr
                 ld      a, (acg_key_flag)

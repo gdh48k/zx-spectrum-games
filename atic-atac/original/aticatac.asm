@@ -355,7 +355,6 @@ door_1A_1B:     db  2, &1a, &34, &50, &28, 0, 4, &56
                 ;db  3, &1a, &38, &48, &28, 0, 4, &56 ; inverted
                 db  2, &1b, &34, &50, &b7, &80, 4, 6
 
- 
 
 ; Style 8 stairway - BM to CV
 door_1B_1C_s:   db  2, &1b, &34, &a0, &6f, &60, &b7, 3 ; external
@@ -2384,7 +2383,7 @@ start_game:
                 call    set_key_positions    ; set positions of red/green/cyan keys, and mummy
                 call    gf_mod
                 call    race_mod
-                ;call    inversion_mod
+                call    inversion_mod
                 call    reset_game_state     ; copy initial game state to working state area
                 ;call    randomise_doors      ; randomise which doors can open/close
                 call    start_room_mod
@@ -6978,12 +6977,14 @@ gf_transfer:
                 djnz    gf_loop
                 ret
 
-gf_doors:
+
 ; ---------------------------------------------------------------------------
 ; Format: dw entity_ptr
 ;         db sprite_id, x_pos, state_flags, attribute  ; Classic   (Offset 0)
 ;         db sprite_id, x_pos, state_flags, attribute  ; GF Mod    (Offset 4)
 ; ---------------------------------------------------------------------------
+
+gf_doors:
                 dw door_1A_06
 1A_06_open:     db &02, &34, &3f, &04
 1A_06_closed:   db &25, &00, &38, &00
@@ -7061,43 +7062,43 @@ inversion_mod:
 
 .set_inactive:
                 ; Reset room attribute pointer to room_attr
-                ld      hl, room_attr           ; Default room attribute source
-                ld      (loc_9D37 - 2), hl      ; Patch SMC load operand
+                ;ld      hl, room_attr           ; Default room attribute source
+                ;ld      (loc_9D37 - 2), hl      ; Patch SMC load operand
                 ; Restore jump instr
-                ld      hl, &0320               ; Low byte: &20 (JR NZ), High byte: &03 (offset)
-                ld      (p_attr_jump), hl       ; Patch jump instruction bytes
+                ;ld      hl, &0320               ; Low byte: &20 (JR NZ), High byte: &03 (offset)
+                ;ld      (p_attr_jump), hl       ; Patch jump instruction bytes
 
                 ; Reset chicken attrs
                 ld      hl, p_chick_attr        ; Pointer to chicken attr
                 ld      (hl), bright_yellow     ; Value: bright_yellow
                 ; Reset room entity attrs
-                ld      a, &DD                  ; Byte 0: IX prefix
-                ld      (p_entity_attrs), a     ; Patch prefix
-                ld      a, &56                  ; Byte 1: LD D, (IX+d) opcode
-                ld      (p_entity_attrs+1), a   ; Patch opcode
-                ld      a, &05                  ; Byte 2: Displacement offset (+5)
-                ld      (p_entity_attrs+2), a   ; Patch displacement
-                xor     a                       ; Target state = 0
-                jr      .chk_flag               ; Jump to flag write
+                ;ld      a, &DD                  ; Byte 0: IX prefix
+                ;ld      (p_entity_attrs), a     ; Patch prefix
+                ;ld      a, &56                  ; Byte 1: LD D, (IX+d) opcode
+                ;ld      (p_entity_attrs+1), a   ; Patch opcode
+                ;ld      a, &05                  ; Byte 2: Displacement offset (+5)
+                ;ld      (p_entity_attrs+2), a   ; Patch displacement
+                ;xor     a                       ; Target state = 0
+                jr      .chk_flag                ; Jump to flag write
 
 .set_active:
                 ; Patch room attribute pointer to dark_blue_val
-                ld      hl, patch_attr          ; Attribute source
-                ld      (loc_9D37 - 2), hl      ; Patch SMC load operand
+                ;ld      hl, patch_attr          ; Attribute source
+                ;ld      (loc_9D37 - 2), hl      ; Patch SMC load operand
                 ; NOP out jump instr
-                ld      hl, &0000               ; Low byte: NOP, High byte: NOP
-                ld      (p_attr_jump), hl       ; Force custom attrs to fall through
+                ;ld      hl, &0000               ; Low byte: NOP, High byte: NOP
+                ;ld      (p_attr_jump), hl       ; Force custom attrs to fall through
                 ; Set chicken attrs
                 ld      hl, p_chick_attr        ; Pointer to chicken attr
-                ld      (hl), bright_green        ; Value: dark_white
+                ld      (hl), dark_white       ; Value: dark_white
                 ; Set room entity attrs
-                ld      a, &16                  ; Byte 0: LD D, n opcode
-                ld      (p_entity_attrs), a     ; Patch opcode
-                ld      a, bright_green           ; Byte 1: Immediate color value
-                ld      (p_entity_attrs+1), a   ; Patch immediate byte
-                xor     a                       ; Value &00 for NOP padding
-                ld      (p_entity_attrs+2), a   ; Patch padding byte
-                ld      a, 1                    ; Target state = 1
+                ;ld      a, &16                  ; Byte 0: LD D, n opcode
+                ;ld      (p_entity_attrs), a     ; Patch opcode
+                ;ld      a, bright_blue           ; Byte 1: Immediate color value
+                ;ld      (p_entity_attrs+1), a   ; Patch immediate byte
+                ;xor     a                       ; Value &00 for NOP padding
+                ;ld      (p_entity_attrs+2), a   ; Patch padding byte
+                ;ld      a, 1                    ; Target state = 1
 
 .chk_flag:
                 ld      hl, inversion_flag
@@ -7147,7 +7148,7 @@ invert_stair_style:
                 ld      (hl), a                 ; Update modified style byte in room_attrs
                 push    hl                      ; Preserve table pointer
                 push    de                      ; Preserve implicit room ID (E)
-                ;call    invert_stair_door       ; Pass: E = room_id, A = style_id
+                call    invert_stair_door       ; Pass: E = room_id, A = style_id
                 pop     de                      ; Restore room ID
                 pop     hl
 .issnext:
@@ -9382,10 +9383,10 @@ get_gfx_data:
 ;               C = height (in character blocks)
 get_gfx_attrs:
                 ld      hl, gfx_attrs           ; pre-load default attribute table
-                ;ld      a, (mode_state)         ; load active game mode
-                ;cp      3                       ; test for inversion mode
-                ;jr      nz, .dont_dim           ; if not mode 3, keep default table
-                ;ld      hl, gfx_attrs_dim       ; set dimmed attribute table pointer
+                ld      a, (mode_state)         ; load active game mode
+                cp      3                       ; test for inversion mode
+                jr      nz, .dont_dim           ; if not mode 3, keep default table
+                ld      hl, gfx_attrs_dim       ; set dimmed attribute table pointer
 
 .dont_dim:      dec     c                       ; convert 1-based index to 0-based
                 ld      b, 0                    ; clear upper byte for 16-bit addition
@@ -9877,7 +9878,7 @@ draw_room_a:
                 jr      colour_frame
 
 
-dim_room:       ld      a, bright_green
+dim_room:       ld      a, bright_blue
                 
 colour_frame:   inc     hl
                 ld      (room_attr), a
@@ -10109,6 +10110,7 @@ loc_9D2B:
                 cp      &ff                 ; use room attr?
 p_attr_jump     jr      nz, loc_9D37         ; jump if not
                 ld      a, (room_attr)
+
                 
 p_attr_0:
 loc_9D37:
@@ -10437,7 +10439,7 @@ loc_9EB5:
                 ret     z                    ; return if so
                 xor     a
                 ld      (some_height), a
-                exx
+                exx 
                 ld      a, (some_width)
                 ld      c, a
                 xor     a
@@ -10719,7 +10721,7 @@ set_entity_attrs2:
                 ld      l, (ix+3)            ; xpos
                 ld      h, (ix+4)            ; ypos
                 ld      d, (ix+5)            ; entity attr
-                ;ld      d, dark_white        ; FORCE DARK WHITE
+                ;ld      d, dark_blue        ; DIM all sprites (not pictures) DARK WHITE
 p_entity_attrs  equ     $-3
                 ld      a, (room_attr)
                 ld      e, a
@@ -11435,7 +11437,10 @@ timer_attr_yx   equ     &5ed0
 
 dark_black      equ      &0
 dark_blue       equ      &01
+dark_red        equ      &02
+dark_green      equ      &04
 dark_magenta    equ      &03
+dark_cyan       equ      &05   
 dark_white      equ      &07
  
 bright_blue     equ      &41
@@ -11484,7 +11489,7 @@ draw_panel_attrs:
                 ld      a, bright_green       ; Default contrast color
                 jr      .got_color
 
-dim_side_panel: ld      a, bright_green
+dim_side_panel: ld      a, dark_cyan
 
 .got_color:     ld      e, a
 
@@ -12351,10 +12356,10 @@ a_door_frame:   db  4, 3
                 db  &43, 0, 0, &43
                 db  &43, 0, 0, &43
                 db  &43, &43, &43, &43
-ad_door_frame:   db  4, 3
-                db  &3, 0, 0, &3
-                db  &3, 0, 0, &3
-                db  &3, &3, &3, &3
+ad_door_frame:  db  4, 3
+                db  dark_cyan, 0, 0, dark_cyan
+                db  dark_cyan, 0, 0, dark_cyan
+                db  dark_cyan, dark_cyan, dark_cyan, dark_cyan
 a_cave_door_frame:db  4, 3
                 db  &ff, &ff, &ff, &ff
                 db  &ff, &ff, &ff, &ff

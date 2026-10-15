@@ -7090,7 +7090,7 @@ inversion_mod:
                 ;ld      (p_attr_jump), hl       ; Force custom attrs to fall through
                 ; Set chicken attrs
                 ld      hl, p_chick_attr        ; Pointer to chicken attr
-                ld      (hl), dark_white       ; Value: dark_white
+                ld      (hl), dark_cyan       ; Value: dark_white
                 ; Set room entity attrs
                 ;ld      a, &16                  ; Byte 0: LD D, n opcode
                 ;ld      (p_entity_attrs), a     ; Patch opcode
@@ -9350,8 +9350,32 @@ attr_funcs:     dw  draw_attr_0
 
 ; C=gfx idx, DE=coords
 get_gfx_data:
-                ld      hl, gfx_data
-                dec     c                    ; 1-based
+                ld      a, c                            ; fetch graphic index
+                
+                ; --- GLOBAL BOUNDS CHECK (8 to 15) ---
+                cp      8                               ; below 8?
+                jr      c, .normal_gfx                  ; -> normal processing
+                cp      16                              ; 16 or above?
+                jr      nc, .normal_gfx                 ; -> normal processing
+
+                ; --- SPLIT THE BLOCK AT 12 ---
+                cp      12                              ; is it a cave door (12-15)?
+                jr      nc, .remap_cave_door            ; if >= 12, jump to cave door mapping
+
+                ; --- NORMAL DOORS (8-11) ---
+                ld      c, 2                            ; remap to open normal door (&02)
+                jr      .normal_gfx
+
+.remap_cave_door:
+                ld      c, 1                            ; remap to open cave door
+.normal_gfx:
+                ld      hl, gfx_data            ; load default graphics data pointer
+                dec     c
+
+
+
+                ;ld      hl, gfx_data
+                ;dec     c                    ; 1-based
                 ld      b, 0
                 sla     c
                 rl      b

@@ -15565,22 +15565,38 @@ g_acg_shield:   db  2, &10
                 db  &e7, &e7
                 db  &81, &81
 g_wall_shield:  db  2, &10
-                db  1, &80
-                db  7, &e0
-                db  8, &10
-                db  &19, &98
-                db  &39, &9c
-                db  &30, &0c
-                db  &75, &ae
-                db  &7f, &fe
-                db  &7f, &fe
-                db  &dc, &2f
-                db  &d7, &eb
-                db  &c4, &23
-                db  &d7, &eb
-                db  &fd, &7f
-                db  &e7, &e7
-                db  &81, &81
+                ;db  1, &80
+                ;db  7, &e0
+                ;db  8, &10
+                ;db  &19, &98
+                ;db  &39, &9c
+                ;db  &30, &0c
+                ;db  &75, &ae
+                ;db  &7f, &fe
+                ;db  &7f, &fe
+                ;db  &dc, &2f
+                ;db  &d7, &eb
+                ;db  &c4, &23
+                ;db  &d7, &eb
+                ;db  &fd, &7f
+                ;db  &e7, &e7
+                ;db  &81, &81
+                db      &01, &80
+                db      &07, &E0
+                db      &08, &10
+                db      &19, &98
+                db      &39, &9C
+                db      &30, &0C
+                db      &75, &AE
+                db      &7F, &FE
+                db      &42, &6A
+                db      &DA, &AB
+                db      &D2, &A3
+                db      &DE, &AB
+                db      &C2, &6B
+                db      &FF, &FF
+                db      &E7, &E7
+                db      &81, &81
 g_suit_armour:  db  2, &20
                 db  &30, &0c
                 db  &1c, &38

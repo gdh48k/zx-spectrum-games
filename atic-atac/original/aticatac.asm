@@ -2385,7 +2385,7 @@ start_game:
                 call    race_mod
                 call    inversion_mod
                 call    reset_game_state     ; copy initial game state to working state area
-                ;call    randomise_doors      ; randomise which doors can open/close
+                call    randomise_doors      ; randomise which doors can open/close
                 call    start_room_mod
                 call    prepare_player       ; prepare player to spawn
                 call    check_floor_change
@@ -6626,8 +6626,8 @@ h_blank:
                 ret
                 
 h_barrel:
-                ld      a, (mode_state) ; Load state from descriptor offset 19     
-                cp      1                   ; 1 = Open castle mode selected?
+                ld      a, (mode_state)    
+                cp      1                   ; mode = 1 = Open castle?
                 jp z,   bypass_char_chk     ; jump if so
                 ld      a, (player)
                 sub     &21                  ; subtract serf base graphic
@@ -6803,6 +6803,10 @@ acg_key_rooms:  db  &81, &45, &7c
 
 ; randomise which doors can open/close
 randomise_doors:
+                ld      a, (mode_state)    
+                cp      1                    ; mode = 1 = Open castle?
+                ret     z                    ; return if so
+
                 ld      a, (counter_low)
                 ld      l, a                 ; set ROM addr LSB
                 ld      a, (sysvar_FRAMES)   ; 0-49
@@ -6934,7 +6938,7 @@ loc_95A3:
 ; ==============================================================================
 gf_mod:
                 ld      a, (mode_state)         
-                cp      2                       ; Ground floor mode selected?
+                cp      2                       ; mode = 2 = Ground floor mode?
                 jr      z, .set_offset          ; Jump if so
                 ld      c, 0                    ; Offset 0: Classic mode
                 jr      .start_loop
@@ -7056,8 +7060,8 @@ patch_attr:     db bright_blue
 ; Outputs:      loc_9D37-2 operand, p_chick_attr, p_entity_attrs, inversion_flag
 ; -------------------------------------------------------------------------
 inversion_mod:
-                ld      a, (mode_state)         ; Is inversion mode active?
-                cp      3                       ; Check if mode == 3
+                ld      a, (mode_state)         ; 
+                cp      3                       ; Mode = 3  = Upside down?
                 jr      z, .set_active          ; Jump if mode 3 active
 
 .set_inactive:
@@ -9350,13 +9354,19 @@ attr_funcs:     dw  draw_attr_0
 
 ; C=gfx idx, DE=coords
 get_gfx_data:
-                ld      a, c                            ; fetch graphic index
                 
+                
+                ld      a, (mode_state)    
+                cp      1                               ; mode = 1 = Open castle?
+                jp      nz, .normal_gfx                 ; jump if so
+
+                ld      a, c                            ; fetch graphic index
+
                 ; --- GLOBAL BOUNDS CHECK (8 to 15) ---
                 cp      8                               ; below 8?
                 jr      c, .normal_gfx                  ; -> normal processing
                 cp      16                              ; 16 or above?
-                jr      nc, .normal_gfx                 ; -> normal processing
+                jr      nc,.normal_gfx                  ; -> normal processing
 
                 ; --- SPLIT THE BLOCK AT 12 ---
                 cp      12                              ; is it a cave door (12-15)?
@@ -9407,8 +9417,8 @@ get_gfx_data:
 ;               C = height (in character blocks)
 get_gfx_attrs:
                 ld      hl, gfx_attrs           ; pre-load default attribute table
-                ld      a, (mode_state)         ; load active game mode
-                cp      3                       ; test for inversion mode
+                ld      a, (mode_state)         ; 
+                cp      3                       ; mode = 3 = upside down
                 jr      nz, .dont_dim           ; if not mode 3, keep default table
                 ld      hl, gfx_attrs_dim       ; set dimmed attribute table pointer
 

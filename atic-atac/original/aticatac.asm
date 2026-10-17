@@ -7071,6 +7071,14 @@ inversion_mod:
                 jr      z, .set_active          ; Jump if mode 3 active
 
 .set_inactive:
+                ld      hl, inversion_flag
+                ld      a, (hl)
+                or      a                       ; Was inversion previously active (flag == 1)?
+                ret     z                       ; If flag is already 0, nothing to undo. Exit!
+
+                xor     a                       ; Target state = 0
+                ld      (hl), a                 ; Clear inversion_flag to 0
+
                 ; Reset room attribute pointer to room_attr
                 ;ld      hl, room_attr           ; Default room attribute source
                 ;ld      (loc_9D37 - 2), hl      ; Patch SMC load operand
@@ -7092,6 +7100,18 @@ inversion_mod:
                 jr      .chk_flag                ; Jump to flag write
 
 .set_active:
+                ld      hl, inversion_flag
+                ld      a, (hl)
+                cp      1                       ; Are patches already active (flag == 1)?
+                ret     z
+
+                ld      a, 1                    ; Target state = 1
+                ld      (hl), a                 ; Set inversion_flag to 1
+
+
+
+
+
                 ; Patch room attribute pointer to dark_blue_val
                 ;ld      hl, patch_attr          ; Attribute source
                 ;ld      (loc_9D37 - 2), hl      ; Patch SMC load operand

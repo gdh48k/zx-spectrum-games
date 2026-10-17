@@ -7097,7 +7097,7 @@ inversion_mod:
                 ;ld      a, &05                  ; Byte 2: Displacement offset (+5)
                 ;ld      (p_entity_attrs+2), a   ; Patch displacement
                 ;xor     a                       ; Target state = 0
-                jr      .chk_flag                ; Jump to flag write
+                jr      invert_stair_style                
 
 .set_active:
                 ld      hl, inversion_flag
@@ -7130,11 +7130,11 @@ inversion_mod:
                 ;ld      (p_entity_attrs+2), a   ; Patch padding byte
                 ;ld      a, 1                    ; Target state = 1
 
-.chk_flag:
-                ld      hl, inversion_flag
-                cp      (hl)                    ; Compare target state against current flag
-                ret     z                       ; Exit if state unchanged (prevents cold boot inversion)
-                ld      (hl), a                 ; Update active state flag
+;.chk_flag:
+;                ld      hl, inversion_flag
+;                cp      (hl)                    ; Compare target state against current flag
+;                ret     z                       ; Exit if state unchanged (prevents cold boot inversion)
+;               ld      (hl), a                 ; Update active state flag
 
 
 ; ==============================================================================

@@ -1590,6 +1590,7 @@ room_94:        dw  door_93_94
                 dw  door_3A_94
                 dw  0
 room_95:        dw  barrel_95_28
+                dw  door_19_00
                 dw  0
 room_none:      dw  0
 

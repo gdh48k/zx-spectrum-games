@@ -859,8 +859,11 @@ barrel_4E_38:   db  &1a, &38, &34, &50, &37, 0, 4, &56
                 db  &1a, &4b, &34, &50, &a7, &a0, 4, 6
 barrel_6B_6D:   db  &1a, &6b, &34, &50, &b7, &a0, 4, 6
                 db  &1a, &6d, &34, &50, &27, 0, 4, &56
-barrel_8A_08:   db  &1a, &8a, &34, &98, &6f, &60, &b7, 3
-                db  &1a, 8, &34, &28, &6f, &e1, 6, 3
+;barrel_8A_08:   db  &1a, &8a, &34, &98, &6f, &60, &b7, 3  *** ORIGINAL GF BARREL ***
+;                db  &1a, 8, &34, &28, &6f, &e1, 6, 3
+barrel_95_28:   db  &1a, &95, &34, &98, &6f, &60, &b7, 3  ;*** NEW AT BARREL ***
+                db  &1a, &28, &34, &28, &6f, &e1, 6, 3
+
 acgexit_00_8E:  db  &24, 0, &c4, &98, &7f, &40, &ba, &d6
                 ;db  &24, 7, &c4, &98, &7f, &40, &ba, &d6    
                 db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
@@ -887,7 +890,7 @@ room_table:     dw  room_00, room_01, room_02, room_03, room_04, room_05, room_0
                 dw  room_78, room_79, room_7A, room_7B, room_7C, room_7D, room_7E, room_7F; &78
                 dw  room_80, room_81, room_82, room_83, room_84, room_85, room_86, room_87; &80
                 dw  room_88, room_89, room_8A, room_8B, room_8C, room_8D, room_8E, room_8F; &88
-                dw  room_90, room_91, room_92, room_93, room_94, room_none; &90
+                dw  room_90, room_91, room_92, room_93, room_94, room_95, room_none; &90
 
 room_00:        dw  door_07_00
                 dw  door_19_00
@@ -948,7 +951,7 @@ room_07:        dw  door_07_00
 room_08:        dw  door_08_06_g
                 dw  door_09_08
                 dw  shields_08_18
-                dw  barrel_8A_08
+                ;dw  barrel_8A_08
                 dw  0
 room_09:        dw  door_09_08
                 dw  door_0A_09
@@ -1109,6 +1112,7 @@ room_27:        dw  door_27_28
                 dw  tro_shi_5A_27
                 dw  0
 room_28:        dw  door_27_28
+                dw  barrel_95_28         ; ***NEW ROUTE TO ALT EXIT
                 dw  door_28_29_c
                 dw  0
 room_29:        dw  door_28_29_c
@@ -1542,7 +1546,7 @@ room_89:        dw  door_84_89_y
 room_8A:        dw  door_89_8A
                 dw  door_8A_23_g
                 dw  trap_78_8A
-                dw  barrel_8A_08
+                ;dw  barrel_8A_08
                 dw  knight_88_8A
                 dw  knight_88_8A_2
                 dw  0
@@ -1584,6 +1588,8 @@ room_93:        dw  door_92_93
                 dw  0
 room_94:        dw  door_93_94
                 dw  door_3A_94
+                dw  0
+room_95:        dw  barrel_95_28
                 dw  0
 room_none:      dw  0
 

@@ -3219,6 +3219,7 @@ loc_840D:
                 ld      (hl), a
                 inc     hl
                 push    hl
+                ;  INSERT TOGGLE FOR UPSIDE DOWN
                 ld      hl, creatures        ; creature table
                 ld      a, (sysvar_FRAMES)
                 and     &0f                  ; 16 creatures entries to choose from
@@ -4128,24 +4129,24 @@ loc_8B59:
 
 creature_default:db  &58, 0, &5c, &68, &68, &44, 0, 0, 2, 2, 0, 0, 0, &10, &20, 0
 
-;creatures:      db  &5c                       ; spider
-;                db  &5e                       ; spikey
-;                db  &98                       ; bat
-;                db  &98                       ; bat
-;                db  &90                       ; witch
-;                db  &90                       ; witch
-;                db  &94                       ; monk
-;                db  &94                       ; monk
-;                db  &5c                       ; spider
-;                db  &5e                       ; spikey
-;                db  &60                       ; blob
-;                db  &62                       ; ghoul
-;                db  &4c                       ; pumpkin
-;                db  &4e                       ; ghostlet
-;                db  &68                       ; ghost
-;                db  &6a                       ; batlet
+creatures:      db  &5c                       ; spider
+                db  &5e                       ; spikey
+                db  &98                       ; bat
+                db  &98                       ; bat
+                db  &90                       ; witch
+                db  &90                       ; witch
+                db  &94                       ; monk
+                db  &94                       ; monk
+                db  &5c                       ; spider
+                db  &5e                       ; spikey
+                db  &60                       ; blob
+                db  &62                       ; ghoul
+                db  &4c                       ; pumpkin
+                db  &4e                       ; ghostlet
+                db  &68                       ; ghost
+                db  &6a                       ; batlet
 
-creatures:      db  &6a                       ; batlet
+d.creatures:      db  &6a                       ; batlet
                 db  &6a                       ; batlet
                 db  &98                       ; bat
                 db  &98                       ; bat

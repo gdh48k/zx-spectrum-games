@@ -861,16 +861,25 @@ barrel_6B_6D:   db  &1a, &6b, &34, &50, &b7, &a0, 4, 6
                 db  &1a, &6d, &34, &50, &27, 0, 4, &56
 ;barrel_8A_08:   db  &1a, &8a, &34, &98, &6f, &60, &b7, 3  *** ORIGINAL GF BARREL ***
 ;                db  &1a, 8, &34, &28, &6f, &e1, 6, 3
-barrel_95_28:   db  &1a, &95, &34, &98, &6f, &60, &b7, 3  ;*** NEW AT BARREL ***
-                db  &1a, &28, &34, &28, &6f, &e1, 6, 3
+;barrel_95_28:   db  &1a, &95, &34, &98, &6f, &60, &b7, 3  ;*** NEW AT BARREL ***
+;                db  &1a, &28, &34, &28, &6f, &e1, 6, 3
+barrel_95_28:   db  2, &95, &34, &98, &6f, &60, &b7, 3  ;*** NEW AT BARREL ***
+                db  2, &7c, &34, 8, &6f, &e0, 6, 3
 
-acgexit_00_8E:  db  &24, 0, &c4, &98, &7f, &40, &ba, &d6
-                ;db  &24, 7, &c4, &98, &7f, &40, &ba, &d6    
+;acgexit_00_8E:  db  &24, 0, &c4, &98, &7f, &40, &ba, &d6
+;                ;db  &24, 7, &c4, &98, &7f, &40, &ba, &d6    
+;                db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
+
+acgexit_00_8E:  db  &24, &95, &c4, &0d, &7f, &e0, &ba, &d6
                 db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
+
+
 skeleton_53_8F: db  &26, &53, 0, &80, &77, &61, 0, 0
                 db  &26, &8f, 0, &80, &77, &61, 0, 0
 skeleton_33_55: db  &26, &33, 0, &18, &6f, &e1, 0, 0
                 db  &26, &55, 0, &50, &a7, &81, 0, 0
+
+ 
 
 room_table:     dw  room_00, room_01, room_02, room_03, room_04, room_05, room_06, room_07; 0
                 dw  room_08, room_09, room_0A, room_0B, room_0C, room_0D, room_0E, room_0F; 8
@@ -895,7 +904,7 @@ room_table:     dw  room_00, room_01, room_02, room_03, room_04, room_05, room_0
 room_00:        dw  door_07_00
                 dw  door_19_00
                 dw  door_01_00_c
-                dw  acgexit_00_8E
+                ;dw  acgexit_00_8E
                 dw  knight_00_06
                 dw  knight_00_06_2
                 dw  pic_shi_00_19
@@ -1112,7 +1121,7 @@ room_27:        dw  door_27_28
                 dw  tro_shi_5A_27
                 dw  0
 room_28:        dw  door_27_28
-                dw  barrel_95_28         ; ***NEW ROUTE TO ALT EXIT
+                
                 dw  door_28_29_c
                 dw  0
 room_29:        dw  door_28_29_c
@@ -1480,6 +1489,7 @@ room_7B:        dw  door_7A_7B
                 dw  0
 room_7C:        dw  door_7B_7C_y
                 dw  door_7C_7D_y
+                dw  barrel_95_28         ; ***NEW ROUTE TO ALT EXIT
                 dw  knight_7C_7A
                 dw  knight_7C_7A_2
                 dw  0
@@ -1589,8 +1599,8 @@ room_93:        dw  door_92_93
 room_94:        dw  door_93_94
                 dw  door_3A_94
                 dw  0
-room_95:        dw  barrel_95_28
-                dw  door_19_00
+room_95:        dw  acgexit_00_8E
+                dw  barrel_95_28
                 dw  0
 room_none:      dw  0
 
@@ -7378,6 +7388,9 @@ write_door    ld      a, (ix+0)               ; Fetch Sprite ID from template
 
 start_room_mod:
                             
+                ld      a,  &7c
+                ld      (player_room), a   ; HARDCODE TEST START
+
                 ld      a, (start_state)
                 cp      0                   ; 0 = classic start?
 
@@ -7507,6 +7520,7 @@ print_clock:
 
 h_acg_exit:
 
+                
                 ld      a, (acg_key_flag)   ; Get the collection state
                 and     7                   ; Isolate bits 0, 1, and 2
                 cp      7                   ; All three parts present?
@@ -12472,7 +12486,7 @@ room_attrs:     dw  &42, &0243, &0344, &0245, &0446, &0247, &0346, &0245; 0
                 dw  &43, &0442, &43, &0344, &45, &0446, &47, &46; 120
                 dw  &45, &44, &43, &42, &43, &44, &45, &46; 128
                 dw  &47, &46, &45, &0444, &0443, &0442, &0b47, &0143; 136
-                dw  &0144, &0145, &0146, &0147, &0146, 0, &0c00; 144
+                dw  &0144, &0145, &0146, &0147, &0146, &0847, &0c00; 144
 
 room_styles:    db  &38                       ; style 0 = plain square
                 db  &38
@@ -12742,11 +12756,11 @@ stair_points_t: db  &8a, &ba
                 db  &87, &3d
                 db  &87, &28
                 db  &35, &ba
-stair_lines:    db  1, &ff
-                db  2, 3, 1, &ff
-                db  3, &ff
-                db  4, 1, 3, &ff
-                db  5, 1, &ff
+stair_lines:    ;db  1, &ff
+                ;db  2, 3, 1, &ff
+                ;db  3, &ff
+                ;db  4, 1, 3, &ff
+                db  5, &ff              ;was: db  5, 1, &ff
                 db  6, &23, 5, &ff
                 db  7, &ff
                 db  8, &21, 7, &ff
@@ -12759,8 +12773,8 @@ stair_lines:    db  1, &ff
                 db  &0f, &ff
                 db  &10, &19, &0f, &ff
                 db  &11, &ff
-                db  &12, &17, &11, 2, &ff
-                db  &17, 3, &ff
+                db  &12, &17, &11, &ff  ; was: db  &12, &17, &11, 2, &ff
+                db  &17, &ff            ; was: db  &17, 3, &ff
                 db  &18, &17, &ff
                 db  &19, &ff
                 db  &1a, &19, &ff
@@ -12773,7 +12787,7 @@ stair_lines:    db  1, &ff
                 db  &21, &ff
                 db  &22, &21, &ff
                 db  &23, &ff
-                db  &24, 4, 5, &23, &ff
+                db  &24, 5, &23, &ff   ; was: db  &24, 4, 5, &23, &ff
                 db  &25, &ff
                 db  &ff
 stair_points_b: db  &8a, 5
@@ -12822,8 +12836,8 @@ stair_points_r: db  5, &8a
                 db  &97, &38
                 db  &82, &38
                 db  &82, &3d
-                db  &64, &3d
-                db  &6e, &41
+                db  &64, &3d    ; x = 64 -> 6e
+                db  &6e, &41        
                 db  &5c, &41
                 db  &5c, &45
                 db  &4c, &45
@@ -12852,6 +12866,7 @@ stair_points_r: db  5, &8a
                 db  &82, &87
                 db  &97, &87
                 db  5, &35
+
 stair_points_l: db  &ba, &8a
                 db  4, 8
                 db  &bb, &35

@@ -866,12 +866,13 @@ barrel_6B_6D:   db  &1a, &6b, &34, &50, &b7, &a0, 4, 6
 barrel_95_28:   db  2, &95, &34, &98, &6f, &60, &b7, 3  ;*** NEW AT BARREL ***
                 db  2, &7c, &34, 8, &6f, &e0, 6, 3
 
-;acgexit_00_8E:  db  &24, 0, &c4, &98, &7f, &40, &ba, &d6
-;                ;db  &24, 7, &c4, &98, &7f, &40, &ba, &d6    
+;acgexit_00_8E:  db  &24, 0, &c4, &98, &7f, &40, &ba, &d6  ; original exit
 ;                db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
 
-acgexit_00_8E:  db  &24, &95, &c4, &0d, &7f, &e0, &ba, &d6
+acgexit_00_8E:  db  &24, &95, &c4, &0d, &7f, &e0, &8, &f5   ; alt exit
                 db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
+
+
 
 
 skeleton_53_8F: db  &26, &53, 0, &80, &77, &61, 0, 0
@@ -2740,7 +2741,13 @@ clear_game_data:
                 ld      b, &60               ; clear up to address 6000
                 jr      loc_80B9
 
-; wizard character handler
+; ---------------------------------------------------------------------------
+; Routine: h_wizard
+; Flow: Handles player character (wizard) movement logic, velocity checks, 
+;       directional animation frame updates, step sounds, and weapon firing.
+; Inputs: IX (wizard entity context), control input ports
+; Outputs: Updates entity sprite graphics, velocity, and triggers actions
+; ---------------------------------------------------------------------------
 h_wizard:
                 ld      bc, &2020            ; walk deceleration
                 ld      de, &2020            ; walk acceleration
@@ -5410,7 +5417,13 @@ auto_walk_step:
                 dec     (ix+2)               ; take a step
                 ret
 
-; read controls and apply player movement
+; ---------------------------------------------------------------------------
+; Routine: control_player
+; Flow: Reads hardware controls, calculates directional movement offsets in 
+;       DE based on input states, and evaluates collision and doorway checks.
+; Inputs: IX (player entity context), control input ports
+; Outputs: Updates player position via apply_move
+; ---------------------------------------------------------------------------
 control_player:
                 ld      a, (player_room)
                 ld      (some_room+1), a     ; blank entity?
@@ -6914,7 +6927,13 @@ loc_9565:
                 pop     ix
                 ret
 
-; check if player is standing in a doorway
+; ---------------------------------------------------------------------------
+; Routine: check_doorway
+; Flow: Calculates absolute distance of player from room centre, compares 
+;       against interior dimensions, and sets doorway proximity flag.
+; Inputs: IX (context), (room_width), (ix+3) = player X, (ix+4) = player Y
+; Outputs: (in_doorway) = non-zero if inside boundary zone
+; ---------------------------------------------------------------------------
 check_doorway:
                 push    de
                 ld      b, 0
@@ -7525,7 +7544,7 @@ h_acg_exit:
                 and     7                   ; Isolate bits 0, 1, and 2
                 cp      7                   ; All three parts present?
                 
-                jr      nz, loc_963B        ; If not, jump
+                ;jr      nz, loc_963B        ; If not, jump
 
                 ; --- SUCCESS: OPEN DOOR ---
                 call    enter_door          ; Trigger the door transition

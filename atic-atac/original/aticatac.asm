@@ -2431,6 +2431,10 @@ loc_7DC8:
                 jr      nz, loc_7DDC         ; jump if so
                 ld      ix, linked_items     ; pairs of linked items, including doors
                 jr      draw_room
+
+; ---------------------------------------------------------------------------
+; Room drawn;  run player (if new frame) or process action (if entity in room)
+; ---------------------------------------------------------------------------
 loc_7DDC:
                 ld      a, (sysvar_FRAMES)
                 ld      c, a
@@ -2439,7 +2443,7 @@ loc_7DDC:
                 call    nz, run_player       ; call if not
                 ld      a, (player_room)
                 cp      (ix+1)               ; entity in player room?
-                ld      hl, loop_return
+                ld      hl, loop_return      ; hl to be pushed to stack ie loop return
                 jp      z, process_action    ; jump if so
 loop_return:
                 ld      de, 8                ; entity size
@@ -2493,7 +2497,7 @@ decor_loop:
                 dec     hl
                 ld      h, (hl)              ; room item MSB
                 ld      l, a
-                or      h                    ; end of list?
+                or      h                    ; end of item list?
                 jr      nz, loc_7E93         ; jump if not
                 ld      hl, (counter_low)
                 inc     hl                   ; advance game loop counter
@@ -2523,22 +2527,31 @@ loc_7E55:
                 jp      z, game_complete     ; congratulate player on completion
                 jp      main_loop
 
+
+; ---------------------------------------------------------------------------
+; Default Dispatch Path (Entities)
+; ---------------------------------------------------------------------------
+
 process_action:
-                push    hl                   ; push return location
+                push    hl                  ; push return location
 run_handler:
                 ld      hl, handler_table
 lookup_graphic:
-                ld      c, (ix+0)
+                ld      c, (ix+0)           ; get enitity/item's id
 lookup_c_hl:
                 ld      b, 0
                 sla     c
                 rl      b                    ; * 2 (bytes per entry)
-                add     hl, bc
+                add     hl, bc               ; HL = handler_table/2 + (2 x item id)
                 ld      a, (hl)              ; LSB
                 inc     hl
                 ld      h, (hl)              ; MSB
-                ld      l, a
-                jp      jp_hl
+                ld      l, a                 
+                jp      jp_hl                ; jump to appropriate handler
+
+; ---------------------------------------------------------------------------
+; Secondary Dispatch Path (Items)
+; ---------------------------------------------------------------------------
 loc_7E93:
                 ld      bc, decor_loop
                 push    bc
@@ -2548,7 +2561,7 @@ loc_7E93:
                 push    hl
                 pop     ix
                 ld      a, (player_room)
-                cp      (ix+1)               ; in player room?
+                cp      (ix+1)               ; is item in player room?
                 jr      z, loc_7EAD          ; jump if so
                 ld      bc, 8
                 add     ix, bc

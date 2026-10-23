@@ -861,17 +861,20 @@ barrel_6B_6D:   db  &1a, &6b, &34, &50, &b7, &a0, 4, 6
                 db  &1a, &6d, &34, &50, &27, 0, 4, &56
 ;barrel_8A_08:   db  &1a, &8a, &34, &98, &6f, &60, &b7, 3  *** ORIGINAL GF BARREL ***
 ;                db  &1a, 8, &34, &28, &6f, &e1, 6, 3
-;barrel_95_28:   db  &1a, &95, &34, &98, &6f, &60, &b7, 3  ;*** NEW AT BARREL ***
-;                db  &1a, &28, &34, &28, &6f, &e1, 6, 3
-barrel_95_28:   db  2, &95, &34, &98, &6f, &60, &b7, 3  ;*** NEW AT BARREL ***
-                db  2, &7c, &34, 8, &6f, &e0, 6, 3
 
-;acgexit_00_8E:  db  &24, 0, &c4, &98, &7f, &40, &ba, &d6  ; original exit
+;barrel_95_28:   db  2, &95, &34, &98, &6f, &60, &b7, 3  ;*** NEW AT BARREL v2 ***
+;                db  2, &7c, &34, 8, &6f, &e0, 6, 3
+barrel_95_28:   db  2, &95, &34, 16, &6f, &e0, 8, &d  ;*** NEW AT BARREL v3 ***  16, &6f
+                db  2, &27, &34, &a0, &6f, &60, &b7, 3
+
+;acgexit_00_8E:  db  &24, 0, &c4, &98, &7f, &40, &ba, &d6  ; original exit 0, &7f, &e0, 8, &d6
 ;                db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
 
-acgexit_00_8E:  db  &24, &95, &c4, &0d, &7f, &e0, &8, &f5   ; alt exit
-                db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
+;acgexit_00_8E:  db  &24, &95, &c4, &0d, &7f, &e0, &8, &f5   ; alt exit v2
+;                db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
 
+acgexit_00_8E:  db  &24, &95, &c4, &90, &7f, &40, &ba, &d6   ; alt exit v3 
+                db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
 
 
 
@@ -1116,6 +1119,7 @@ room_26:        dw  door_24_26_s
 room_27:        dw  door_27_28
                 dw  door_2E_27
                 dw  door_27_2F_s
+                dw  barrel_95_28         ; ***NEW ROUTE TO ALT EXIT v3
                 dw  knight_27_2B
                 dw  knight_27_2B_2
                 dw  tro_pic_5A_27
@@ -1490,7 +1494,7 @@ room_7B:        dw  door_7A_7B
                 dw  0
 room_7C:        dw  door_7B_7C_y
                 dw  door_7C_7D_y
-                dw  barrel_95_28         ; ***NEW ROUTE TO ALT EXIT
+                ;dw  barrel_95_28         ; ***NEW ROUTE TO ALT EXIT v2
                 dw  knight_7C_7A
                 dw  knight_7C_7A_2
                 dw  0
@@ -2235,7 +2239,7 @@ start_item:
                 dw      first_txt_table         ; Text Pointer
                 dw      0                       ; Icon Pointer
                 db      &70                     ; Y-coord
-                db      2                       ; Max
+                db      3                       ; Max
 start_state:
                 db      0, 0                    ; Curr/Prev
 
@@ -2276,7 +2280,7 @@ quest_txt_table:
                 dw      classicq_txt, collect5_txt, collect10_txt, collect15_txt, racegf_txt, raceat_txt, racecv_txt
 
 first_txt_table:
-                dw      acg_txt, random_txt
+                dw      acg_txt, random_txt, alternate_txt
 
 pickup_txt_table:
                 dw      manual_txt, auto_txt
@@ -2308,8 +2312,9 @@ racegf_txt:     db      '4  GROUND FL00R RACE', &A0
 raceat_txt:     db      '4  ATIC RACE        ', &A0
 racecv_txt:     db      '4  CAVERN RACE      ', &A0
 
-acg_txt:        db      '5  ACG START ROOM  ', &A0  
-random_txt:     db      '5  RANDOM START ROO', &CD
+acg_txt:        db      '5  CLASSIC START/EXIT', &A0  
+random_txt:     db      '5  RANDOM START      ', &A0 
+alternate_txt:  db      '5  ALT EXIT          ', &A0 
 
 manual_txt:     db      '6  MANUAL PICKU', &D0
 auto_txt:       db      '6  AUTO PICKUP ', &A0
@@ -7420,8 +7425,8 @@ write_door    ld      a, (ix+0)               ; Fetch Sprite ID from template
 
 start_room_mod:
                             
-                ld      a,  &7c
-                ld      (player_room), a   ; HARDCODE TEST START
+                ;ld      a,  &2
+                ;ld      (player_room), a   ; HARDCODE TEST START
 
                 ld      a, (start_state)
                 cp      0                   ; 0 = classic start?
@@ -12518,7 +12523,7 @@ room_attrs:     dw  &42, &0243, &0344, &0245, &0446, &0247, &0346, &0245; 0
                 dw  &43, &0442, &43, &0344, &45, &0446, &47, &46; 120
                 dw  &45, &44, &43, &42, &43, &44, &45, &46; 128
                 dw  &47, &46, &45, &0444, &0443, &0442, &0b47, &0143; 136
-                dw  &0144, &0145, &0146, &0147, &0146, &0847, &0c00; 144
+                dw  &0144, &0145, &0146, &0147, &0146, &0747, &0c00; 144
 
 room_styles:    db  &38                       ; style 0 = plain square
                 db  &38
@@ -12868,7 +12873,7 @@ stair_points_r: db  5, &8a
                 db  &97, &38
                 db  &82, &38
                 db  &82, &3d
-                db  &64, &3d    ; x = 64 -> 6e
+                db  &6e, &3d    ; x = 64 -> 6e
                 db  &6e, &41        
                 db  &5c, &41
                 db  &5c, &45

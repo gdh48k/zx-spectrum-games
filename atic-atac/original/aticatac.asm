@@ -867,14 +867,14 @@ barrel_6B_6D:   db  &1a, &6b, &34, &50, &b7, &a0, 4, 6
 barrel_95_28:   db  2, &95, &34, 16, &6f, &e0, 8, &d  ;*** NEW AT BARREL v3 ***  16, &6f
                 db  2, &27, &34, &a0, &6f, &60, &b7, 3
 
-;acgexit_00_8E:  db  &24, 0, &c4, &98, &7f, &40, &ba, &d6  ; original exit 0, &7f, &e0, 8, &d6
-;                db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
+acgexit_00_8E:  db  &24, 0, &c4, &98, &7f, &40, &ba, &d6  ; original exit 0, &7f, &e0, 8, &d6
+                db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
 
 ;acgexit_00_8E:  db  &24, &95, &c4, &0d, &7f, &e0, &8, &f5   ; alt exit v2
 ;                db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
 
-acgexit_00_8E:  db  &24, &95, &c4, &90, &7f, &40, &ba, &d6   ; alt exit v3 
-                db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
+;acgexit_00_8E:  db  &24, &95, &c4, &90, &7f, &40, &ba, &d6   ; alt exit v3 
+;                db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
 
 
 
@@ -2411,9 +2411,10 @@ start_game:
                 call    gf_mod
                 call    race_mod
                 call    inversion_mod
+                call    exit_mod
                 call    reset_game_state     ; copy initial game state to working state area
                 call    randomise_doors      ; randomise which doors can open/close
-                call    start_room_mod
+                call    entry_mod
                 call    prepare_player       ; prepare player to spawn
                 call    check_floor_change
                 call    update_floor_offsets
@@ -7427,21 +7428,20 @@ write_door    ld      a, (ix+0)               ; Fetch Sprite ID from template
 
 ; --- Random Start Room Mod ---
 
-start_room_mod:
+entry_mod:
                             
-                ;ld      a,  &2
+                ;ld      a,  &27
                 ;ld      (player_room), a   ; HARDCODE TEST START
 
                 ld      a, (start_state)
                 
-                cp      0                   ; 0 = classic start?
-                jr      z, srm_exit         ; jump if start
-                ;ret     z
+                cp      1                   ; 1 = random start?
+                jr      z, set_entry        ; jump if so
+                ret     
 
-                cp      2
-                jr      nc, exit_mod        ; jp if 2 or more (2=exit_mod)
+                
 
-start_mod:      ld      a, r                ; Hardware entropy
+set_entry:      ld      a, r                ; Hardware entropy
                 ld      l, a
                 ld      a, (sysvar_FRAMES)  ; Time entropy
                 add     a, l                ; Mix them
@@ -7456,16 +7456,24 @@ start_mod:      ld      a, r                ; Hardware entropy
                 ld      (player_room), a    ; Set it for spawn
                 ret   
 
+
+
+
 exit_mod:       
+                ld      a, (start_state)
+
+                cp      2                       ; 2 = exit mode
+                jr      nz, restore_exit        ; jp if not 
+
                 ;Hide ACG door from Room_00
-                ld      hl, (rm_delimter)
+                ld      hl, &0000
                 ld      (acg_00), hl
 
                 ;Place alt door in Room_27
                 ld      hl, barrel_95_28
                 ld      (alt_27), hl
 
-                ;Set ACG door attributes for Room_27
+                ;Set ACG door attributes for Room_95
                 ld      a, &95
                 ld      (acgexit_00_8E+1), a  
                 ld      a, &90
@@ -7473,23 +7481,24 @@ exit_mod:
                
                 ret
                 
-srm_exit        
+restore_exit        
                 ;Restore ACG door to Room_00
                 ld      hl, acgexit_00_8E
                 ld      (acg_00), hl
 
-                ;Set ACG door attributes for Room_00
+                ;Set ACG door attributes (+1 = room_id, +3 = x coord) for Room_00
                 xor     a 
                 ld      (acgexit_00_8E+1), a  
                 ld      a, &98
                 ld      (acgexit_00_8E+3), a
 
                 ;Hide alt door from Room_27
-                ld      hl, (rm_delimter)
+                ld      hl, &0000
                 ld      (alt_27), hl
         
 
                 ret
+
                 
     
 

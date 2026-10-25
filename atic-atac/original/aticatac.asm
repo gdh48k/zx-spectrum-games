@@ -867,14 +867,14 @@ barrel_6B_6D:   db  &1a, &6b, &34, &50, &b7, &a0, 4, 6
 barrel_95_28:   db  2, &95, &34, 16, &6f, &e0, 8, &d  ;*** NEW AT BARREL v3 ***  16, &6f
                 db  2, &27, &34, &a0, &6f, &60, &b7, 3
 
-acgexit_00_8E:  db  &24, 0, &c4, &98, &7f, &40, &ba, &d6  ; original exit 0, &7f, &e0, 8, &d6
-                db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
+;acgexit_00_8E:  db  &24, 0, &c4, &98, &7f, &40, &ba, &d6  ; original exit 0, &7f, &e0, 8, &d6
+;                db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
 
 ;acgexit_00_8E:  db  &24, &95, &c4, &0d, &7f, &e0, &8, &f5   ; alt exit v2
 ;                db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
 
-;acgexit_00_8E:  db  &24, &95, &c4, &90, &7f, &40, &ba, &d6   ; alt exit v3 
-;                db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
+acgexit_00_8E:  db  &24, &95, &c4, &90, &7f, &40, &ba, &d6   ; alt exit v3 
+                db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
 
 
 
@@ -917,10 +917,10 @@ room_00:        dw  door_07_00
                 dw  trophies_00_0B
                 dw  shi_pic_00_82
                 dw  trophies_00_82
-                dw  acgexit_00_8E
+acg_00:         dw  acgexit_00_8E
                 dw  knight_00_06
                 dw  knight_00_06_2
-                dw  0
+rm_delimter:    dw  0
 
 room_01:        dw  door_01_00_c
                 dw  door_02_01
@@ -1123,11 +1123,11 @@ room_26:        dw  door_24_26_s
 room_27:        dw  door_27_28
                 dw  door_2E_27
                 dw  door_27_2F_s
-                dw  barrel_95_28         ; ***NEW ROUTE TO ALT EXIT v3
                 dw  knight_27_2B
                 dw  knight_27_2B_2
                 dw  tro_pic_5A_27
                 dw  tro_shi_5A_27
+alt_27          dw  barrel_95_28         ; ***NEW ROUTE TO ALT EXIT v3
                 dw  0
 room_28:        dw  door_27_28
                 
@@ -7435,8 +7435,8 @@ start_room_mod:
                 ld      a, (start_state)
                 
                 cp      0                   ; 0 = classic start?
-                ;jr      z, srm_exit         ; jump if start
-                ret     z
+                jr      z, srm_exit         ; jump if start
+                ;ret     z
 
                 cp      2
                 jr      nc, exit_mod        ; jp if 2 or more (2=exit_mod)
@@ -7456,12 +7456,40 @@ start_mod:      ld      a, r                ; Hardware entropy
                 ld      (player_room), a    ; Set it for spawn
                 ret   
 
-exit_mod:       ld      hl, room_00+18
-                ld      (hl), 0
-                inc     hl  
-                ld      (hl), 0
+exit_mod:       
+                ;Hide ACG door from Room_00
+                ld      hl, (rm_delimter)
+                ld      (acg_00), hl
+
+                ;Place alt door in Room_27
+                ld      hl, barrel_95_28
+                ld      (alt_27), hl
+
+                ;Set ACG door attributes for Room_27
+                ld      a, &95
+                ld      (acgexit_00_8E+1), a  
+                ld      a, &90
+                ld      (acgexit_00_8E+3), a
+               
+                ret
                 
-srm_exit        ret
+srm_exit        
+                ;Restore ACG door to Room_00
+                ld      hl, acgexit_00_8E
+                ld      (acg_00), hl
+
+                ;Set ACG door attributes for Room_00
+                xor     a 
+                ld      (acgexit_00_8E+1), a  
+                ld      a, &98
+                ld      (acgexit_00_8E+3), a
+
+                ;Hide alt door from Room_27
+                ld      hl, (rm_delimter)
+                ld      (alt_27), hl
+        
+
+                ret
                 
     
 

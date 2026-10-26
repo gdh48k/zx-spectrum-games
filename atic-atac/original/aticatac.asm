@@ -7470,14 +7470,27 @@ exit_mod:
                 ld      (acg_00), hl
 
                 ;Place alt door in Room_27
-                ld      hl, barrel_95_28
+                ;ld      hl, barrel_95_28
+                ;ld      (alt_27), hl
+
+                ;Set ACG door attributes for Room_95
+                ;ld      a, &95
+                ;ld      (acgexit_00_8E+1), a  
+                ;ld      a, &90
+                ;ld      (acgexit_00_8E+3), a
+
+                ;Place acg door in Room_27
+                ld      hl, acgexit_00_8E
                 ld      (alt_27), hl
 
                 ;Set ACG door attributes for Room_95
-                ld      a, &95
+                ld      a, &27
                 ld      (acgexit_00_8E+1), a  
-                ld      a, &90
-                ld      (acgexit_00_8E+3), a
+                ;ld      a, &90
+                ;ld      (acgexit_00_8E+3), a
+
+
+
                
                 ret
                 
@@ -12842,7 +12855,7 @@ stair_points_t: db  &8a, &ba
                 db  &87, &3d
                 db  &87, &28
                 db  &35, &ba
-stair_lines:    ;db  1, &ff
+stair_lines_n:    ;db  1, &ff
                 ;db  2, 3, 1, &ff
                 ;db  3, &ff
                 ;db  4, 1, 3, &ff
@@ -12876,6 +12889,42 @@ stair_lines:    ;db  1, &ff
                 db  &24, 5, &23, &ff   ; was: db  &24, 4, 5, &23, &ff
                 db  &25, &ff
                 db  &ff
+
+stair_lines:    db  1, &ff              ;comment out
+                db  2, 3, 1, &ff        ;comment out
+                db  3, &ff              ;comment out
+                db  4, 1, 3, &ff        ;comment out
+                db  5, 1, &ff           ;reduce to : db 5, &ff
+                db  6, &23, 5, &ff
+                db  7, &ff
+                db  8, &21, 7, &ff
+                db  9, &ff
+                db  &0a, &1f, 9, &ff
+                db  &0b, &ff
+                db  &0c, &1d, &0b, &ff
+                db  &0d, &ff
+                db  &0e, &1b, &0d, &ff
+                db  &0f, &ff
+                db  &10, &19, &0f, &ff
+                db  &11, &ff
+                db  &12, &17, &11, 2, &ff  ; reduce to:  db &12, &17, &11, &ff
+                db  &17, 3, &ff            ; reduce to:  db &17, &ff 
+                db  &18, &17, &ff
+                db  &19, &ff
+                db  &1a, &19, &ff
+                db  &1b, &ff
+                db  &1c, &1b, &ff
+                db  &1d, &ff
+                db  &1e, &1d, &ff
+                db  &1f, &ff
+                db  &20, &1f, &ff
+                db  &21, &ff
+                db  &22, &21, &ff
+                db  &23, &ff
+                db  &24, 4, 5, &23, &ff   ; reduce to db &24, 5, &23, &ff
+                db  &25, &ff
+                db  &ff
+
 stair_points_b: db  &8a, 5
                 db  8, &bb
                 db  &38, 4

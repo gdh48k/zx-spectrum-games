@@ -1236,6 +1236,7 @@ room_40:        dw  door_34_40
                 dw  0
 room_41:        dw  door_40_41
                 dw  bookcase_3E_41
+alt_41:         dw  0
                 dw  0
 room_42:        dw  door_40_42
                 dw  door_42_43
@@ -1414,6 +1415,7 @@ room_67:        dw  door_67_56_c
                 dw  0
 room_68:        dw  door_68_59_r
                 dw  clock_67_68
+alt_68:         dw  0
                 dw  0
 room_69:        dw  door_69_56_y
                 dw  bookcase_69_6A
@@ -1510,7 +1512,7 @@ room_7D:        dw  door_7C_7D_y
 room_7E:        dw  door_7A_7E_r
                 dw  door_7E_29
                 dw  shi_tro_29_7E
-                dw  pic_tro_29_7E
+alt_7e:         dw  pic_tro_29_7E
                 dw  0
 room_7F:        dw  door_7F_80_g
                 dw  door_81_7F
@@ -1543,6 +1545,7 @@ room_85:        dw  door_86_85
                 dw  0
 room_86:        dw  door_84_86
                 dw  door_86_85
+alt_86          dw  0 
                 dw  0
 room_87:        dw  door_82_87_c
                 dw  door_87_88
@@ -7430,8 +7433,8 @@ write_door    ld      a, (ix+0)               ; Fetch Sprite ID from template
 
 entry_mod:
                             
-                ;ld      a,  &27
-                ;ld      (player_room), a   ; HARDCODE TEST START
+                ld      a,  &86
+                ld      (player_room), a   ; HARDCODE TEST START
 
                 ld      a, (start_state)
                 
@@ -7457,19 +7460,7 @@ set_entry:      ld      a, r                ; Hardware entropy
                 ret   
 
 
-
-
-exit_mod:       
-                ld      a, (start_state)
-
-                cp      2                       ; 2 = exit mode
-                jr      nz, restore_exit        ; jp if not 
-
-                ;Hide ACG door from Room_00
-                ld      hl, &0000
-                ld      (acg_00), hl
-
-                ;Place alt door in Room_27
+;Place alt door in Room_27
                 ;ld      hl, barrel_95_28
                 ;ld      (alt_27), hl
 
@@ -7479,22 +7470,76 @@ exit_mod:
                 ;ld      a, &90
                 ;ld      (acgexit_00_8E+3), a
 
-                ;Place acg door in Room_27
-                ld      hl, acgexit_00_8E
-                ld      (alt_27), hl
 
-                ;Set ACG door attributes for Room_95
-                ld      a, &27
-                ld      (acgexit_00_8E+1), a  
+
+
+exit_mod:       
+                ld      a, (start_state)
+
+                cp      2                       ; 2 = exit mode
+                jr      nz, restore_exit        ; jp if not 
+
+
+                ; Hide ACG door from default room
+                ; Set ACG door in alternative room
+                ; Set ACG door's new attributes
+
+                ;Hide ACG door from Room_00
+                ld      hl, &0000
+                ld      (acg_00), hl
+            
+                ;Place acg door in Room_27
+                ;ld      hl, acgexit_00_8E
+                ;ld      (alt_27), hl
+
+                ;Place acg door in Room_7e
+                ;ld      hl, acgexit_00_8E
+                ;ld      (alt_7e), hl
+
+                ;Place acg door in Room_68
+                ;ld      hl, acgexit_00_8E
+                ;ld      (alt_68), hl
+
+                ;Place acg door in Room_86
+                ld      hl, acgexit_00_8E
+                ld      (alt_86), hl
+
+                ;Place acg door in Room_41
+                ;ld      hl, acgexit_00_8E
+                ;ld      (alt_41), hl
+
+                ;Set ACG door attributes for Room_27
+                ;ld      a, &27
+                ;ld      (acgexit_00_8E+1), a  
                 ;ld      a, &90
                 ;ld      (acgexit_00_8E+3), a
 
+                ;Set ACG door attributes for Room_7e
+                ;ld      a, &7e
+                ;ld      (acgexit_00_8E+1), a 
 
+                ;Set ACG door attributes for Room_68
+                ld      a, &68
+                ld      (acgexit_00_8E+1), a 
 
-               
+                ;Set ACG door attributes for Room_86
+                ld      a, &86
+                ld      (acgexit_00_8E+1), a 
+
+                ;Set ACG door attributes for Room_41
+                ;ld      a, &41
+                ;ld      (acgexit_00_8E+1), a 
+                ;ld      a, &90
+                ;ld      (acgexit_00_8E+3), a
+       
                 ret
                 
-restore_exit        
+restore_exit    
+
+                ; Restore ACG to default room
+                ; Restore ACG door attributes
+                ; Hide ACG in alternative room
+
                 ;Restore ACG door to Room_00
                 ld      hl, acgexit_00_8E
                 ld      (acg_00), hl
@@ -7506,9 +7551,25 @@ restore_exit
                 ld      (acgexit_00_8E+3), a
 
                 ;Hide alt door from Room_27
-                ld      hl, &0000
-                ld      (alt_27), hl
+                ;ld      hl, &0000
+                ;ld      (alt_27), hl
         
+                ;Hide alt door from Room_7e
+                ;ld      hl, &0000
+                ;ld      (alt_7e), hl
+
+                ;Hide alt door from Room_41
+                ;ld      hl, &0000
+                ;ld      (alt_41), hl
+
+                ;Hide alt door from Room_68
+                ld      hl, &0000
+                ld      (alt_68), hl
+
+
+                ;Hide alt door from Room_86
+                ld      hl, &0000
+                ld      (alt_86), hl
 
                 ret
 

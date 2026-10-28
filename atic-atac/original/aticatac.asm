@@ -7472,7 +7472,25 @@ set_entry:      ld      a, r                ; Hardware entropy
 
 
 
+exit_room_init:
+                ;dw      alt_27                  
+                ;db      &27, &98               
+                
+                dw      alt_7e                  
+                db      &7e, &98                
+                
+                dw      alt_41                  
+                db      &41, &90                
+                
+                dw      alt_68                  
+                db      &68, &98 
 
+                dw      alt_86                  
+                db      &86, &98 
+
+
+
+acg_room:       dw  0
 exit_mod:       
                 ld      a, (start_state)
 
@@ -7480,14 +7498,44 @@ exit_mod:
                 jr      nz, restore_exit        ; jp if not 
 
 
-                ; Hide ACG door from default room
+                ld      hl, (acg_room)
+                ld      a,  h 
+                or      l
+                jr      z, apply_mod
+
+                call    clr_alt_door
+
+
+apply_mod       ; Hide ACG door from default room
                 ; Set ACG door in alternative room
                 ; Set ACG door's new attributes
 
                 ;Hide ACG door from Room_00
-                ld      hl, &0000
+                ld      hl, (rm_delimter)
                 ld      (acg_00), hl
             
+                ; Generate random index (0 to 3) using hardware & frame entropy
+                ld      a, r                    ; Hardware entropy
+                ld      l, a
+                ld      a, (sysvar_FRAMES)      ; Time entropy
+                add     a, l                    ; Mix them together
+                and     3                       ; Mask for 0-3 (EXIT_INIT_COUNT - 1)
+
+                ; Calculate table offset (Index * 4 bytes per entry)
+                ld      e, a                    ; E = index
+                ld      d, 0
+                ld      h, d                    ; HL = index
+                ld      l, e
+                add     hl, hl                  ; * 2
+                add     hl, hl                  ; * 4
+                
+                ld      de, exit_room_init
+                add     hl, de                  ; HL points to chosen table entry
+
+
+
+
+
                 ;Place acg door in Room_27
                 ;ld      hl, acgexit_00_8E
                 ;ld      (alt_27), hl
@@ -7503,6 +7551,9 @@ exit_mod:
                 ;Place acg door in Room_86
                 ld      hl, acgexit_00_8E
                 ld      (alt_86), hl
+
+                ld      hl, alt_86
+                ld     (acg_room), hl
 
                 ;Place acg door in Room_41
                 ;ld      hl, acgexit_00_8E
@@ -7571,8 +7622,29 @@ restore_exit
                 ld      hl, &0000
                 ld      (alt_86), hl
 
+                ;Clear the last active alt slot (if any)
+                ld      hl, (acg_room)
+                ld      a, h
+                or      l
+                ret     z                       ; Return if (acg_room=0)
+                
+                call    clr_alt_door            ; Clear acg_room
+                
+                ; Reset tracking variable to 0
+                xor     a
+                ld      (acg_room), a
+                ld      (acg_room+1), a
                 ret
 
+                
+
+clr_alt_door:   ld      de, (rm_delimter)       ; DE = room delimiter value
+                ld      a, e                    
+                ld      (hl), a                 ; Write low byte
+                inc     hl
+                ld      a, d                    
+                ld      (hl), a                 ; Write high byte
+                ret
                 
     
 

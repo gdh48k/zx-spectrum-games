@@ -1127,7 +1127,8 @@ room_27:        dw  door_27_28
                 dw  knight_27_2B_2
                 dw  tro_pic_5A_27
                 dw  tro_shi_5A_27
-alt_27          dw  barrel_95_28         ; ***NEW ROUTE TO ALT EXIT v3
+alt_27          dw  0
+                ;dw  barrel_95_28         ; ***NEW ROUTE TO ALT EXIT v3
                 dw  0
 room_28:        dw  door_27_28
                 
@@ -2319,9 +2320,9 @@ racegf_txt:     db      '4  GROUND FL00R RACE', &A0
 raceat_txt:     db      '4  ATIC RACE        ', &A0
 racecv_txt:     db      '4  CAVERN RACE      ', &A0
 
-acg_txt:        db      '5  CLASSIC START/EXIT', &A0  
-random_txt:     db      '5  RANDOM START      ', &A0 
-alternate_txt:  db      '5  ALT EXIT          ', &A0 
+acg_txt:        db      '5  CLASSIC ENTRY/EXIT', &A0  
+random_txt:     db      '5  RANDOM ENTRY ROOM ', &A0 
+alternate_txt:  db      '5  RANDOM EXIT ROOM  ', &A0 
 
 manual_txt:     db      '6  MANUAL PICKU', &D0
 auto_txt:       db      '6  AUTO PICKUP ', &A0
@@ -2400,7 +2401,7 @@ print_text:
 
 start_game:
                 call    clear_game_data      ; clear 5E10-5FFF
-                ld      a, 0                 ; 3 lives on startup
+                ld      a, 3                 ; 3 lives on startup
                 ld      (lives), a
                 ld      hl, food_items
                 ld      (food_ptr), hl
@@ -7433,8 +7434,8 @@ write_door    ld      a, (ix+0)               ; Fetch Sprite ID from template
 
 entry_mod:
                             
-                ld      a,  &86
-                ld      (player_room), a   ; HARDCODE TEST START
+                ;ld      a,  &86
+                ;ld      (player_room), a   ; HARDCODE TEST START
 
                 ld      a, (start_state)
                 
@@ -7471,7 +7472,10 @@ set_entry:      ld      a, r                ; Hardware entropy
                 ;ld      (acgexit_00_8E+3), a
 
 
-
+; ---------------------------------------------------------------------------
+; Exit Room Initialization Table
+; Format per entry: Patch Address (2 bytes), Room ID (1 byte), X-Coord (1 byte)
+; ---------------------------------------------------------------------------
 exit_room_init:
                 ;dw      alt_27                  
                 ;db      &27, &98               
@@ -7494,7 +7498,7 @@ acg_room:       dw  0
 exit_mod:       
                 ld      a, (start_state)
 
-                cp      2                       ; 2 = exit mode
+                cp      2                       ; 2 = modify exit room
                 jr      nz, restore_exit        ; jp if not 
 
 
@@ -7532,9 +7536,31 @@ apply_mod       ; Hide ACG door from default room
                 ld      de, exit_room_init
                 add     hl, de                  ; HL points to chosen table entry
 
+                ; Extract patch address into DE and store
+                ld      e, (hl)                 ; Load slot address low byte
+                inc     hl
+                ld      d, (hl)                 ; Load slot address high byte
+                ld      (acg_room), de
 
+                inc     hl
+                push    hl                      ; Save table position for attributes
+                
+                ; Patch acg door into patch address
+                ld      hl, acgexit_00_8E
+                ld      a, l
+                ld      (de), a                 ; Store low byte of pointer
+                inc     de
+                ld      a, h
+                ld      (de), a                 ; Store high byte of pointer
 
-
+                ; Patch Room ID and X-Coord attributes
+                pop     hl                      ; Retrieve table pointer (at Room ID byte)
+                ld      a, (hl)                 ; Get Room ID
+                ld      (acgexit_00_8E+1), a    ; Set attribute byte +1
+                inc     hl
+                ld      a, (hl)                 ; Get X-Coord
+                ld      (acgexit_00_8E+3), a    ; Set attribute byte +3
+                ret
 
                 ;Place acg door in Room_27
                 ;ld      hl, acgexit_00_8E
@@ -7549,11 +7575,11 @@ apply_mod       ; Hide ACG door from default room
                 ;ld      (alt_68), hl
 
                 ;Place acg door in Room_86
-                ld      hl, acgexit_00_8E
-                ld      (alt_86), hl
+                ;ld      hl, acgexit_00_8E
+                ;ld      (alt_86), hl
 
-                ld      hl, alt_86
-                ld     (acg_room), hl
+                ;ld      hl, alt_86
+                ;ld     (acg_room), hl
 
                 ;Place acg door in Room_41
                 ;ld      hl, acgexit_00_8E
@@ -7570,12 +7596,12 @@ apply_mod       ; Hide ACG door from default room
                 ;ld      (acgexit_00_8E+1), a 
 
                 ;Set ACG door attributes for Room_68
-                ld      a, &68
-                ld      (acgexit_00_8E+1), a 
+                ;ld      a, &68
+                ;ld      (acgexit_00_8E+1), a 
 
                 ;Set ACG door attributes for Room_86
-                ld      a, &86
-                ld      (acgexit_00_8E+1), a 
+                ;ld      a, &86
+                ;ld      (acgexit_00_8E+1), a 
 
                 ;Set ACG door attributes for Room_41
                 ;ld      a, &41
@@ -7583,7 +7609,7 @@ apply_mod       ; Hide ACG door from default room
                 ;ld      a, &90
                 ;ld      (acgexit_00_8E+3), a
        
-                ret
+                
                 
 restore_exit    
 
@@ -7601,6 +7627,22 @@ restore_exit
                 ld      a, &98
                 ld      (acgexit_00_8E+3), a
 
+                ;Clear the last active acg_room (if any)
+                ld      hl, (acg_room)
+                ld      a, h
+                or      l
+                ret     z                       ; Return if (acg_room=0)
+                
+                call    clr_alt_door            ; Clear acg_room
+                
+                ; Reset acg_room to 0
+                xor     a
+                ld      (acg_room), a
+                ld      (acg_room+1), a
+                ret
+                
+
+
                 ;Hide alt door from Room_27
                 ;ld      hl, &0000
                 ;ld      (alt_27), hl
@@ -7614,27 +7656,15 @@ restore_exit
                 ;ld      (alt_41), hl
 
                 ;Hide alt door from Room_68
-                ld      hl, &0000
-                ld      (alt_68), hl
+                ;ld      hl, &0000
+                ;ld      (alt_68), hl
 
 
                 ;Hide alt door from Room_86
-                ld      hl, &0000
-                ld      (alt_86), hl
+                ;ld      hl, &0000
+                ;ld      (alt_86), hl
 
-                ;Clear the last active alt slot (if any)
-                ld      hl, (acg_room)
-                ld      a, h
-                or      l
-                ret     z                       ; Return if (acg_room=0)
                 
-                call    clr_alt_door            ; Clear acg_room
-                
-                ; Reset tracking variable to 0
-                xor     a
-                ld      (acg_room), a
-                ld      (acg_room+1), a
-                ret
 
                 
 

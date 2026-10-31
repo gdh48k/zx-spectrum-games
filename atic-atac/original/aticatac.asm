@@ -361,9 +361,10 @@ door_1B_1C_s:   db  2, &1b, &34, &a0, &6f, &60, &b7, 3 ; external
                 db  3, &1c, &74, 8, &77, &e0, 8, &f5 
                 ;db  2, &1c, &34, 16, &6f, &e0, 8, &f5 ; inverted
 
-door_1C_1D:     db  2, &1c, &34, &98, &6f, &60, &af, 3
-                ;db  3, &1c, &34, &98, &78, &60, &af, &f5 ; inverted (only works when inversion off)
+door_1C_1D:     db  2, &1c, &34, &98, &6f, &60, &af, 3 ; old
+                ;db  2, &1c, &34, &98, &6f, &60, &af, 5 ; new
                 db  1, &1d, &34, &18, &6f, &e0, 6, 3 ; external 
+                ;db  3, &1c, &34, &98, &78, &60, &af, &f5 ; inverted (only works when inversion off)
 
 
 
@@ -7129,6 +7130,9 @@ inversion_mod:
                 jr      z, .set_inv_flag          ; Jump if mode 3 active
 
 .clear_invflag:
+                ld      hl, door_1C_1D+7
+                ld      (hl), 3
+
                 ld      hl, inversion_flag
                 ld      a, (hl)
                 or      a                       
@@ -7159,6 +7163,9 @@ inversion_mod:
                 jr      invert_stair_style                
 
 .set_inv_flag:
+                ld      hl, door_1C_1D+7
+                ld      (hl), 5
+
                 ld      hl, inversion_flag
                 ld      a, (hl)
                 cp      1                       
@@ -7248,16 +7255,16 @@ invert_stair_style:
 ; Outputs:      Data structure referenced by stair initialization routines
 ; ------------------------------------------------------------------------------
 
-stair_door_table:
+stair_doors:
                 ; --- Style 5: Ascending down  
 ss5:            defb    2, &50, &28     ; Door A (Normal)
                 defb    3, &48, &b6     ; Door B (Large)
 
-                ; --- Style 6: Ascending up  GOOD
+                ; --- Style 6: Ascending up  
 ss6:            defb    2, &50, &AE     ; Door A (Normal)
                 defb    3, &48, &28     ; Door B (Large)
 
-                ; --- Style 7: Ascendin g right GOOD
+                ; --- Style 7: Ascending right 
 ss7:            defb    2, &10, &6F     ; Door A (Normal)
                 defb    3, &98, &77     ; Door B (Large)
 
@@ -7328,7 +7335,7 @@ invert_stair_door:
 ; ------------------------------------------------------------------------------
 ; Routine:       get_stair_door_template
 ; Flow:          Calculates base address of the 6-byte template block in
-;                stair_door_table for style ID A (5..8). Calculates offset
+;                stair_doors for style ID A (5..8). Calculates offset
 ;                using (Style - 5) * 6.
 ; Inputs:        A  = Target Style ID (5, 6, 7, or 8)
 ; Outputs:       IX = Source template address (Door A = IX+0, Door B = IX+3)
@@ -7346,7 +7353,7 @@ get_stair_door_block:
                add     hl, hl                  ; HL = index * 4
                add     hl, de                  ; HL = index * 6
 
-               ld      de, stair_door_table
+               ld      de, stair_doors
                add     hl, de                  ; HL = style base address
 
                push    hl
@@ -7403,10 +7410,10 @@ write_door      ld      a, (ix+0)               ; Fetch Sprite ID from template
                 ld      (iy+0), a               ; Write Sprite ID to +0
 
                ; --- Set Render Flag at +2 ---
-               ;cp      3                       ; Big door?
-               ;ld      a, &38                  ; If so change +2 to &38
-               ;jr      z, .set_flag
-               ;ld      a, &34                  ; If mot change +2 to &34
+               cp      3                       ; Big door?
+               ld      a, &38                  ; If so change +2 to &38
+               jr      z, .set_flag
+               ld      a, &34                  ; If mot change +2 to &34
 .set_flag:
                ld      (iy+2), a               ; Write Render Flag to +2
 
@@ -7415,6 +7422,8 @@ write_door      ld      a, (ix+0)               ; Fetch Sprite ID from template
                ld      (iy+3), a               ; Write X coordinate to +3
                ld      a, (ix+2)               ; Fetch Y coordinate from template
                ld      (iy+4), a               ; Write Y coordinate to +4
+
+               ; Add Fetch/Write for +7 where proximity coords
 
                pop     ix                      ; Restore original style base addres
                pop     iy                      ; Restore original base address

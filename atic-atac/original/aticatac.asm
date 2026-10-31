@@ -2354,7 +2354,7 @@ fixed_x:        equ     &58
 ;char_entity_ptr:dw      char_entity    ; Index 1
 
 ; -----------------------------------------------------------------------------
-; TABLE: menu_entity
+; TABLE: menu_entty
 ; -----------------------------------------------------------------------------
 ; DESCRIPTION: Defines the static layout and attributes for menu icons.
 ;              Each entry occupies a fixed 8-byte structure used by 
@@ -7126,16 +7126,16 @@ patch_attr:     db bright_blue
 inversion_mod:
                 ld      a, (mode_state)         ; 
                 cp      3                       ; Mode = 3  = Upside down?
-                jr      z, .set_active          ; Jump if mode 3 active
+                jr      z, .set_inv_flag          ; Jump if mode 3 active
 
-.set_inactive:
+.clear_invflag:
                 ld      hl, inversion_flag
                 ld      a, (hl)
-                or      a                       ; Was inversion previously active (flag == 1)?
+                or      a                       
                 ret     z                       ; If flag is already 0, nothing to undo. Exit!
 
-                xor     a                       ; Target state = 0
-                ld      (hl), a                 ; Clear inversion_flag to 0
+                xor     a                       ; 
+                ld      (hl), a                 ; Reset inversion_flag to 0
 
                 ; Reset room attribute pointer to room_attr
                 ;ld      hl, room_attr           ; Default room attribute source
@@ -7155,19 +7155,17 @@ inversion_mod:
                 ;ld      a, &05                  ; Byte 2: Displacement offset (+5)
                 ;ld      (p_entity_attrs+2), a   ; Patch displacement
                 ;xor     a                       ; Target state = 0
+                
                 jr      invert_stair_style                
 
-.set_active:
+.set_inv_flag:
                 ld      hl, inversion_flag
                 ld      a, (hl)
-                cp      1                       ; Are patches already active (flag == 1)?
-                ret     z
+                cp      1                       
+                ret     z                       ; If flag is already 1, nothing to undo. Exit!
 
-                ld      a, 1                    ; Target state = 1
+                ld      a, 1                    ;
                 ld      (hl), a                 ; Set inversion_flag to 1
-
-
-
 
 
                 ; Patch room attribute pointer to dark_blue_val
@@ -7187,12 +7185,6 @@ inversion_mod:
                 ;xor     a                       ; Value &00 for NOP padding
                 ;ld      (p_entity_attrs+2), a   ; Patch padding byte
                 ;ld      a, 1                    ; Target state = 1
-
-;.chk_flag:
-;                ld      hl, inversion_flag
-;                cp      (hl)                    ; Compare target state against current flag
-;                ret     z                       ; Exit if state unchanged (prevents cold boot inversion)
-;               ld      (hl), a                 ; Update active state flag
 
 
 ; ==============================================================================
@@ -7258,20 +7250,20 @@ invert_stair_style:
 
 stair_door_table:
                 ; --- Style 5: Ascending down  
-ss5:            defb    2, &50, &28     ; Door A (Normal): X = &50, Y = &AE
-                defb    3, &48, &b6     ; Door B (Large):  X = &48, Y = &28
+ss5:            defb    2, &50, &28     ; Door A (Normal)
+                defb    3, &48, &b6     ; Door B (Large)
 
                 ; --- Style 6: Ascending up  GOOD
-ss6:            defb    2, &50, &AE     ; Door B (Normal): X = &50, Y = &AE
-                defb    3, &48, &28     ; Door A (Large):  X = &48, Y = &28
+ss6:            defb    2, &50, &AE     ; Door A (Normal)
+                defb    3, &48, &28     ; Door B (Large)
 
                 ; --- Style 7: Ascendin g right GOOD
-ss7:            defb    2, &10, &6F     ; Door A (Normal): X = &10, Y = &6F
-                defb    3, &98, &77     ; Door B (Large):  X = &98, Y = &78
+ss7:            defb    2, &10, &6F     ; Door A (Normal)
+                defb    3, &98, &77     ; Door B (Large)
 
                 ; --- Style 8: Ascending left
-ss8:            defb    2, &98, &6F     ; Door B (Normal): X = &10, Y = &6F
-                defb    3, 8, &77     ; Door A (Large):  X = &98, Y = &78             
+ss8:            defb    2, &98, &6F     ; Door A (Normal)
+                defb    3, 8, &77       ; Door B (Large)           
 
 ; ------------------------------------------------------------------------------
 ; Routine:       invert_stair_door
@@ -7407,14 +7399,14 @@ update_door_record:
                ld      bc, 3                   ; If not, move style block to 2nd record
                add     ix, bc 
 
-write_door    ld      a, (ix+0)               ; Fetch Sprite ID from template
-               ld      (iy+0), a               ; Write Sprite ID to +0
+write_door      ld      a, (ix+0)               ; Fetch Sprite ID from template
+                ld      (iy+0), a               ; Write Sprite ID to +0
 
                ; --- Set Render Flag at +2 ---
-               cp      3                       ; Big door?
-               ld      a, &38                  ; If so change +2 to &38
-               jr      z, .set_flag
-               ld      a, &34                  ; If mot change +2 to &34
+               ;cp      3                       ; Big door?
+               ;ld      a, &38                  ; If so change +2 to &38
+               ;jr      z, .set_flag
+               ;ld      a, &34                  ; If mot change +2 to &34
 .set_flag:
                ld      (iy+2), a               ; Write Render Flag to +2
 
@@ -7429,8 +7421,9 @@ write_door    ld      a, (ix+0)               ; Fetch Sprite ID from template
                ret
 
 
-
-; --- Random Start Room Mod ---
+entry_rooms:
+                ; Table containing 8 potential start rooms
+                db &74, &8F, &66, &00, &24, &85, &27, &76
 
 entry_mod:
                             
@@ -7454,32 +7447,16 @@ set_entry:      ld      a, r                ; Hardware entropy
 
                 ld      e, a
                 ld      d, 0
-                ld      hl, start_room_init
+                ld      hl, entry_rooms
                 add     hl, de              ; Point to table entry
                 ld      a, (hl)             ; Get the room ID 
-                ld      (player_room), a    ; Set it for spawn
+                ld      (player_room), a    ; Patch player_room with new entry
                 ret   
 
-
-;Place alt door in Room_27
-                ;ld      hl, barrel_95_28
-                ;ld      (alt_27), hl
-
-                ;Set ACG door attributes for Room_95
-                ;ld      a, &95
-                ;ld      (acgexit_00_8E+1), a  
-                ;ld      a, &90
-                ;ld      (acgexit_00_8E+3), a
-
-
-; ---------------------------------------------------------------------------
-; Exit Room Initialization Table
-; Format per entry: Patch Address (2 bytes), Room ID (1 byte), X-Coord (1 byte)
-; ---------------------------------------------------------------------------
-exit_room_init:
-                ;dw      alt_27                  
-                ;db      &27, &98               
-                
+exit_rooms:
+                ; Table containing 4 alternate rooms for the acg door
+                ; Patch Address (2 bytes), Room ID (1 byte), X-Coord (1 byte)
+                  
                 dw      alt_7e                  
                 db      &7e, &98                
                 
@@ -7495,133 +7472,75 @@ exit_room_init:
 
 
 acg_room:       dw  0
+
 exit_mod:       
                 ld      a, (start_state)
-
                 cp      2                       ; 2 = modify exit room
-                jr      nz, restore_exit        ; jp if not 
+                jr      nz, restore_exit        ; jr if not 
 
 
                 ld      hl, (acg_room)
                 ld      a,  h 
                 or      l
-                jr      z, apply_mod
+                jr      z, apply_mod            ; jr if acg_room=0
 
-                call    clr_alt_door
+                call    clr_alt_acg
 
 
-apply_mod       ; Hide ACG door from default room
-                ; Set ACG door in alternative room
-                ; Set ACG door's new attributes
-
+apply_mod       
                 ;Hide ACG door from Room_00
                 ld      hl, (rm_delimter)
                 ld      (acg_00), hl
             
-                ; Generate random index (0 to 3) using hardware & frame entropy
-                ld      a, r                    ; Hardware entropy
+                ; Generate random index (0 to 3)
+                ld      a, r                                    ; Hardware entropy
                 ld      l, a
-                ld      a, (sysvar_FRAMES)      ; Time entropy
-                add     a, l                    ; Mix them together
-                and     3                       ; Mask for 0-3 (EXIT_INIT_COUNT - 1)
+                ld      a, (sysvar_FRAMES)                      ; Time entropy
+                add     a, l                                    ; Mix them together
+                and     3                                       ; Mask for 0-3 (EXIT_INIT_COUNT - 1)
 
-                ; Calculate table offset (Index * 4 bytes per entry)
-                ld      e, a                    ; E = index
+                ; Calculate table offset (Index * 4)
+                ld      e, a                                    ; E = index
                 ld      d, 0
-                ld      h, d                    ; HL = index
+                ld      h, d                                    ; HL = index
                 ld      l, e
-                add     hl, hl                  ; * 2
-                add     hl, hl                  ; * 4
-                
-                ld      de, exit_room_init
-                add     hl, de                  ; HL points to chosen table entry
+                add     hl, hl                                  ; * 2
+                add     hl, hl                                  ; * 4
+                ld      de, exit_rooms
+                add     hl, de                                  ; HL points to chosen table entry
 
                 ; Extract patch address into DE and store
-                ld      e, (hl)                 ; Load slot address low byte
+                ld      e, (hl)                                 ; Load slot address low byte
                 inc     hl
-                ld      d, (hl)                 ; Load slot address high byte
+                ld      d, (hl)                                 ; Load slot address high byte
                 ld      (acg_room), de
-
                 inc     hl
-                push    hl                      ; Save table position for attributes
+                push    hl                                      ; Save table position for attributes
                 
                 ; Patch acg door into patch address
                 ld      hl, acgexit_00_8E
                 ld      a, l
-                ld      (de), a                 ; Store low byte of pointer
+                ld      (de), a                                 ; Store low byte of pointer
                 inc     de
                 ld      a, h
-                ld      (de), a                 ; Store high byte of pointer
+                ld      (de), a                                 ; Store high byte of pointer
 
                 ; Patch Room ID and X-Coord attributes
-                pop     hl                      ; Retrieve table pointer (at Room ID byte)
-                ld      a, (hl)                 ; Get Room ID
-                ld      (acgexit_00_8E+1), a    ; Set attribute byte +1
+                pop     hl                                      ; Retrieve table pointer (at Room ID byte)
+                ld      a, (hl)                                 ; Get Room ID
+                ld      (acgexit_00_8E+1), a                    ; Set attribute byte +1
                 inc     hl
-                ld      a, (hl)                 ; Get X-Coord
-                ld      (acgexit_00_8E+3), a    ; Set attribute byte +3
+                ld      a, (hl)                                 ; Get X-Coord
+                ld      (acgexit_00_8E+3), a                    ; Set attribute byte +3
                 ret
 
-                ;Place acg door in Room_27
-                ;ld      hl, acgexit_00_8E
-                ;ld      (alt_27), hl
-
-                ;Place acg door in Room_7e
-                ;ld      hl, acgexit_00_8E
-                ;ld      (alt_7e), hl
-
-                ;Place acg door in Room_68
-                ;ld      hl, acgexit_00_8E
-                ;ld      (alt_68), hl
-
-                ;Place acg door in Room_86
-                ;ld      hl, acgexit_00_8E
-                ;ld      (alt_86), hl
-
-                ;ld      hl, alt_86
-                ;ld     (acg_room), hl
-
-                ;Place acg door in Room_41
-                ;ld      hl, acgexit_00_8E
-                ;ld      (alt_41), hl
-
-                ;Set ACG door attributes for Room_27
-                ;ld      a, &27
-                ;ld      (acgexit_00_8E+1), a  
-                ;ld      a, &90
-                ;ld      (acgexit_00_8E+3), a
-
-                ;Set ACG door attributes for Room_7e
-                ;ld      a, &7e
-                ;ld      (acgexit_00_8E+1), a 
-
-                ;Set ACG door attributes for Room_68
-                ;ld      a, &68
-                ;ld      (acgexit_00_8E+1), a 
-
-                ;Set ACG door attributes for Room_86
-                ;ld      a, &86
-                ;ld      (acgexit_00_8E+1), a 
-
-                ;Set ACG door attributes for Room_41
-                ;ld      a, &41
-                ;ld      (acgexit_00_8E+1), a 
-                ;ld      a, &90
-                ;ld      (acgexit_00_8E+3), a
-       
-                
-                
 restore_exit    
-
-                ; Restore ACG to default room
-                ; Restore ACG door attributes
-                ; Hide ACG in alternative room
 
                 ;Restore ACG door to Room_00
                 ld      hl, acgexit_00_8E
                 ld      (acg_00), hl
 
-                ;Set ACG door attributes (+1 = room_id, +3 = x coord) for Room_00
+                ;Set ACG door attributes for Room_00
                 xor     a 
                 ld      (acgexit_00_8E+1), a  
                 ld      a, &98
@@ -7631,58 +7550,27 @@ restore_exit
                 ld      hl, (acg_room)
                 ld      a, h
                 or      l
-                ret     z                       ; Return if (acg_room=0)
+                ret     z                                   ; Return if (acg_room=0)
                 
-                call    clr_alt_door            ; Clear acg_room
+                call    clr_alt_acg            
                 
                 ; Reset acg_room to 0
                 xor     a
                 ld      (acg_room), a
                 ld      (acg_room+1), a
                 ret
-                
 
 
-                ;Hide alt door from Room_27
-                ;ld      hl, &0000
-                ;ld      (alt_27), hl
-        
-                ;Hide alt door from Room_7e
-                ;ld      hl, &0000
-                ;ld      (alt_7e), hl
-
-                ;Hide alt door from Room_41
-                ;ld      hl, &0000
-                ;ld      (alt_41), hl
-
-                ;Hide alt door from Room_68
-                ;ld      hl, &0000
-                ;ld      (alt_68), hl
-
-
-                ;Hide alt door from Room_86
-                ;ld      hl, &0000
-                ;ld      (alt_86), hl
-
-                
-
-                
-
-clr_alt_door:   ld      de, (rm_delimter)       ; DE = room delimiter value
+clr_alt_acg:   ; Remove alternate acg door
+                ld      de, (rm_delimter)                   ; DE = room delimiter value
                 ld      a, e                    
-                ld      (hl), a                 ; Write low byte
+                ld      (hl), a                             ; Write low byte
                 inc     hl
                 ld      a, d                    
-                ld      (hl), a                 ; Write high byte
+                ld      (hl), a                             ; Write high byte
                 ret
                 
-    
-
-; Table containing 8 potential start rooms
-
-start_room_init:
-                db &74, &8F, &66, &00, &24, &85, &27, &76
-
+ 
 
 ; place a tombstone at the player position
 place_tombstone:
@@ -8024,7 +7912,7 @@ minimap_gf:
         db  &04, 12,  9
         db  &19, 15,  9
         db  &00, 18,  9
-        db  &8E, 21,  9      ; ADDED: Right of Room 00
+        ;db  &8E, 21,  9      ; ADDED: Right of Room 00
 
         ; --- ROW 4 (Y=12) ---
         db  &0F,  3, 12
@@ -8039,7 +7927,7 @@ minimap_gf:
         db  &08, 15, 15
 
         ; --- ROW 6 (Y=18) ---
-        db  &72,  0, 18      ; ADDED: Stairwell
+        ;db  &72,  0, 18      ; ADDED: Stairwell
         db  &0D,  3, 18
         db  &0C,  6, 18
         db  &0B,  9, 18
@@ -8047,7 +7935,7 @@ minimap_gf:
         db  &09, 15, 18
 
         ; --- ROW 7 (Y=21) ---
-        db  &71,  0, 21      ; ADDED: Stairwell
+        ;db  &71,  0, 21      ; ADDED: Stairwell
         db  &6F,  3, 21
 
         ; --- ROW 8 (Y=24) ---
@@ -8204,7 +8092,7 @@ minimap_cv:
 
 minimap_at:
         ; --- ROW 0 (New) ---
-        db  &2F, 15,  0      ; col 5
+        ;db  &2F, 15,  0      ; col 5
 
         ; --- ROW 1 (Shifted +3) ---
         db  &75,  0,  3      ; col 0
@@ -10210,13 +10098,13 @@ draw_room_a:
  
                 ld      a, (mode_state)
                 cp      3                       ; Is inversion mode active?
-                jr      z, dim_room
+                jr      z, dim_room             ; jr if so 
 
-                ld      a, (hl)              ; attr colour
+                ld      a, (hl)                 ; otherwise use default colour frame
                 jr      colour_frame
 
 
-dim_room:       ld      a, bright_blue
+dim_room:       ld      a, bright_blue         ; colour of dimmed room frame
                 
 colour_frame:   inc     hl
                 ld      (room_attr), a
@@ -12569,7 +12457,7 @@ gfx_attrs:      dw  a_cave_door_frame         ;0
                 dw  a_barrel_stack
 
 gfx_attrs_dim:  dw  a_cave_door_frame ;0
-                dw  ad_door_frame
+                dw  a_door_frame
                 dw  a_bigdoor_frame
                 dw  g_none
                 dw  g_none
@@ -12599,8 +12487,8 @@ gfx_attrs_dim:  dw  a_cave_door_frame ;0
                 dw  a_wall_shield
                 dw  ad_suit_armour
                 dw  g_none
-                dw  ad_door_shut
-                dw  ad_door_frame
+                dw  a_door_shut
+                dw  a_door_frame
                 dw  a_cave_door_shut
                 dw  a_cave_door_frame
                 dw  ad_acg_door
@@ -12694,10 +12582,10 @@ a_door_frame:   db  4, 3
                 db  &43, 0, 0, &43
                 db  &43, 0, 0, &43
                 db  &43, &43, &43, &43
-ad_door_frame:  db  4, 3
-                db  dark_cyan, 0, 0, dark_cyan
-                db  dark_cyan, 0, 0, dark_cyan
-                db  dark_cyan, dark_cyan, dark_cyan, dark_cyan
+;ad_door_frame:  db  4, 3
+;                db  dark_cyan, 0, 0, dark_cyan
+;                db  dark_cyan, 0, 0, dark_cyan
+;               db  dark_cyan, dark_cyan, dark_cyan, dark_cyan
 a_cave_door_frame:db  4, 3
                 db  &ff, &ff, &ff, &ff
                 db  &ff, &ff, &ff, &ff
@@ -15999,10 +15887,10 @@ a_door_shut:    db  4, 3
                 db  &43, &47, &47, &43
                 db  &43, &43, &43, &43
 
-ad_door_shut:   db  4, 3                    ; width=4, height=3
-                db  &03, &07, &07, &03      ; row 1: std magenta frame, std white panel
-                db  &03, &07, &07, &03      ; row 2: std magenta frame, std white panel
-                db  &03, &03, &03, &03      ; row 3: std magenta threshold
+;ad_door_shut:   db  4, 3                    ; width=4, height=3
+;                db  &03, &07, &07, &03      ; row 1: std magenta frame, std white panel
+;                db  &03, &07, &07, &03      ; row 2: std magenta frame, std white panel
+;                db  &03, &03, &03, &03      ; row 3: std magenta threshold
 
 g_door_shut:    db  4, &18
                 db  &ff, &3b, &dc, &ff

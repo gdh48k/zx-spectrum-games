@@ -1622,21 +1622,21 @@ reset_menu:
                 ld      hl, charset - 256
                 ld      (charset_addr), hl
 
-                ld      a, 0                    ; Reset Current State 
-                ld      (cont_item+7), a
-                ld      (char_item+7), a
+                ;ld      a, 0                    ; Reset Current State 
+                ;ld      (cont_item+7), a
+                ;ld      (char_item+7), a
                 
-                ld      a, &FF                  ; Reset Previous State
+                ld      a, &FF                  ; Reset Previous State (Forces draw)
                 ld      (cont_item+8), a
                 ld      (char_item+8), a
 
                 ; Set Text Pointer for Control Item
-                ld      hl, control_txt_table
-                ld      (cont_item+1), hl   ; Reset Text Ptr
+                ;ld      hl, control_txt_table
+                ;ld      (cont_item+1), hl   ; Reset Text Ptr
                 
-                ; Set Icon Pointer for Control Item
-                ld      hl, char_txt_table
-                ld      (char_item+1), hl   ; Reset Icon Ptr
+                ; Set Icon Pointer for Character Item
+                ;ld      hl, char_txt_table
+                ;ld      (char_item+1), hl   ; Reset Icon Ptr
 
                 ;ld      hl, main_menu_data
                 ;ld      (current_menu), hl
@@ -2402,7 +2402,7 @@ print_text:
 
 start_game:
                 call    clear_game_data      ; clear 5E10-5FFF
-                ld      a, 3                 ; 3 lives on startup
+                ld      a, 0                 ; 3 lives on startup
                 ld      (lives), a
                 ld      hl, food_items
                 ld      (food_ptr), hl
@@ -15819,6 +15819,7 @@ g_wall_shield:  db  2, &10
                 ;db  &fd, &7f
                 ;db  &e7, &e7
                 ;db  &81, &81
+                ; gdh version!
                 db      &01, &80
                 db      &07, &E0
                 db      &08, &10

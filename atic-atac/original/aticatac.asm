@@ -704,9 +704,11 @@ knight_1F_21:   db  &1e, &1f, 0, &98, &67, &60, 0, 0
                 db  &1e, &21, 0, 8, &67, &e0, 0, 0
 knight_25_23:   db  &1e, &25, 0, &98, &67, &60, 0, 0
                 db  &1e, &23, 0, 8, &67, &e0, 0, 0
-knight_00_06:   db  &1e, 0, 0, &98, &3f, &60, 0, 0
+knight_00_06:   ;db  &26, 0, 0, &98, &3f, &60, 0, 0
+               db  &1e, 0, 0, &98, &3f, &60, 0, 0
                 db  &1e, 6, 0, &38, &47, 0, 0, 0
-knight_00_06_2: db  &1e, 0, 0, &98, &8f, &60, 0, 0
+knight_00_06_2: ;db  &26, 0, 0, &98, &8f, &60, 0, 0
+               db  &1e, 0, 0, &98, &8f, &60, 0, 0
                 db  &1e, 6, 0, &78, &47, 0, 0, 0
 knight_01_03:   db  &1e, 1, 0, &58, &27, 0, 0, 0
                 db  &1e, 3, 0, &58, &27, 0, 0, 0
@@ -860,13 +862,13 @@ barrel_4E_38:   db  &1a, &38, &34, &50, &37, 0, 4, &56
                 db  &1a, &4b, &34, &50, &a7, &a0, 4, 6
 barrel_6B_6D:   db  &1a, &6b, &34, &50, &b7, &a0, 4, 6
                 db  &1a, &6d, &34, &50, &27, 0, 4, &56
-;barrel_8A_08:   db  &1a, &8a, &34, &98, &6f, &60, &b7, 3  *** ORIGINAL GF BARREL ***
-;                db  &1a, 8, &34, &28, &6f, &e1, 6, 3
+barrel_8A_08:   db  &1a, &8a, &34, &98, &6f, &60, &b7, 3  ;*** ORIGINAL GF BARREL ***
+                db  &1a, 8, &34, &28, &6f, &e1, 6, 3
 
 ;barrel_95_28:   db  2, &95, &34, &98, &6f, &60, &b7, 3  ;*** NEW AT BARREL v2 ***
 ;                db  2, &7c, &34, 8, &6f, &e0, 6, 3
-barrel_95_28:   db  2, &95, &34, 16, &6f, &e0, 8, &d  ;*** NEW AT BARREL v3 ***  16, &6f
-                db  2, &27, &34, &a0, &6f, &60, &b7, 3
+;barrel_95_28:   db  2, &95, &34, 16, &6f, &e0, 8, &d  ;*** NEW AT BARREL v3 ***  16, &6f
+;                db  2, &27, &34, &a0, &6f, &60, &b7, 3
 
 acgexit_00_8E:  db  &24, 0, &c4, &98, &7f, &40, &ba, &d6  ; original exit 0, &7f, &e0, 8, &d6
                 db  &24, &8e, &c4, 0, &7f, &e0, 8, &d6
@@ -969,7 +971,7 @@ room_07:        dw  door_07_00
 room_08:        dw  door_08_06_g
                 dw  door_09_08
                 dw  shields_08_18
-                ;dw  barrel_8A_08
+                dw  barrel_8A_08
                 dw  0
 room_09:        dw  door_09_08
                 dw  door_0A_09
@@ -1570,7 +1572,7 @@ room_89:        dw  door_84_89_y
 room_8A:        dw  door_89_8A
                 dw  door_8A_23_g
                 dw  trap_78_8A
-                ;dw  barrel_8A_08
+                dw  barrel_8A_08
                 dw  knight_88_8A
                 dw  knight_88_8A_2
                 dw  0
@@ -1614,7 +1616,7 @@ room_94:        dw  door_93_94
                 dw  door_3A_94
                 dw  0
 room_95:        dw  acgexit_00_8E
-                dw  barrel_95_28
+                ;dw  barrel_95_28
                 dw  0
 room_none:      dw  0
 
@@ -13740,66 +13742,153 @@ a_ghost_picture:db  4, 3
                 db  &ff, &ff, &ff, &ff
                 db  &ff, &ff, &ff, &ff
                 db  &ff, &ff, &ff, &ff
-g_serf_down1:   db      &13
-                db      &00, &80
-                db      &01, &40
-                db      &03, &60
-                db      &07, &70
-                db      &02, &20
-                db      &01, &C0
-                db      &63, &E0
-                db      &7C, &1C
-                db      &38, &CE
-                db      &36, &C7
-                db      &26, &12
-                db      &38, &EE
-                db      &16, &E4
-                db      &1E, &EC
-                db      &24, &24
-                db      &43, &C6
-                db      &84, &2E
-                db      &48, &1C
-                db      &30, &00
-g_serf_down2:   db      &13
-                db      &00, &80
-                db      &01, &40
-                db      &03, &60          ; Row 17 - Corrected from &96 to clear right-side glitch
-                db      &07, &70
-                db      &02, &20
-                db      &01, &C0
-                db      &63, &E0
-                db      &7C, &1C
-                db      &38, &CE
-                db      &36, &C7
-                db      &26, &12
-                db      &38, &EE
-                db      &16, &E4
-                db      &1E, &EC
-                db      &24, &24
-                db      &43, &C2
-                db      &84, &21
-                db      &48, &12
-                db      &30, &0C
-g_serf_down3:   db      &13
-                db      &00, &80
-                db      &01, &40
-                db      &03, &60
-                db      &07, &70
-                db      &02, &20
-                db      &01, &C0
-                db      &63, &E0
-                db      &7C, &1C
-                db      &38, &CE
-                db      &36, &C7
-                db      &26, &12
-                db      &38, &EE
-                db      &16, &E4
-                db      &3E, &EC
-                db      &24, &24
-                db      &63, &C2
-                db      &74, &21
-                db      &38, &12
-                db      &00, &0C
+                
+g_serf_down1:   db  &18
+                db  &3e, 0
+                db  &1e, &60
+                db  0, &f0
+                db  &0e, &70
+                db  &0e, &b0
+                db  &0e, &c4
+                db  &4f, &e4
+                db  &4f, &ea
+                db  &a0, &0a
+                db  &af, &ee
+                db  &ee, &ee
+                db  &fe, &fe
+                db  &ff, &fe
+                db  &7e, &fc
+                db  &0f, &e0
+                db  &20, 8
+                db  &37, &d8
+                db  &24, &48
+                db  &0f, &e0
+                db  &14, &50
+                db  &16, &d0
+                db  &10, &10
+                db  &1a, &b0
+                db  &0f, &e0
+
+                ;db      &13
+                ;db      &00, &80
+                ;db      &01, &40
+                ;db      &03, &60
+                ;db      &07, &70
+                ;db      &02, &20
+                ;db      &01, &C0
+                ;db      &63, &E0
+                ;db      &7C, &1C
+                ;db      &38, &CE
+                ;db      &36, &C7
+                ;db      &26, &12
+                ;db      &38, &EE
+                ;db      &16, &E4
+                ;db      &1E, &EC
+                ;db      &24, &24
+                ;db      &43, &C6
+                ;db      &84, &2E
+                ;db      &48, &1C
+                ;db      &30, &00
+
+
+g_serf_down2:   db  &18
+                db  &1e, &f0
+                db  &1e, &f0
+                db  0, 0
+                db  &0e, &e0
+                db  &4e, &e4
+                db  &4e, &e4
+                db  &af, &ea
+                db  &af, &ea
+                db  &e0, &0e
+                db  &ef, &ee
+                db  &ef, &ee
+                db  &fe, &fe
+                db  &ff, &fe
+                db  &7e, &fc
+                db  &0f, &e0
+                db  &20, 8
+                db  &37, &d8
+                db  &24, &48
+                db  &0f, &e0
+                db  &14, &50
+                db  &16, &d0
+                db  &10, &10
+                db  &1a, &b0
+                db  &0f, &e0
+
+                ;db      &13
+                ;db      &00, &80
+                ;db      &01, &40
+                ;db      &03, &60          ; Row 17 - Corrected from &96 to clear right-side glitch
+                ;db      &07, &70
+                ;db      &02, &20
+                ;db      &01, &C0
+                ;db      &63, &E0
+                ;db      &7C, &1C
+                ;db      &38, &CE
+                ;db      &36, &C7
+                ;db      &26, &12
+                ;db      &38, &EE
+                ;db      &16, &E4
+                ;db      &1E, &EC
+                ;db      &24, &24
+                ;db      &43, &C2
+                ;db      &84, &21
+                ;db      &48, &12
+                ;db      &30, &0C
+
+
+
+g_serf_down3:   db  &18
+                db  0, &f8
+                db  &0c, &f0
+                db  &1e, 0
+                db  &1c, &e0
+                db  &1a, &e0
+                db  &46, &e0
+                db  &4f, &e0
+                db  &ae, &e4
+                db  &0a, &a0
+                db  &ef, &ea
+                db  &ef, &ee
+                db  &fe, &fe
+                db  &ff, &fe
+                db  &7e, &fc
+                db  &0f, &f0
+                db  &20, 8
+                db  &37, &d8
+                db  &24, &48
+                db  &0f, &e0
+                db  &14, &50
+                db  &16, &d0
+                db  &10, &10
+                db  &1a, &b0
+                db  &0f, &e0
+
+                ;db      &13
+                ;db      &00, &80
+                ;db      &01, &40
+                ;db      &03, &60
+                ;db      &07, &70
+                ;db      &02, &20
+                ;db      &01, &C0
+                ;db      &63, &E0
+                ;db      &7C, &1C
+                ;db      &38, &CE
+                ;db      &36, &C7
+                ;db      &26, &12
+                ;db      &38, &EE
+                ;db      &16, &E4
+                ;db      &3E, &EC
+                ;db      &24, &24
+                ;db      &63, &C2
+                ;db      &74, &21
+                ;db      &38, &12
+                ;db      &00, &0C
+
+
+
 g_serf_up1:     db      &13 
                 db      &30, &00
                 db      &48, &1C
@@ -16035,7 +16124,7 @@ g_franken1:     db  &18
                 db  &0e, &b0
                 db  &0e, &c4
                 db  &4f, &e4
-                db  &4f, &ea
+                db  &4f, &ea3
                 db  &a0, &0a
                 db  &af, &ee
                 db  &ee, &ee

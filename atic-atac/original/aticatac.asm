@@ -13743,31 +13743,33 @@ a_ghost_picture:db  4, 3
                 db  &ff, &ff, &ff, &ff
                 db  &ff, &ff, &ff, &ff
                 
-g_serf_down1:   db  &18
-                db  &3e, 0
-                db  &1e, &60
-                db  0, &f0
-                db  &0e, &70
-                db  &0e, &b0
-                db  &0e, &c4
-                db  &4f, &e4
-                db  &4f, &ea
-                db  &a0, &0a
-                db  &af, &ee
-                db  &ee, &ee
-                db  &fe, &fe
-                db  &ff, &fe
-                db  &7e, &fc
-                db  &0f, &e0
-                db  &20, 8
-                db  &37, &d8
-                db  &24, &48
-                db  &0f, &e0
-                db  &14, &50
-                db  &16, &d0
-                db  &10, &10
-                db  &1a, &b0
-                db  &0f, &e0
+g_serf_down1:   
+
+                db      &18               ; Height metadata (24 rows)
+                db      &3e, &00
+                db      &1e, &60
+                db      &00, &f0
+                db      &0e, &70
+                db      &0e, &b0
+                db      &0e, &c4
+                db      &4f, &e4
+                db      &4f, &ea
+                db      &a0, &0a
+                db      &af, &ee
+                db      &ee, &ee
+                db      &fe, &fe
+                db      &ff, &fe
+                db      &7e, &fc
+                db      &0f, &e0
+                db      &20, &08
+                db      &37, &d8
+                db      &24, &48
+                db      &0f, &e0
+                db      &14, &50
+                db      &16, &d0
+                db      &10, &10
+                db      &1a, &b0
+                db      &0f, &e0
 
                 ;db      &13
                 ;db      &00, &80
@@ -13791,31 +13793,31 @@ g_serf_down1:   db  &18
                 ;db      &30, &00
 
 
-g_serf_down2:   db  &18
-                db  &1e, &f0
-                db  &1e, &f0
-                db  0, 0
-                db  &0e, &e0
-                db  &4e, &e4
-                db  &4e, &e4
-                db  &af, &ea
-                db  &af, &ea
-                db  &e0, &0e
-                db  &ef, &ee
-                db  &ef, &ee
-                db  &fe, &fe
-                db  &ff, &fe
-                db  &7e, &fc
-                db  &0f, &e0
-                db  &20, 8
-                db  &37, &d8
-                db  &24, &48
-                db  &0f, &e0
-                db  &14, &50
-                db  &16, &d0
-                db  &10, &10
-                db  &1a, &b0
-                db  &0f, &e0
+g_serf_down2:   db      &18               ; Height metadata (24 rows)
+                db      &1e, &f0
+                db      &1e, &f0
+                db      &00, &00
+                db      &0e, &e0
+                db      &4e, &e4
+                db      &4e, &e4
+                db      &af, &ea
+                db      &af, &ea
+                db      &e0, &0e
+                db      &ef, &ee
+                db      &ef, &ee
+                db      &fe, &fe
+                db      &ff, &fe
+                db      &7e, &fc
+                db      &0f, &e0
+                db      &20, &08
+                db      &37, &d8
+                db      &24, &48
+                db      &0f, &e0
+                db      &14, &50
+                db      &16, &d0
+                db      &10, &10
+                db      &1a, &b0
+                db      &0f, &e0
 
                 ;db      &13
                 ;db      &00, &80
@@ -13840,31 +13842,31 @@ g_serf_down2:   db  &18
 
 
 
-g_serf_down3:   db  &18
-                db  0, &f8
-                db  &0c, &f0
-                db  &1e, 0
-                db  &1c, &e0
-                db  &1a, &e0
-                db  &46, &e0
-                db  &4f, &e0
-                db  &ae, &e4
-                db  &0a, &a0
-                db  &ef, &ea
-                db  &ef, &ee
-                db  &fe, &fe
-                db  &ff, &fe
-                db  &7e, &fc
-                db  &0f, &f0
-                db  &20, 8
-                db  &37, &d8
-                db  &24, &48
-                db  &0f, &e0
-                db  &14, &50
-                db  &16, &d0
-                db  &10, &10
-                db  &1a, &b0
-                db  &0f, &e0
+g_serf_down3:   db      &18               ; Height metadata (24 rows)
+                db      &00, &f8
+                db      &0c, &f0
+                db      &1e, &00
+                db      &1c, &e0
+                db      &1a, &e0
+                db      &46, &e0
+                db      &4f, &e0
+                db      &ae, &e4
+                db      &0a, &a0
+                db      &ef, &ea
+                db      &ef, &ee
+                db      &fe, &fe
+                db      &ff, &fe
+                db      &7e, &fc
+                db      &0f, &f0
+                db      &20, &08
+                db      &37, &d8
+                db      &24, &48
+                db      &0f, &e0
+                db      &14, &50
+                db      &16, &d0
+                db      &10, &10
+                db      &1a, &b0
+                db      &0f, &e0
 
                 ;db      &13
                 ;db      &00, &80
@@ -13889,159 +13891,431 @@ g_serf_down3:   db  &18
 
 
 
-g_serf_up1:     db      &13 
-                db      &30, &00
-                db      &48, &1C
-                db      &84, &2E
-                db      &43, &C6
-                db      &24, &24
-                db      &1E, &EC
-                db      &12, &E4
-                db      &38, &EE
-                db      &26, &12
-                db      &36, &C7
-                db      &38, &CE
-                db      &3C, &1C
-                db      &63, &E0
-                db      &01, &C0
-                db      &02, &20
-                db      &07, &70
-                db      &03, &60
-                db      &01, &40
-                db      &00, &80
-g_serf_up2:     db      &13
-                db      &30, &0C
-                db      &48, &12
-                db      &84, &21
-                db      &43, &C2
-                db      &24, &24
-                db      &1E, &EC
-                db      &12, &E4
-                db      &38, &EE
-                db      &26, &12
-                db      &76, &C7
-                db      &38, &CE
-                db      &1C, &1C
-                db      &03, &E0
-                db      &01, &C0
-                db      &02, &20
-                db      &07, &70
-                db      &03, &60
-                db      &01, &40
-                db      &00, &80
-g_serf_up3:     db      &12
-                db      &38, &12
-                db      &74, &21
-                db      &63, &C2
-                db      &24, &24
-                db      &1E, &EC
-                db      &12, &E4
-                db      &38, &EE
-                db      &26, &12
-                db      &76, &C6
-                db      &38, &CE
-                db      &1C, &1F
-                db      &03, &E3
-                db      &01, &C0
-                db      &02, &20
-                db      &07, &70
-                db      &03, &60
-                db      &01, &40
-                db      &00, &80
-g_serf_left1:   db      &0F
-                db      &00, &98
-                db      &01, &FC
-                db      &03, &AC
-                db      &13, &04
-                db      &3A, &2C
-                db      &75, &98
-                db      &85, &88
-                db      &74, &08
-                db      &3A, &68
-                db      &13, &64
-                db      &03, &8A
-                db      &07, &F1
-                db      &06, &11
-                db      &00, &0A
-                db      &00, &04
-g_serf_left2:   db      &0F
-                db      &00, &84
-                db      &01, &EA
-                db      &03, &F1
-                db      &13, &51
-                db      &3A, &2A
-                db      &75, &94
-                db      &85, &88
-                db      &74, &08
-                db      &3A, &68
-                db      &12, &64
-                db      &03, &0A
-                db      &03, &F1
-                db      &01, &D1
-                db      &00, &8A
-                db      &00, &04
-g_serf_left3:   db      &0E
-                db      &00, &04
-                db      &06, &0A
-                db      &07, &D1
-                db      &13, &F1
-                db      &3A, &2A
-                db      &75, &94
-                db      &85, &88
-                db      &74, &08
-                db      &3A, &6C
-                db      &12, &64
-                db      &03, &0C
-                db      &03, &FC
-                db      &01, &D8
-                db      &00, &80
-g_serf_right1:  db      &0F
-                db      &19, &00
-                db      &3F, &80
-                db      &35, &C0
-                db      &20, &C8
-                db      &34, &5C
-                db      &19, &AE
-                db      &11, &A1
-                db      &10, &2E
-                db      &16, &5C
-                db      &26, &C8
-                db      &51, &C0
-                db      &8F, &E0
-                db      &88, &60
-                db      &50, &00
-                db      &20, &00
-g_serf_right2:  db      &0F
-                db      &21, &00
-                db      &53, &80
-                db      &8B, &C0
-                db      &8E, &C8
-                db      &54, &5C
-                db      &29, &AE
-                db      &11, &A1
-                db      &10, &2E
-                db      &16, &5C
-                db      &26, &48
-                db      &50, &C0
-                db      &8F, &C0
-                db      &8B, &80
-                db      &51, &00
-                db      &20, &00
-g_serf_right3:  db      &0E
-                db      &20, &00
-                db      &50, &60
-                db      &8B, &E0
-                db      &8F, &C8
-                db      &54, &5C
-                db      &29, &AE
-                db      &11, &A1
-                db      &10, &2E
-                db      &36, &7C
-                db      &26, &68
-                db      &30, &C0
-                db      &3F, &C0
-                db      &1B, &80
-                db      &01, &00
+g_serf_up1:     
+                
+                db      &18               ; Height metadata (24 rows)
+                db      &3e, &00
+                db      &1e, &60
+                db      &00, &f0
+                db      &0e, &70
+                db      &0e, &b0
+                db      &0e, &c4
+                db      &4f, &64
+                db      &4f, &ea
+                db      &a0, &0a
+                db      &af, &ee
+                db      &ef, &ee
+                db      &ff, &fe
+                db      &ff, &fe
+                db      &7f, &fc
+                db      &0f, &e0
+                db      &20, &08
+                db      &37, &d8
+                db      &27, &c8
+                db      &0f, &e0
+                db      &1f, &f0
+                db      &1f, &f0
+                db      &1f, &f0
+                db      &1f, &f0
+                db      &0f, &e0
+
+
+
+
+;db      &13 
+;                db      &30, &00
+;                db      &48, &1C
+;                db      &84, &2E
+;                db      &43, &C6
+;                db      &24, &24
+;                db      &1E, &EC
+;                db      &12, &E4
+;                db      &38, &EE
+;                db      &26, &12
+;                db      &36, &C7
+;                db      &38, &CE
+;                db      &3C, &1C
+;                db      &63, &E0
+;                db      &01, &C0
+;                db      &02, &20
+;                db      &07, &70
+;                db      &03, &60
+;                db      &01, &40
+;               db      &00, &80
+
+
+
+g_serf_up2:     
+
+                db      &18               ; Height metadata (24 rows)
+                db      &1e, &f0
+                db      &1e, &f0
+                db      &00, &00
+                db      &0e, &e0
+                db      &4e, &e4
+                db      &4e, &e4
+                db      &af, &ea
+                db      &af, &ea
+                db      &e0, &0e
+                db      &ef, &ee
+                db      &ef, &ee
+                db      &ff, &fe
+                db      &ff, &fe
+                db      &7f, &fc
+                db      &0f, &e0
+                db      &20, &08
+                db      &37, &d8
+                db      &27, &c8
+                db      &0f, &e0
+                db      &1f, &f0
+                db      &1f, &f0
+                db      &1f, &f0
+                db      &1f, &f0
+                db      &0f, &e0
+
+;db      &13
+ ;               db      &30, &0C
+  ;              db      &48, &12
+   ;             db      &84, &21
+   ;             db      &43, &C2
+    ;            db      &24, &24
+     ;           db      &1E, &EC
+      ;          db      &12, &E4
+       ;         db      &38, &EE
+        ;        db      &26, &12
+         ;       db      &76, &C7
+          ;      db      &38, &CE
+           ;     db      &1C, &1C
+            ;    db      &03, &E0
+             ;   db      &01, &C0
+              ;  db      &02, &20
+               ; db      &07, &70
+;                db      &03, &60
+ ;               db      &01, &40
+  ;              db      &00, &80
+
+
+
+g_serf_up3:     
+
+
+                db      &18               ; Height metadata (24 rows)
+                db      &00, &f8
+                db      &0c, &f0
+                db      &1e, &00
+                db      &1c, &e0
+                db      &1a, &e0
+                db      &46, &e0
+                db      &4d, &e0
+                db      &af, &e4
+                db      &0a, &a0
+                db      &ef, &ea
+                db      &ef, &ee
+                db      &ff, &fe
+                db      &ff, &fe
+                db      &7f, &fc
+                db      &0f, &f0
+                db      &20, &08
+                db      &37, &d8
+                db      &27, &c8
+                db      &0f, &e0
+                db      &1f, &f0
+                db      &1f, &f0
+                db      &1f, &f0
+                db      &1f, &f0
+                db      &0f, &e0
+
+
+
+
+;db      &12
+;                db      &38, &12
+;                db      &74, &21
+;                db      &63, &C2
+;                db      &24, &24
+;                db      &1E, &EC
+;                db      &12, &E4
+;                db      &38, &EE
+;                db      &26, &12
+;                db      &76, &C6
+;                db      &38, &CE
+;                db      &1C, &1F
+;                db      &03, &E3
+;                db      &01, &C0
+;                db      &02, &20
+;                db      &07, &70
+;                db      &03, &60
+;                db      &01, &40
+;                db      &00, &80
+
+
+g_serf_left1:
+                db      &18               ; Height metadata (24 rows)
+                db      &0c, &e0
+                db      &1e, &f0
+                db      &18, &00
+                db      &02, &e0
+                db      &0e, &f0
+                db      &0e, &f0
+                db      &0f, &f0
+                db      &0c, &70
+                db      &00, &00
+                db      &0e, &30
+                db      &07, &10
+                db      &07, &10
+                db      &07, &f0
+                db      &07, &b0
+                db      &07, &50
+                db      &00, &e0
+                db      &07, &50
+                db      &0f, &b0
+                db      &18, &f0
+                db      &1a, &f0
+                db      &06, &f0
+                db      &00, &70
+                db      &15, &70
+                db      &1f, &e0
+
+                ;db      &0F
+                ;db      &00, &98
+                ;db      &01, &FC
+                ;db      &03, &AC
+                ;db      &13, &04
+                ;db      &3A, &2C
+                ;db      &75, &98
+                ;db      &85, &88
+                ;db      &74, &08
+                ;db      &3A, &68
+                ;db      &13, &64
+                ;db      &03, &8A
+                ;db      &07, &F1
+                ;db      &06, &11
+                ;db      &00, &0A
+                ;db      &00, &04
+
+
+g_serf_left2:
+                db      &18               ; Height metadata (24 rows)
+                db      &03, &a0
+                db      &03, &a0
+                db      &00, &00
+                db      &01, &c0
+                db      &03, &e0
+                db      &03, &b0
+                db      &03, &b0
+                db      &07, &10
+                db      &00, &00
+                db      &07, &10
+                db      &07, &10
+                db      &07, &10
+                db      &07, &f0
+                db      &07, &b0
+                db      &07, &50
+                db      &00, &e0
+                db      &07, &50
+                db      &0f, &b0
+                db      &18, &f0
+                db      &1a, &f0
+                db      &06, &f0
+                db      &00, &70
+                db      &15, &70
+                db      &1f, &e0
+
+                ;db      &0F
+                ;db      &00, &84
+                ;db      &01, &EA
+                ;db      &03, &F1
+                ;db      &13, &51
+                ;db      &3A, &2A
+                ;db      &75, &94
+                ;db      &85, &88
+                ;db      &74, &08
+                ;db      &3A, &68
+                ;db      &12, &64
+                ;db      &03, &0A
+                ;db      &03, &F1
+                ;db      &01, &D1
+                ;db      &00, &8A
+                ;db      &00, &04
+g_serf_left3:   
+                db      &18               ; Height metadata (24 rows)
+                db      &07, &30
+                db      &0f, &78
+                db      &00, &18
+                db      &07, &40
+                db      &07, &78
+                db      &07, &78
+                db      &07, &f0
+                db      &07, &80
+                db      &00, &00
+                db      &07, &10
+                db      &07, &10
+                db      &07, &10
+                db      &07, &f0
+                db      &07, &b0
+                db      &07, &50
+                db      &00, &e0
+                db      &07, &50
+                db      &0f, &b0
+                db      &18, &f0
+                db      &1a, &f0
+                db      &06, &f0
+                db      &00, &70
+                db      &15, &70
+                db      &1f, &e0
+
+
+                ;db      &0E
+                ;db      &00, &04
+                ;db      &06, &0A
+                ;db      &07, &D1
+                ;db      &13, &F1
+                ;db      &3A, &2A
+                ;db      &75, &94
+                ;db      &85, &88
+                ;db      &74, &08
+                ;db      &3A, &6C
+                ;db      &12, &64
+                ;db      &03, &0C
+                ;db      &03, &FC
+                ;db      &01, &D8
+                ;db      &00, &80
+
+
+g_serf_right1:  
+                
+                db      &18               ; Height metadata (24 rows)
+                db      &07, &30
+                db      &0f, &78
+                db      &00, &18
+                db      &07, &40
+                db      &0f, &70
+                db      &0f, &70
+                db      &0f, &f0
+                db      &0e, &30
+                db      &00, &00
+                db      &0c, &70
+                db      &08, &e0
+                db      &08, &e0
+                db      &0f, &e0
+                db      &0d, &e0
+                db      &0a, &e0
+                db      &07, &00
+                db      &0a, &e0
+                db      &0d, &f0
+                db      &0f, &18
+                db      &0f, &58
+                db      &0f, &60
+                db      &0e, &00
+                db      &0e, &a8
+                db      &07, &f8
+
+                ;db      &0F
+                ;db      &19, &00
+                ;db      &3F, &80
+                ;db      &35, &C0
+                ;db      &20, &C8
+                ;db      &34, &5C
+                ;db      &19, &AE
+                ;db      &11, &A1
+                ;db      &10, &2E
+                ;db      &16, &5C
+                ;db      &26, &C8
+                ;db      &51, &C0
+                ;db      &8F, &E0
+                ;db      &88, &60
+                ;db      &50, &00
+                ;db      &20, &00
+
+
+g_serf_right2:  
+                db      &18               ; Height metadata (24 rows)
+                db      &05, &c0
+                db      &05, &c0
+                db      &00, &00
+                db      &03, &80
+                db      &07, &c0
+                db      &0d, &c0
+                db      &0d, &c0
+                db      &08, &e0
+                db      &00, &00
+                db      &08, &e0
+                db      &08, &e0
+                db      &0f, &e0
+                db      &0d, &e0
+                db      &0a, &e0
+                db      &0a, &e0
+                db      &07, &00
+                db      &0a, &e0
+                db      &0d, &f0
+                db      &0f, &18
+                db      &0f, &58
+                db      &0f, &60
+                db      &0e, &00
+                db      &0e, &a8
+                db      &07, &f8
+
+                
+                ;db      &0F
+                ;db      &21, &00
+                ;db      &53, &80
+                ;db      &8B, &C0
+                ;db      &8E, &C8
+                ;db      &54, &5C
+                ;db      &29, &AE
+                ;db      &11, &A1
+                ;db      &10, &2E
+                ;db      &16, &5C
+                ;db      &26, &48
+                ;db      &50, &C0
+                ;db      &8F, &C0
+                ;db      &8B, &80
+                ;db      &51, &00
+                ;db      &20, &00
+
+g_serf_right3:      
+                db      &18               ; Height metadata (24 rows)
+                db      &0c, &e0
+                db      &1e, &f0
+                db      &18, &00
+                db      &02, &e0
+                db      &1e, &e0
+                db      &1e, &e0
+                db      &0f, &e0
+                db      &01, &e0
+                db      &00, &00
+                db      &08, &e0
+                db      &0c, &60
+                db      &0c, &60
+                db      &0f, &e0
+                db      &0d, &e0
+                db      &0a, &e0
+                db      &07, &00
+                db      &0a, &e0
+                db      &0d, &f0
+                db      &0f, &18
+                db      &0f, &58
+                db      &0f, &60
+                db      &0e, &00
+                db      &0e, &a8
+                db      &07, &f8
+
+                ;db      &0E
+                ;db      &20, &00
+                ;db      &50, &60
+                ;db      &8B, &E0
+                ;db      &8F, &C8
+                ;db      &54, &5C
+                ;db      &29, &AE
+                ;db      &11, &A1
+                ;db      &10, &2E
+                ;db      &36, &7C
+                ;db      &26, &68
+                ;db      &30, &C0
+                ;db      &3F, &C0
+                ;db      &1B, &80
+                ;db      &01, &00
+
 g_clock:        db  4, &20
                 db  0, &3f, &fc, 0
                 db  0, &70, &0e, 0

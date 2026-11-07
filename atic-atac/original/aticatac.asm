@@ -2226,7 +2226,7 @@ char_item:
                 dw      char_txt_table          ; +1 Txt ptr
                 dw      char_entity             ; +3 Icon ptr
                 db      &28                     ; +5 Y-coord
-                db      3                       ; +6 Max
+                db      2                       ; +6 Max
 char_state:     db      0, &ff                  ; +7 Curr/Prev
 
 mode_item:
@@ -2306,31 +2306,31 @@ keyboard_txt:   db      '1  KEYBOAR', &C4
 kempston_txt:   db      '1  KEMPSTO', &CE
 sinclair_txt:   db      '1  CURSOR ', &A0
 
-knight_txt:     db      '2  KNIGHT', &A0
-wizard_txt:     db      '2  PANDA ', &A0
-thief_txt:      db      '2  TORTLE', &A0
+knight_txt:     db      '2  KNIGH', &D4
+wizard_txt:     db      '2  PANDA', &A0
+thief_txt:      db      '2  TORTL', &C5
 
-classicm_txt:   db      '3  CLASSIC CASTL', &C5
-explorer_txt:   db      '3  OPEN CASTLE  ', &A0
-ground_txt:     db      '3  MINI CASTLE  ', &A0 
-upside_txt:     db      '3  UPSIDE DOWN  ', &A0  
+classicm_txt:   db      '3  CLASSIC CASTLE  ', &A0
+explorer_txt:   db      '3  OPEN CASTLE     ', &A0
+ground_txt:     db      '3  MINI CASTLE     ', &A0 
+upside_txt:     db      '3  UPSIDE DOWN/FRAN', &CB  
 
 classicq_txt:   db      '4  CLASSIC QUEST   ', &A0
 collect5_txt:   db      '4  COLLECT 5 ITEMS ', &A0
 collect10_txt:  db      '4  COLLECT 10 ITEMS', &A0
 collect15_txt:  db      '4  COLLECT 15 ITEMS', &A0
-racegf_txt:     db      '4  GROUND FL00R RACE', &A0
-raceat_txt:     db      '4  ATIC RACE        ', &A0
-racecv_txt:     db      '4  CAVERN RACE      ', &A0
+racegf_txt:     db      '4  GROUND FL00R RAC', &C5
+raceat_txt:     db      '4  ATIC RACE       ', &A0
+racecv_txt:     db      '4  CAVERN RACE     ', &A0
 
-acg_txt:        db      '5  CLASSIC ENTRY/EXIT', &A0  
-random_txt:     db      '5  RANDOM ENTRY ROOM ', &A0 
-alternate_txt:  db      '5  RANDOM EXIT ROOM  ', &A0 
+acg_txt:        db      '5  CLASSIC ENTRY/EXI', &D4  
+random_txt:     db      '5  RANDOM ENTRY ROOM', &A0 
+alternate_txt:  db      '5  RANDOM EXIT ROOM ', &A0 
 
 manual_txt:     db      '6  MANUAL PICKU', &D0
 auto_txt:       db      '6  AUTO PICKUP ', &A0
 
-start_txt:      db      '0  STAR', &d4 
+start_txt:      db      '0  STAR', &D4 
 
 copyright_msg : db      &47
                 db      '%1983 A.C.G. ALL RIGHTS RESERVE'
@@ -7129,7 +7129,7 @@ patch_attr:     db bright_blue
 inversion_mod:
                 ld      a, (mode_state)         ; 
                 cp      3                       ; Mode = 3  = Upside down?
-                jr      z, .set_inv_flag          ; Jump if mode 3 active
+                jr      z, .set_inv_flag        ; Jump if mode 3 active
 
 .clear_invflag:
                 ld      hl, door_1C_1D+7
@@ -7165,6 +7165,13 @@ inversion_mod:
                 jr      invert_stair_style                
 
 .set_inv_flag:
+                
+                ;set player to Frank
+                ld      hl, char_state
+                ld      (hl), 2    
+
+
+
                 ld      hl, door_1C_1D+7
                 ld      (hl), 5
 
@@ -11566,23 +11573,26 @@ loc_A210:
 ; FLOW:    Reads char_state index and selects header map.
 ; ==============================================================================
 draw_side_panel:
-                ld      a, (char_state)      ; Load index (0, 1, or 2)
+                ld      a, (mode_state)     ; Load current mode state
+                cp      &03                 ; Is mode state equal to 3?
+                jr      z, .load_ser        ; Yes -> override and load Serf header
                 
-                or      a                     ; Knight selected (0)
-                jr      z, .load_kni
+                ld      a, (char_state)     ; Load character state (0 = Knight, 1 = Wizard)
+                or      a                   ; Check if Knight selected (0)
+                jr      z, .load_kni        ; Yes -> load Knight header
                 
-                cp      1                     ; Wizard selected (1)
-                jr      z, .load_wiz
+                cp      &01                 ; Check if Wizard selected (1)
+                jr      z, .load_wiz        ; Yes -> load Wizard header
                 
-                ; Fall through to Serf (2)
-.load_ser:      ld      de, panel_hdr_ser
-                jr      draw_hdr
+                ; Fallback / Default handler if needed
+.load_ser:      ld      de, panel_hdr_ser   ; Populate DE with Serf header data pointer
+                jr      draw_hdr            ; Jump to shared header draw routine
 
-.load_kni:      ld      de, panel_hdr_kni
-                jr      draw_hdr
+.load_kni:      ld      de, panel_hdr_kni   ; Populate DE with Knight header data pointer
+                jr      draw_hdr            ; Jump to shared header draw routine
 
-.load_wiz:      ld      de, panel_hdr_wiz
-                jr      draw_hdr
+.load_wiz:      ld      de, panel_hdr_wiz   ; Populate DE with Wizard header data pointer
+                jr      draw_hdr            ; Jump to shared header draw routine
 
 draw_hdr        ld      hl, panel_chars       ; HL = panel graphics 
                 ld      (charset_addr), hl
@@ -14069,9 +14079,9 @@ g_serf_left1:
                 db      &00, &e0
                 db      &07, &50
                 db      &0f, &b0
-                db      &18, &f0
-                db      &1a, &f0
-                db      &06, &f0
+                db      31, 240
+                db      24, 240
+                db      6, 240
                 db      &00, &70
                 db      &15, &70
                 db      &1f, &e0
@@ -14114,9 +14124,9 @@ g_serf_left2:
                 db      &00, &e0
                 db      &07, &50
                 db      &0f, &b0
-                db      &18, &f0
-                db      &1a, &f0
-                db      &06, &f0
+                db      31, 240
+                db      24, 240
+                db      6, 240
                 db      &00, &70
                 db      &15, &70
                 db      &1f, &e0
@@ -14157,9 +14167,9 @@ g_serf_left3:
                 db      &00, &e0
                 db      &07, &50
                 db      &0f, &b0
-                db      &18, &f0
-                db      &1a, &f0
-                db      &06, &f0
+                db      31, 240
+                db      24, 240
+                db      6, 240
                 db      &00, &70
                 db      &15, &70
                 db      &1f, &e0
@@ -14203,9 +14213,9 @@ g_serf_right1:
                 db      &07, &00
                 db      &0a, &e0
                 db      &0d, &f0
-                db      &0f, &18
-                db      &0f, &58
-                db      &0f, &60
+                db      15, 248
+                db      15, 24
+                db      15, 96
                 db      &0e, &00
                 db      &0e, &a8
                 db      &07, &f8
@@ -14241,15 +14251,15 @@ g_serf_right2:
                 db      &00, &00
                 db      &08, &e0
                 db      &08, &e0
+                db      &08, &e0
                 db      &0f, &e0
                 db      &0d, &e0
-                db      &0a, &e0
                 db      &0a, &e0
                 db      &07, &00
                 db      &0a, &e0
                 db      &0d, &f0
+                db      &0f, &f8
                 db      &0f, &18
-                db      &0f, &58
                 db      &0f, &60
                 db      &0e, &00
                 db      &0e, &a8
@@ -14293,9 +14303,9 @@ g_serf_right3:
                 db      &07, &00
                 db      &0a, &e0
                 db      &0d, &f0
-                db      &0f, &18
-                db      &0f, &58
-                db      &0f, &60
+                db      15, 248
+                db      15, 24
+                db      15, 96
                 db      &0e, &00
                 db      &0e, &a8
                 db      &07, &f8

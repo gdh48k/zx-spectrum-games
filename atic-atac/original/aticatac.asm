@@ -11581,8 +11581,7 @@ draw_side_panel:
                 or      a                   ; Check if Knight selected (0)
                 jr      z, .load_kni        ; Yes -> load Knight header
                 
-                cp      &01                 ; Check if Wizard selected (1)
-                jr      z, .load_wiz        ; Yes -> load Wizard header
+                jr      .load_wiz           ; Only other option -> load Wizard header
                 
                 ; Fallback / Default handler if needed
 .load_ser:      ld      de, panel_hdr_ser   ; Populate DE with Serf header data pointer

@@ -4502,6 +4502,17 @@ game_story:
                 ;call    nz, weapon_pop
                 ld      b, 20                   ; 10 frames delay
                 call    wait_frames
+
+                ;reset Frank selection
+                ld      hl, char_state
+                ld      a, (hl)
+                cp      02              ; current char_state = frank?
+                ret     nz              ; return if not
+
+                ld      ix, char_item     
+                ld      a, (ix+8)
+                ld      (hl), a         ; rest char_state to previous selection
+
                 ret
 
 ; -------------------------------------------------------------------

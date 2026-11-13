@@ -255,7 +255,7 @@ food_init:      db  &50, &27, 0, &57, &67, &43, 0, 0 ; can
                 db  &57, &4e, 0, &40, &67, &47, 0, 0
                 db  &57, &49, 0, &57, &67, &47, 0, 0
                 db  &57, &28, 0, &57, &67, &47, 0, 0
-mushrooms:        db  &a1, &50, 0, &57, &40, &42, 0, 0 ; mushroom
+mushrooms:      db  &a1, &50, 0, &57, &40, &42, 0, 0 ; mushroom
                 db  &a1, &43, 0, &6b, &54, &42, 1, 0
                 db  &a1, &40, 0, &43, &7b, &42, 2, 0
                 db  &a1, &8f, 0, &57, &8f, &42, 3, 0
@@ -263,10 +263,10 @@ mushrooms:        db  &a1, &50, 0, &57, &40, &42, 0, 0 ; mushroom
                 db  &a1, &8f, 0, &6b, &7b, &42, 5, 0
                 db  &a1, &45, 0, &80, &67, &42, 6, 0 
                 db  &a1, &38, 0, &6b, &54, &42, 7, 0
-                db  &a1, &0, 0, &30, &40, &42, 6, 0  ;74>0
-                db  &a1, &0, 0, &30, &88, &42, 5, 0  ;74>0
-                db  &a1, &0, 0, &78, &88, &42, 4, 0  ;74>0
-                db  &a1, &0, 0, &80, &40, &42, 3, 0  ;74>0
+                db  &a1, &74, 0, &30, &40, &42, 6, 0  ;74>0
+                db  &a1, &74, 0, &30, &88, &42, 5, 0  ;74>0
+                db  &a1, &74, 0, &78, &88, &42, 4, 0  ;74>0
+                db  &a1, &74, 0, &80, &40, &42, 3, 0  ;74>0
                 db  &a1, &54, 0, &57, &40, &42, 2, 0
                 db  &a1, &3b, 0, &43, &7b, &42, 1, 0
                 db  &a1, &3b, 0, &6b, &7b, &42, 0, 0
@@ -7163,6 +7163,11 @@ inversion_mod:
                 xor     a                       ; 
                 ld      (hl), a                 ; Reset inversion_flag to 0
 
+
+                ; reset mushroom location
+                ld      ix, mushrooms
+                ld      (ix+1), 7
+
                 ; Reset room attribute pointer to room_attr
                 ;ld      hl, room_attr           ; Default room attribute source
                 ;ld      (loc_9D37 - 2), hl      ; Patch SMC load operand
@@ -7202,6 +7207,10 @@ inversion_mod:
 
                 ld      a, 1                    ;
                 ld      (hl), a                 ; Set inversion_flag to 1
+
+                ; set mushroom location
+                ld      ix, mushrooms
+                ld      (ix+1), 0
 
 
                 ; Patch room attribute pointer to dark_blue_val

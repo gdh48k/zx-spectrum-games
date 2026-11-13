@@ -4211,14 +4211,15 @@ d.creatures:    db  &68                       ; ghost y
                 db  &90                       ; witch
                 db  &4c                       ; pumpkin y
                 db  &4c                       ; pumpkin y
-                db  &4e                       ; ghostlet
-                db  &4e                       ; ghostlet
-                db  &5e                       ; spikey y
+                db  &68                       ; ghost y
+                db  &68                       ; ghost y
                 db  &94                       ; monk
                 db  &94                       ; monk
                 db  &94                       ; monk
                 db  &94                       ; monk
-                db  &5e                       ; spikey y
+                db  &90                       ; witch
+                db  &90                       ; witch
+
 
 
 ; draw chicken energy bar

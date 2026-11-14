@@ -14697,78 +14697,32 @@ g_wizard_right3:
                 db      &10, &00
                 db      &10, &00
                 db      &0E, &00
-g_sword7:       db  &0c
-                db  0, 0
-                db  0, 0
-                db  0, 0
-                db  0, 0
-                db  0, &20
-                db  0, &10
-                db  0, &12
-                db  &7f, &df
-                db  &ff, &df
-                db  0, &12
-                db  0, &10
-                db  0, &20
-g_sword4:       db  &0d
-                db  0, 0
-                db  0, &1c
-                db  1, &dc
-                db  0, &7c
-                db  0, &30
-                db  0, &d8
-                db  1, &c8
-                db  3, &88
-                db  7, 0
-                db  &0e, 0
-                db  &1c, 0
-                db  &18, 0
-                db  &10, 0
-g_sword5:       db  &10
+
+
+
+
+
+
+
+g_sword1:       db  &10     ; down
+                db  1, 0    
+                db  1, &80
+                db  1, &80
+                db  1, &80
+                db  1, &80
+                db  1, &80
+                db  1, &80
+                db  1, &80
+                db  1, &80
+                db  1, &80
+                db  8, &10
+                db  7, &e0
+                db  1, &80
                 db  1, &80
                 db  3, &c0
                 db  1, &80
-                db  1, &80
-                db  7, &e0
-                db  8, &10
-                db  1, &80
-                db  1, &80
-                db  1, &80
-                db  1, &80
-                db  1, &80
-                db  1, &80
-                db  1, &80
-                db  1, &80
-                db  1, &80
-                db  0, &80
-g_sword6:       db  &0d
-                db  0, 0
-                db  0, 0
-                db  &38, 0
-                db  &3b, &80
-                db  &3e, 0
-                db  &0c, 0
-                db  &1b, 0
-                db  &13, &80
-                db  &11, &c0
-                db  0, &e0
-                db  0, &70
-                db  0, &38
-                db  0, &1c
-g_sword3:       db  &0c
-                db  0, 0
-                db  0, 0
-                db  0, 0
-                db  0, 0
-                db  4, 0
-                db  8, 0
-                db  &48, 0
-                db  &fd, &ff
-                db  &fd, &fe
-                db  &48, 0
-                db  8, 0
-                db  4, 0
-g_sword2:       db  &0c
+
+g_sword2:       db  &0c   ;2=down right
                 db  0, 0
                 db  0, 8
                 db  0, &18
@@ -14782,24 +14736,176 @@ g_sword2:       db  &0c
                 db  &3e, 0
                 db  &3b, &80
                 db  &38, 0
-g_sword1:       db  &10
-                db  1, 0
-                db  1, &80
-                db  1, &80
-                db  1, &80
-                db  1, &80
-                db  1, &80
-                db  1, &80
-                db  1, &80
-                db  1, &80
-                db  1, &80
-                db  8, &10
-                db  7, &e0
-                db  1, &80
-                db  1, &80
+
+;g_sword2:       db  &0c
+;                db  0, 0
+;                db  0, 8
+;                db  0, &18
+;                db  0, &38
+;                db  0, &70
+;                db  0, &e0
+;                db  &11, &c0
+;                db  &13, &80
+;                db  &1d, 0
+;                db  &0c, 0
+;                db  &3e, 0
+;                db  &3b, &80
+;                db  &38, 0
+
+g_sword3:       db  &10         ; 3 = right spanner
+                db  &20, 0
+                db  &70, 0
+                db  &78, 0
+                db  &3c, 0
+                db  &1e, 0
+                db  &0f, 0
+                db  7, &80
+                db  3, &c0
+                db  1, &e0
+                db  0, &f8
+                db  0, &7e
+                db  0, &7f
+                db  0, &7f
+                db  0, &63
+                db  0, &63
+                db  0, &22
+
+;g_sword3:       db  &0c      ; 3 = right
+;                db  0, 0
+;                db  0, 0
+;                db  0, 0
+;                db  0, 0
+;                db  4, 0
+;                db  8, 0
+;                db  &48, 0
+;                db  &fd, &ff
+;                db  &fd, &fe
+;                db  &48, 0
+;                db  8, 0
+;                db  4, 0
+
+g_sword4:       db  &0d     ; original data   (UP LEFT)
+                db  0, 0
+                db  0, &1c
+                db  1, &dc
+                db  0, &7c
+                db  0, &30
+                db  0, &d8
+                db  1, &c8
+                db  3, &88
+                db  7, 0
+                db  &0e, 0
+                db  &1c, 0
+                db  &18, 0
+                db  &10, 0
+
+
+
+;g_sword4:       db  &0d     ; original data   (UP LEFT)
+;                db  0, 0
+;                db  0, &1c
+;                db  1, &dc
+;                db  0, &7c
+;                db  0, &30
+;                db  0, &d8
+;                db  1, &c8
+;                db  3, &88
+;                db  7, 0
+;                db  &0e, 0
+;                db  &1c, 0
+;                db  &18, 0
+;                db  &10, 0
+
+g_sword5:       db  &10      ; up 
+                db  1, &80   
                 db  3, &c0
                 db  1, &80
-g_sword8:       db  &10
+                db  1, &80
+                db  7, &e0
+                db  8, &10
+                db  1, &80
+                db  1, &80 
+                db  1, &80
+                db  1, &80
+                db  1, &80
+                db  1, &80
+                db  1, &80
+                db  1, &80
+                db  1, &80
+                db  0, &80
+
+g_sword6:       db  &10    ; up right spanner
+                db  &20, 0
+                db  &70, 0
+                db  &78, 0
+                db  &3c, 0
+                db  &1e, 0
+                db  &0f, 0
+                db  7, &80
+                db  3, &c0
+                db  1, &e0
+                db  0, &f8
+                db  0, &7e
+                db  0, &7f
+                db  0, &7f
+                db  0, &63
+                db  0, &63
+                db  0, &22
+
+;g_sword6:       db  &0d   ; up right (sword)
+;                db  0, 0
+;                db  0, 0
+;                db  &38, 0
+;                db  &3b, &80
+;                db  &3e, 0
+;                db  &0c, 0
+;                db  &1b, 0
+;                db  &13, &80
+;                db  &11, &c0
+;                db  0, &e0
+;                db  0, &70
+;                db  0, &38
+;                db  0, &1c
+
+;g_sword7:       db  &10         ;7=left
+;                db  0, 0
+;                db  &20, 0
+;                db  &70, 0
+;                db  &78, 0
+;                db  &3c, 0
+;                db  &1e, 0
+;                db  &0f, 0
+;                db  7, &80
+;                db  3, &c0
+;                db  1, &e0
+;                db  0, &f8
+;                db  0, &7e
+;                db  0, &7f
+;                db  0, &7f
+;                db  0, &63
+;                db  0, &63
+;                db  0, &22
+
+g_sword7:       db  &0c        ;7=left
+                db  0, 0
+                db  0, 0
+                db  0, 0
+                db  0, 0
+                db  0, &20
+                db  0, &10
+                db  0, &12
+                db  &7f, &df
+                db  &ff, &df
+                db  0, &12
+                db  0, &10
+                db  0, &20
+
+
+
+
+
+
+g_sword8:       db  &10     ; down left
                 db  0, 0
                 db  0, 0
                 db  &10, 0
@@ -14816,6 +14922,7 @@ g_sword8:       db  &10
                 db  0, &1c
                 db  0, 0
                 db  0, 0
+
 g_axe1:         db  &10
                 db  0, 0
                 db  0, 0

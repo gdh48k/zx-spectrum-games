@@ -2310,10 +2310,10 @@ knight_txt:     db      '2  KNIGH', &D4
 wizard_txt:     db      '2  PANDA', &A0
 thief_txt:      db      '2  TORTL', &C5
 
-classicm_txt:   db      '3  CLASSIC CASTLE  ', &A0
-explorer_txt:   db      '3  OPEN CASTLE     ', &A0
-ground_txt:     db      '3  MINI CASTLE     ', &A0 
-upside_txt:     db      '3  UPSIDE DOWN/FRAN', &CB  
+classicm_txt:   db      '3  CLASSIC CASTL', &C5
+explorer_txt:   db      '3  OPEN CASTLE  ', &A0
+ground_txt:     db      '3  MINI CASTLE  ', &A0 
+upside_txt:     db      '3  UPSIDE DOWN  ', &A0  
 
 classicq_txt:   db      '4  CLASSIC QUEST   ', &A0
 collect5_txt:   db      '4  COLLECT 5 ITEMS ', &A0

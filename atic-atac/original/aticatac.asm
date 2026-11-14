@@ -3267,16 +3267,13 @@ loc_840D:
                 ld      (hl), a
                 inc     hl
                 push    hl
-                ;  INSERT TOGGLE FOR UPSIDE DOWN
-
-
-
+                ; logic to select creatures or d.creatures
                 ld      hl, creatures        ; creature table
                 ld      a, (mode_state)         ; 
-                cp      3                       ; Mode = 3  = Upside down?
-                jr      nz, .no_dimmer       ; Jump if mode 3 active
+                cp      3                    ; Mode = 3  = Upside down?
+                jr      nz, .no_dimmer       ; Jump if not
 
-dimmer:         ld      hl, d.creatures
+dimmer:         ld      hl, d.creatures      ; Select dim creatures if so
 
 .no_dimmer:     ld      a, (sysvar_FRAMES)
                 and     &0f                  ; 16 creatures entries to choose from
@@ -3287,7 +3284,7 @@ dimmer:         ld      hl, d.creatures
                 pop     hl
                 ld      (hl), a              ; set graphic
                 ld      de, (room_width)
-                ld      b, e
+                ld      b, e 
                 call    rnd_coord            ; random coord less than interior size B
                 ld      (hl), a              ; set x
                 ld      b, d
@@ -4197,7 +4194,7 @@ creatures:      db  &5c                       ; spider -
                 db  &5c                       ; spider
                 db  &5e                       ; spikey 
                 db  &60                       ; blob -
-                db  &62                      ; ghoul -
+                db  &62                       ; ghoul -
                 db  &4c                       ; pumpkin +
                 db  &4e                       ; ghostlet +
                 db  &68                       ; ghost +
@@ -4216,8 +4213,8 @@ d.creatures:    db  &68                       ; ghost y
                 db  &94                       ; monk
                 db  &94                       ; monk
                 db  &94                       ; monk
-                db  &94                       ; monk
-                db  &90                       ; witch
+                db  &4e                       ; ghostlet
+                db  &4e                       ; ghostlet
                 db  &90                       ; witch
 
 

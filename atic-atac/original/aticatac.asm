@@ -2411,7 +2411,7 @@ print_text:
 
 start_game:
                 call    clear_game_data      ; clear 5E10-5FFF
-                ld      a, 0                 ; 3 lives on startup
+                ld      a, 3                 ; 3 lives on startup
                 ld      (lives), a
                 ld      hl, food_items
                 ld      (food_ptr), hl
@@ -11300,7 +11300,7 @@ clear_sprite:
                 ld      l, (ix+3)
                 ld      h, (ix+4)
                 call    xy_to_display        ; convert coords in HL to display address in HL
-                ld      b, &14               ; 20 pixels high
+                ld      b, &18               ; 20 pixels high
 loc_A190:
                 ld      (hl), 0              ; clear 2 bytes wide
                 inc     l
@@ -11846,7 +11846,7 @@ dim_side_panel: ld      a, dark_cyan
                 ld      hl, lives_attr_yx    ; MOD: Change &7fc8 to &86c8 y,x coords
                 call    xy_to_attr           ; convert pixel coords in HL to attribute address
                 ld      bc, &0603            ; 6x3
-                ld      a, bright_white     ; bright white (LIVES)
+                ld      a, bright_white_bl     ; bright white (LIVES)
                 call    fill_bc_hl_a         ; fill C rows of B columns of value A at address HL
                 
 
@@ -11940,7 +11940,7 @@ draw_lives:
                 or      1                 ; Offset to the 'life icon' sprite
 
                 ld      (ix+0), a            ; character type
-                ld      (ix+5), &47          ; bright white
+                ld      (ix+5), bright_white          ; bright white
                 ld      hl, lives_yx         ; coords H=Y, L=X (CHANGED FROM 8dc8 to 95c8)
                 ld      (ix+3), l
                 ld      (ix+4), h

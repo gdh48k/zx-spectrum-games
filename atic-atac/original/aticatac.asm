@@ -90,6 +90,45 @@ sysvar_FRAMES:  equ &5c78
         
 
 main_selection  db  0
+
+keyboard_txt:   db      '1  KEYBOAR', &C4 
+kempston_txt:   db      '1  KEMPSTO', &CE
+sinclair_txt:   db      '1  CURSOR ', &A0
+
+knight_txt:     db      '2  KNIGH', &D4
+wizard_txt:     db      '2  PANDA', &A0
+thief_txt:      db      '2  TORTL', &C5
+
+classicm_txt:   db      '3  CLASSIC CASTL', &C5
+explorer_txt:   db      '3  OPEN CASTLE  ', &A0
+ground_txt:     db      '3  MINI CASTLE  ', &A0 
+upside_txt:     db      '3  UPSIDE DOWN  ', &A0  
+
+classicq_txt:   db      '4  CLASSIC QUEST   ', &A0
+collect5_txt:   db      '4  COLLECT 5 ITEMS ', &A0
+collect10_txt:  db      '4  COLLECT 10 ITEMS', &A0
+collect15_txt:  db      '4  COLLECT 15 ITEMS', &A0
+racegf_txt:     db      '4  GROUND FL00R RAC', &C5
+raceat_txt:     db      '4  ATIC RACE       ', &A0
+racecv_txt:     db      '4  CAVERN RACE     ', &A0
+
+acg_txt:        db      '5  CLASSIC ENTRY/EXI', &D4  
+random_txt:     db      '5  RANDOM ENTRY ROOM', &A0 
+alternate_txt:  db      '5  RANDOM EXIT ROOM ', &A0 
+
+manual_txt:     db      '6  MANUAL PICKU', &D0
+auto_txt:       db      '6  AUTO PICKUP ', &A0
+
+start_txt:      db      '0  STAR', &D4 
+
+copyright_msg : db      &47
+                db      '%1983 A.C.G. ALL RIGHTS RESERVE'
+                db      &c4
+
+header_msg:     db      &47
+                db      'ATIC ATAC 202'
+                db      &b6 
+
 charset_addr:   dw  0
 last_FRAMES:    db  0
 in_handlers:    db  0                         ; flag set but never read
@@ -134,6 +173,10 @@ clock_seconds:  db  0
 visited_rooms:  ds  20                        ; visit rooms bit array
 visited_number: dw  0
 food_ptr:       dw  0
+
+
+
+
 
 
                 org &6000
@@ -2302,43 +2345,7 @@ start_txt_table dw      start_txt
 ; ==============================================================================
 ; 3. OPTION TEXT 
 ; ==============================================================================
-keyboard_txt:   db      '1  KEYBOAR', &C4 
-kempston_txt:   db      '1  KEMPSTO', &CE
-sinclair_txt:   db      '1  CURSOR ', &A0
-
-knight_txt:     db      '2  KNIGH', &D4
-wizard_txt:     db      '2  PANDA', &A0
-thief_txt:      db      '2  TORTL', &C5
-
-classicm_txt:   db      '3  CLASSIC CASTL', &C5
-explorer_txt:   db      '3  OPEN CASTLE  ', &A0
-ground_txt:     db      '3  MINI CASTLE  ', &A0 
-upside_txt:     db      '3  UPSIDE DOWN  ', &A0  
-
-classicq_txt:   db      '4  CLASSIC QUEST   ', &A0
-collect5_txt:   db      '4  COLLECT 5 ITEMS ', &A0
-collect10_txt:  db      '4  COLLECT 10 ITEMS', &A0
-collect15_txt:  db      '4  COLLECT 15 ITEMS', &A0
-racegf_txt:     db      '4  GROUND FL00R RAC', &C5
-raceat_txt:     db      '4  ATIC RACE       ', &A0
-racecv_txt:     db      '4  CAVERN RACE     ', &A0
-
-acg_txt:        db      '5  CLASSIC ENTRY/EXI', &D4  
-random_txt:     db      '5  RANDOM ENTRY ROOM', &A0 
-alternate_txt:  db      '5  RANDOM EXIT ROOM ', &A0 
-
-manual_txt:     db      '6  MANUAL PICKU', &D0
-auto_txt:       db      '6  AUTO PICKUP ', &A0
-
-start_txt:      db      '0  STAR', &D4 
-
-copyright_msg : db      &47
-                db      '%1983 A.C.G. ALL RIGHTS RESERVE'
-                db      &c4
-
-header_msg:     db      &47
-                db      'ATIC ATAC 202'
-                db      &b6  
+ 
 
 ; ==============================================================================
 ; 4. STATE TRACKERS

@@ -14703,7 +14703,7 @@ g_wizard_right3:
 
 
 g_sword1:       
-                db      &10                 ; &10 lines height header
+                db      &10                 ; &10 lines height header   DONE!
                 db      &02, &20
                 db      &06, &30
                 db      &06, &30
@@ -14775,23 +14775,23 @@ g_sword2:       db      &10
 ;                db  &3b, &80
 ;                db  &38, 0
 
-g_sword3:       db  &10         ; 3 = right spanner
-                db  &20, 0
-                db  &70, 0
-                db  &78, 0
-                db  &3c, 0
-                db  &1e, 0
-                db  &0f, 0
-                db  7, &80
-                db  3, &c0
-                db  1, &e0
-                db  0, &f8
-                db  0, &7e
-                db  0, &7f
-                db  0, &7f
-                db  0, &63
-                db  0, &63
-                db  0, &22
+g_sword3:       db      &10                 ; right
+                db      0, 0
+                db      0, 0
+                db      0, 0
+                db      0, 0
+                db      0, &1e
+                db      0, &7f
+                db      &ff, &f8
+                db      &ff, &f8
+                db      &ff, &f8
+                db      0, &7f
+                db      0, &3e
+                db      0, 0
+                db      0, 0
+                db      0, 0
+                db      0, 0
+                db      0, 0
 
 ;g_sword3:       db  &0c      ; 3 = right
 ;                db  0, 0
@@ -14807,20 +14807,23 @@ g_sword3:       db  &10         ; 3 = right spanner
 ;                db  8, 0
 ;                db  4, 0
 
-g_sword4:       db  &0d     ; original data   (UP LEFT)
-                db  0, 0
-                db  0, &1c
-                db  1, &dc
-                db  0, &7c
-                db  0, &30
-                db  0, &d8
-                db  1, &c8
-                db  3, &88
-                db  7, 0
-                db  &0e, 0
-                db  &1c, 0
-                db  &18, 0
-                db  &10, 0
+g_sword4:       db      &10                 ; &10 lines
+                db      0, &04
+                db      0, &06
+                db      0, &0e
+                db      0, &1c
+                db      0, &38
+                db      0, &70
+                db      0, &e0
+                db      &01, &c0
+                db      &03, &80
+                db      &1f, 0
+                db      &7e, 0
+                db      &fe, 0
+                db      &fe, 0
+                db      &c6, 0
+                db      &c6, 0
+                db      &44, 0
 
 
 
@@ -14839,7 +14842,7 @@ g_sword4:       db  &0d     ; original data   (UP LEFT)
 ;                db  &18, 0
 ;                db  &10, 0
 
-g_sword5:       db  &10      ; up
+g_sword5:       db  &10      ; up  DONE
                 db      &03, &80
                 db      &03, &80
                 db      &03, &80
@@ -14908,38 +14911,25 @@ g_sword6:       db  &10    ; up right spanner
 ;                db  0, &38
 ;                db  0, &1c
 
-;g_sword7:       db  &10         ;7=left
-;                db  0, 0
-;                db  &20, 0
-;                db  &70, 0
-;                db  &78, 0
-;                db  &3c, 0
-;                db  &1e, 0
-;                db  &0f, 0
-;                db  7, &80
-;                db  3, &c0
-;                db  1, &e0
-;                db  0, &f8
-;                db  0, &7e
-;                db  0, &7f
-;                db  0, &7f
-;                db  0, &63
-;                db  0, &63
-;                db  0, &22
 
-g_sword7:       db  &0c        ;7=left
-                db  0, 0
-                db  0, 0
-                db  0, 0
-                db  0, 0
-                db  0, &20
-                db  0, &10
-                db  0, &12
-                db  &7f, &df
-                db  &ff, &df
-                db  0, &12
-                db  0, &10
-                db  0, &20
+
+g_sword7:       db      &10                 ; left
+                db      0, 0
+                db      0, 0
+                db      0, 0
+                db      0, 0
+                db      0, 0
+                db      &7c, 0
+                db      &fe, 0
+                db      &1f, &ff
+                db      &1f, &ff
+                db      &1f, &ff
+                db      &fe, 0
+                db      &78, 0
+                db      0, 0
+                db      0, 0
+                db      0, 0
+                db      0, 0
 
 ;g_sword7:       db  &0c        ;7=left
 ;                db  0, 0
